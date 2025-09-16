@@ -1,3 +1,6 @@
+/*
+ * Developed & maintained by Slimene Fellah — Available for freelance work at slimenefellah.dev
+ */
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'

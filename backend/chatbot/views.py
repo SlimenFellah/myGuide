@@ -44,7 +44,7 @@ class KnowledgeBaseListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAdminUser]
     pagination_class = ChatPagination
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['category', 'source_type', 'is_active']
+    filterset_fields = ['source_type', 'is_active']
     search_fields = ['title', 'content', 'tags']
     ordering_fields = ['created_at', 'updated_at', 'title']
     ordering = ['-created_at']

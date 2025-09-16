@@ -3,6 +3,9 @@
  * Available for freelance projects
  */
 import { useState, useRef, useEffect } from 'react';
+import { useAppContext } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
+import { apiService } from '../services';
 import { 
   Send, 
   Bot, 
@@ -19,26 +22,51 @@ import {
   ThumbsUp,
   ThumbsDown
 } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
 
 const ChatbotPage = () => {
   const { user } = useAuth();
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      type: 'bot',
-      content: `Hello ${user?.firstName || 'there'}! 👋 I'm your AI travel guide for Algeria. I can help you with:\n\n• Information about provinces, districts, and municipalities\n• Recommendations for places to visit\n• Local cuisine and restaurants\n• Cultural insights and travel tips\n• Planning your itinerary\n\nWhat would you like to know about Algeria?`,
-      timestamp: new Date(),
-      suggestions: [
-        'Tell me about Algiers',
-        'Best restaurants in Oran',
-        'Historic sites in Constantine',
-        'Nature parks in Algeria'
-      ]
-    }
-  ]);
+  const { state, dispatch, sendChatMessage } = useAppContext();
   const [inputMessage, setInputMessage] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
+  const [currentConversationId, setCurrentConversationId] = useState(null);
+  
+  const { conversations, activeConversation, chatLoading } = state;
+  const messages = activeConversation?.messages || [];
+  const isTyping = chatLoading;
+  
+  // Initialize conversation
+  useEffect(() => {
+    const initializeChat = async () => {
+      if (!currentConversationId) {
+        try {
+          const result = await apiService.chatbot.createConversation();
+          if (result.success) {
+            setCurrentConversationId(result.data.id);
+            // Send welcome message
+            const welcomeMessage = {
+              id: Date.now(),
+              type: 'bot',
+              content: `Hello ${user?.firstName || 'there'}! 👋 I'm your AI travel guide for Algeria. I can help you with:\n\n• Information about provinces, districts, and municipalities\n• Recommendations for places to visit\n• Local cuisine and restaurants\n• Cultural insights and travel tips\n• Planning your itinerary\n\nWhat would you like to know about Algeria?`,
+              timestamp: new Date(),
+              suggestions: [
+                'Tell me about Algiers',
+                'Best restaurants in Oran',
+                'Historic sites in Constantine',
+                'Nature parks in Algeria'
+              ]
+            };
+            dispatch({ type: 'ADD_CHAT_MESSAGE', payload: welcomeMessage });
+          }
+        } catch (error) {
+          dispatch({ type: 'ADD_NOTIFICATION', payload: {
+            type: 'error',
+            message: 'Failed to initialize chat'
+          }});
+        }
+      }
+    };
+    
+    initializeChat();
+  }, [user, currentConversationId, dispatch]);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -51,7 +79,7 @@ const ChatbotPage = () => {
   }, [messages]);
 
   const handleSendMessage = async (message = inputMessage) => {
-    if (!message.trim()) return;
+    if (!message.trim() || !currentConversationId) return;
 
     const userMessage = {
       id: Date.now(),
@@ -60,16 +88,19 @@ const ChatbotPage = () => {
       timestamp: new Date()
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    // Add user message to state
+    dispatch({ type: 'ADD_CHAT_MESSAGE', payload: userMessage });
     setInputMessage('');
-    setIsTyping(true);
-
-    // Simulate AI response
-    setTimeout(() => {
-      const botResponse = generateBotResponse(message);
-      setMessages(prev => [...prev, botResponse]);
-      setIsTyping(false);
-    }, 1500 + Math.random() * 1000);
+    
+    // Send message to API
+    try {
+      await sendChatMessage(currentConversationId, message);
+    } catch (error) {
+      dispatch({ type: 'ADD_NOTIFICATION', payload: {
+        type: 'error',
+        message: 'Failed to send message. Please try again.'
+      }});
+    }
   };
 
   const generateBotResponse = (userMessage) => {
@@ -172,7 +203,8 @@ const ChatbotPage = () => {
   };
 
   return (
-    <div className="container py-8">
+    <div className="w-full">
+      <div className="container-content py-8">
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center justify-between">
@@ -384,6 +416,7 @@ const ChatbotPage = () => {
           <Sparkles className="inline mr-1" size={12} />
           AI responses are generated based on available data. Always verify important travel information.
         </p>
+      </div>
       </div>
     </div>
   );

@@ -5,6 +5,8 @@ from django.db.models import Q
 from django.conf import settings
 from .models import KnowledgeBase, ChatMessage
 import openai
+import ollama
+from decouple import config
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
@@ -129,13 +131,18 @@ class RAGService:
         return "\n".join(context_parts)
 
 class ChatbotService:
-    """Service for generating AI responses using OpenAI or fallback logic"""
+    """Service for generating AI responses using Ollama or fallback logic"""
     
     def __init__(self):
-        # Initialize OpenAI if API key is available
-        self.use_openai = hasattr(settings, 'OPENAI_API_KEY') and settings.OPENAI_API_KEY
+        # Initialize Ollama configuration
+        self.ollama_base_url = config('OLLAMA_BASE_URL', default='http://localhost:11434')
+        self.ollama_model = config('OLLAMA_MODEL', default='llama2:chat')
+        self.use_ollama = True
+        
+        # Fallback to OpenAI if configured
+        self.use_openai = config('OPENAI_API_KEY', default=None) is not None
         if self.use_openai:
-            openai.api_key = settings.OPENAI_API_KEY
+            openai.api_key = config('OPENAI_API_KEY')
     
     def generate_response(
         self, 
@@ -145,10 +152,75 @@ class ChatbotService:
     ) -> Dict[str, Any]:
         """Generate a response using AI or fallback logic"""
         
-        if self.use_openai:
+        if self.use_ollama:
+            return self._generate_ollama_response(user_message, context, conversation_history)
+        elif self.use_openai:
             return self._generate_openai_response(user_message, context, conversation_history)
         else:
             return self._generate_fallback_response(user_message, context)
+    
+    def _generate_ollama_response(
+        self, 
+        user_message: str, 
+        context: str, 
+        conversation_history: Optional[List[Dict]] = None
+    ) -> Dict[str, Any]:
+        """Generate response using Ollama API"""
+        try:
+            # Build the prompt with context and conversation history
+            system_prompt = f"""You are a helpful tourism assistant for Algeria. Use the following context to answer questions about Algeria's tourism, culture, places to visit, and travel information.
+            
+Context:
+{context}
+            
+Instructions:
+- Provide accurate and helpful information about Algeria
+- If the context doesn't contain relevant information, use your general knowledge about Algeria
+- Be friendly and encouraging about visiting Algeria
+- Suggest specific places, activities, or experiences when appropriate
+- If asked about travel logistics, provide practical advice
+- Keep responses concise but informative"""
+            
+            # Build conversation context
+            conversation_context = ""
+            if conversation_history:
+                for msg in conversation_history[-4:]:  # Last 4 messages for context
+                    role = "Human" if msg['message_type'] == 'user' else "Assistant"
+                    conversation_context += f"{role}: {msg['message']}\n"
+            
+            # Create the full prompt
+            full_prompt = f"{system_prompt}\n\n{conversation_context}Human: {user_message}\nAssistant:"
+            
+            # Generate response using Ollama
+            response = ollama.generate(
+                model=self.ollama_model,
+                prompt=full_prompt,
+                options={
+                    'temperature': 0.7,
+                    'top_p': 0.9,
+                    'max_tokens': 500
+                }
+            )
+            
+            ai_response = response['response'].strip()
+            
+            # Generate suggestions based on the response
+            suggestions = self._generate_suggestions(user_message, ai_response)
+            
+            return {
+                'response': ai_response,
+                'confidence': 0.85,
+                'sources': self._extract_sources_from_context(context),
+                'suggestions': suggestions
+            }
+            
+        except Exception as e:
+            print(f"Ollama API error: {e}")
+            # Fallback to OpenAI if available, otherwise use fallback response
+            if self.use_openai:
+                return self._generate_openai_response(user_message, context, conversation_history)
+            else:
+                return self._generate_fallback_response(user_message, context)
     
     def _generate_openai_response(
         self, 

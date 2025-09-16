@@ -1,5 +1,8 @@
 #!/usr/bin/env python
-"""Django's command-line utility for administrative tasks."""
+"""Django's command-line utility for administrative tasks.
+
+Developed & maintained by Slimene Fellah — Available for freelance work at slimenefellah.dev
+"""
 import os
 import sys
 

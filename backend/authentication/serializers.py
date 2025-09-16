@@ -6,6 +6,15 @@ from .models import User, UserPreferences, UserActivity
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     """Custom JWT token serializer with additional user data"""
+    username_field = User.USERNAME_FIELD
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Safely handle field mapping for email-based authentication
+        if 'username' in self.fields:
+            self.fields['email'] = self.fields.pop('username')
+        else:
+            self.fields['email'] = serializers.EmailField()
     
     @classmethod
     def get_token(cls, user):
@@ -79,7 +88,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         model = User
         fields = (
             'id', 'username', 'email', 'first_name', 'last_name', 'full_name',
-            'phone', 'profile_picture', 'bio', 'date_joined', 'last_login'
+            'phone', 'profile_picture', 'date_joined', 'last_login'
         )
         read_only_fields = ('id', 'username', 'date_joined', 'last_login')
     

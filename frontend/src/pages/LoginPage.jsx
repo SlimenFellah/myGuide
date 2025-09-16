@@ -2,10 +2,14 @@
  * Author: Slimene Fellah
  * Available for freelance projects
  */
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Eye, EyeOff, Mail, Lock, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, AlertCircle, ArrowLeft, Loader2 } from 'lucide-react';
+import { Button } from '../components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Input } from '../components/ui/input';
+import myGuideLogo from '../assets/myGuide-logo.png';
 
 const LoginPage = () => {
   const [formData, setFormData] = useState({
@@ -14,7 +18,7 @@ const LoginPage = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -23,186 +27,173 @@ const LoginPage = () => {
   const from = location.state?.from?.pathname || '/dashboard';
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-    // Clear error when user starts typing
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
     if (error) setError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
+    setIsLoading(true);
 
-    const result = await login(formData.email, formData.password);
-    
-    if (result.success) {
-      navigate(from, { replace: true });
-    } else {
-      setError(result.error);
+    try {
+      const result = await login(formData.email, formData.password);
+      if (result.success) {
+        navigate(from, { replace: true });
+      } else {
+        setError(result.error || 'Login failed. Please try again.');
+      }
+    } catch (err) {
+      setError('Login failed. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-    
-    setLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 flex flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 sm:p-6">
+        <Link to="/" className="inline-flex items-center space-x-2">
           <img 
-            src="/assets/myGuide-logo.png" 
+            src={myGuideLogo} 
             alt="MyGuide" 
-            className="h-12 w-auto"
+            className="h-8 w-auto"
           />
-        </div>
-        <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
-          Welcome back to <span className="text-gradient">MyGuide</span>
-        </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          Don't have an account?{' '}
-          <Link 
-            to="/register" 
-            className="font-medium text-primary-600 hover:text-primary-500 transition-colors duration-200"
-          >
-            Sign up here
+          <span className="text-xl font-bold text-gradient">MyGuide</span>
+        </Link>
+        <Button variant="ghost" asChild className="hover:scale-105 hover:bg-muted/70 transition-all duration-300">
+          <Link to="/" className="flex items-center space-x-2">
+            <ArrowLeft className="h-4 w-4" />
+            <span className="hidden sm:inline">Back to Home</span>
           </Link>
-        </p>
+        </Button>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="card">
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center space-x-3">
-                <AlertCircle className="text-red-500 flex-shrink-0" size={20} />
-                <p className="text-red-700 text-sm">{error}</p>
-              </div>
-            )}
-
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Email address
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="text-gray-400" size={20} />
+      {/* Main Content */}
+      <div className="flex-1 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <Card className="border border-border shadow-2xl bg-card/95 backdrop-blur-sm">
+            <CardHeader className="space-y-1 text-center pb-6">
+              <CardTitle className="text-2xl font-bold">
+                Welcome Back
+              </CardTitle>
+              <CardDescription className="text-base">
+                Sign in to continue your journey through Algeria
+              </CardDescription>
+            </CardHeader>
+            
+            <CardContent className="space-y-6">
+              {error && (
+                <div className="flex items-center space-x-2 p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>{error}</span>
                 </div>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="input-field pl-10"
-                  placeholder="Enter your email"
-                />
-              </div>
-            </div>
+              )}
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="text-gray-400" size={20} />
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Email Field */}
+                <div className="space-y-2">
+                  <label htmlFor="email" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    Email Address
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      required
+                      value={formData.email}
+                      onChange={handleChange}
+                      className="pl-10"
+                      placeholder="Enter your email"
+                    />
+                  </div>
                 </div>
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  required
-                  value={formData.password}
-                  onChange={handleChange}
-                  className="input-field pl-10 pr-10"
-                  placeholder="Enter your password"
-                />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  onClick={() => setShowPassword(!showPassword)}
+
+                {/* Password Field */}
+                <div className="space-y-2">
+                  <label htmlFor="password" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="password"
+                      name="password"
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      value={formData.password}
+                      onChange={handleChange}
+                      className="pl-10 pr-10"
+                      placeholder="Enter your password"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-full px-3 py-2 border border-border hover:bg-foreground hover:text-background transition-all duration-300"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Remember Me & Forgot Password */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      id="remember"
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    />
+                    <label htmlFor="remember" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      Remember me
+                    </label>
+                  </div>
+                  <Button variant="link" asChild className="px-0 font-normal border border-border hover:bg-foreground hover:text-background transition-all duration-300">
+                    <Link to="/forgot-password">
+                      Forgot password?
+                    </Link>
+                  </Button>
+                </div>
+
+                {/* Submit Button */}
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full border border-primary hover:bg-background hover:text-foreground transition-all duration-300"
+                  size="lg"
                 >
-                  {showPassword ? (
-                    <EyeOff className="text-gray-400 hover:text-gray-600" size={20} />
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Signing In...
+                    </>
                   ) : (
-                    <Eye className="text-gray-400 hover:text-gray-600" size={20} />
+                    'Sign In'
                   )}
-                </button>
-              </div>
-            </div>
+                </Button>
+              </form>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
-                  Remember me
-                </label>
+              {/* Sign Up Link */}
+              <div className="text-center text-sm">
+                <span className="text-muted-foreground">Don't have an account? </span>
+                <Button variant="link" asChild className="px-0 font-normal hover:scale-105 hover:text-primary transition-all duration-300">
+                  <Link to="/register">
+                    Sign up
+                  </Link>
+                </Button>
               </div>
-
-              <div className="text-sm">
-                <a href="#" className="font-medium text-primary-600 hover:text-primary-500 transition-colors duration-200">
-                  Forgot your password?
-                </a>
-              </div>
-            </div>
-
-            <div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full btn-primary py-3 text-base font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-              >
-                {loading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    Signing in...
-                  </>
-                ) : (
-                  'Sign in'
-                )}
-              </button>
-            </div>
-          </form>
-
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">New to MyGuide?</span>
-              </div>
-            </div>
-
-            <div className="mt-6">
-              <Link
-                to="/register"
-                className="w-full btn-secondary py-3 text-base font-medium text-center block"
-              >
-                Create your account
-              </Link>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
-      </div>
-
-      {/* Footer */}
-      <div className="mt-8 text-center text-sm text-gray-500">
-        <p>
-          Developed by{' '}
-          <span className="font-medium text-primary-600">Slimene Fellah</span>
-          {' '}• Available for freelance projects
-        </p>
       </div>
     </div>
   );

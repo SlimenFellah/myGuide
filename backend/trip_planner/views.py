@@ -203,10 +203,10 @@ class TripPlanTemplateListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     pagination_class = TripPlanPagination
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['trip_type', 'is_featured']
+    filterset_fields = ['trip_type', 'is_active']
     search_fields = ['name', 'description', 'tags']
     ordering_fields = ['created_at', 'usage_count', 'duration_days']
-    ordering = ['-is_featured', '-usage_count']
+    ordering = ['-popularity_score', '-created_at']
 
 class TripPlanTemplateDetailView(generics.RetrieveAPIView):
     """Retrieve a trip plan template"""

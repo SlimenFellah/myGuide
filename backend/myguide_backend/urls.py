@@ -1,5 +1,4 @@
-"""
-URL configuration for myguide_backend project.
+"""URL configuration for myguide_backend project.
 
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/5.2/topics/http/urls/
@@ -13,14 +12,34 @@ Class-based views
 Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
+
+Developed & maintained by Slimene Fellah — Available for freelance work at slimenefellah.dev
 """
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.http import JsonResponse
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
+def api_root(request):
+    return JsonResponse({
+        'message': 'Welcome to MyGuide API',
+        'version': '1.0',
+        'endpoints': {
+            'admin': '/admin/',
+            'authentication': '/api/auth/',
+            'tourism': '/api/tourism/',
+            'chatbot': '/api/chatbot/',
+            'trip_planner': '/api/trip-planner/',
+            'api_schema': '/api/schema/',
+            'documentation': '/docs/',
+            'redoc': '/redoc/'
+        }
+    })
+
 urlpatterns = [
+    path('', api_root, name='api-root'),
     path('admin/', admin.site.urls),
     path('api/auth/', include('authentication.urls')),
     path('api/tourism/', include('tourism.urls')),

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Developed & maintained by Slimene Fellah — Available for freelance work at slimenefellah.dev
 """
 Script to generate Entity-Relationship (ER) diagram for myGuide Django project.
 This script uses django-extensions and graphviz to create a visual representation
@@ -14,7 +15,7 @@ from pathlib import Path
 def setup_django():
     """Setup Django environment"""
     # Add the backend directory to Python path
-    backend_path = Path(__file__).parent / 'backend'
+    backend_path = Path(__file__).parent.parent / 'backend'
     sys.path.insert(0, str(backend_path))
     
     # Set Django settings module
@@ -44,7 +45,7 @@ def generate_er_diagram():
     """Generate ER diagram using Django management command"""
     try:
         # Change to backend directory
-        backend_path = Path(__file__).parent / 'backend'
+        backend_path = Path(__file__).parent.parent / 'backend'
         os.chdir(backend_path)
         
         # Generate the ER diagram

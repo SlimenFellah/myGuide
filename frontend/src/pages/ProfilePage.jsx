@@ -2,34 +2,42 @@
  * Author: Slimene Fellah
  * Available for freelance projects
  */
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useAppContext } from '../contexts/AppContext';
+import { apiService } from '../services';
+import { Button } from '../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Input } from '../components/ui/input';
+import { Textarea } from '../components/ui/textarea';
+import { Label } from '../components/ui/label';
+import { Switch } from '../components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { 
   User, 
-  Mail, 
-  Phone, 
-  MapPin, 
-  Calendar, 
-  Settings, 
-  Lock, 
-  Bell, 
-  Globe, 
-  Camera, 
   Edit3, 
   Save, 
   X, 
+  Camera, 
+  MapPin, 
+  Calendar, 
+  Star, 
+  Heart, 
+  Lock, 
   Eye, 
-  EyeOff,
-  Star,
-  Heart,
-  MessageSquare,
-  TrendingUp,
-  Award,
-  Clock
+  EyeOff, 
+  Settings,
+  Bell,
+  Globe,
+  Shield,
+  MessageSquare
 } from 'lucide-react';
 
 const ProfilePage = () => {
   const { user, updateProfile } = useAuth();
+  const { state, dispatch } = useAppContext();
+  const { savedPlans, favorites } = state;
   const [activeTab, setActiveTab] = useState('profile');
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -215,20 +223,23 @@ const ProfilePage = () => {
   };
 
   const StatCard = ({ title, value, icon: Icon, color }) => (
-    <div className="card text-center">
-      <div className={`inline-flex items-center justify-center w-12 h-12 rounded-lg mb-3 ${color}`}>
-        <Icon className="text-white" size={24} />
-      </div>
-      <h3 className="text-2xl font-bold text-gray-900 mb-1">{value}</h3>
-      <p className="text-sm text-gray-600">{title}</p>
-    </div>
+    <Card className="text-center border-0 shadow-lg bg-white/90 backdrop-blur-sm hover:shadow-xl transition-all duration-300 hover:scale-105">
+      <CardContent className="p-6">
+        <div className={`inline-flex items-center justify-center w-12 h-12 rounded-lg mb-3 ${color}`}>
+          <Icon className="text-white" size={24} />
+        </div>
+        <h3 className="text-2xl font-bold text-gray-900 mb-1">{value}</h3>
+        <p className="text-sm text-gray-600">{title}</p>
+      </CardContent>
+    </Card>
   );
 
   const renderProfile = () => (
     <div className="space-y-6">
       {/* Profile Header */}
-      <div className="card">
-        <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-6">
+      <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
+        <CardContent className="p-8">
+          <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-6">
           <div className="relative">
             <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
               {profileData.avatar ? (
@@ -242,7 +253,7 @@ const ProfilePage = () => {
               )}
             </div>
             {isEditing && (
-              <label className="absolute bottom-0 right-0 bg-primary-600 text-white p-2 rounded-full cursor-pointer hover:bg-primary-700">
+              <label className="absolute bottom-0 right-0 bg-primary text-primary-foreground p-2 rounded-full cursor-pointer hover:bg-primary/90 hover:scale-110 transition-all duration-300 shadow-lg">
                 <Camera size={16} />
                 <input 
                   type="file" 
@@ -276,29 +287,31 @@ const ProfilePage = () => {
             </div>
           </div>
           
-          <div className="flex space-x-2">
-            {!isEditing ? (
-              <button 
-                onClick={() => setIsEditing(true)}
-                className="btn-primary flex items-center space-x-2"
-              >
-                <Edit3 size={16} />
-                <span>Edit Profile</span>
-              </button>
-            ) : (
-              <div className="flex space-x-2">
-                <button 
-                  onClick={() => setIsEditing(false)}
-                  className="btn-secondary flex items-center space-x-2"
+            <div className="flex space-x-2">
+              {!isEditing ? (
+                <Button 
+                  onClick={() => setIsEditing(true)}
+                  className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white flex items-center space-x-2 hover:scale-105 hover:shadow-xl transition-all duration-300"
                 >
-                  <X size={16} />
-                  <span>Cancel</span>
-                </button>
+                  <Edit3 size={16} />
+                  <span>Edit Profile</span>
+                </Button>
+              ) : (
+                <div className="flex space-x-2">
+                  <Button 
+                    variant="outline"
+                    onClick={() => setIsEditing(false)}
+                    className="flex items-center space-x-2 hover:scale-105 hover:bg-muted/50 transition-all duration-300"
+                  >
+                    <X size={16} />
+                    <span>Cancel</span>
+                  </Button>
               </div>
-            )}
-          </div>
-        </div>
-      </div>
+               )}
+             </div>
+           </div>
+         </CardContent>
+       </Card>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -328,127 +341,141 @@ const ProfilePage = () => {
         />
       </div>
 
-      {/* Profile Form */}
-      {isEditing && (
-        <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Edit Profile Information</h3>
-          <form onSubmit={handleProfileUpdate} className="space-y-4">
+        {/* Profile Form */}
+        {isEditing && (
+          <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Edit Profile Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleProfileUpdate} className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+              <div className="space-y-2">
+                <Label htmlFor="firstName" className="text-sm font-medium">
                   First Name
-                </label>
-                <input
+                </Label>
+                <Input
+                  id="firstName"
                   type="text"
                   value={profileData.firstName}
                   onChange={(e) => setProfileData({ ...profileData, firstName: e.target.value })}
-                  className="input"
+                  className="transition-all duration-300 focus:scale-[1.02]"
                   required
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+              <div className="space-y-2">
+                <Label htmlFor="lastName" className="text-sm font-medium">
                   Last Name
-                </label>
-                <input
+                </Label>
+                <Input
+                  id="lastName"
                   type="text"
                   value={profileData.lastName}
                   onChange={(e) => setProfileData({ ...profileData, lastName: e.target.value })}
-                  className="input"
+                  className="transition-all duration-300 focus:scale-[1.02]"
                   required
                 />
               </div>
             </div>
             
             <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-medium">
                   Email
-                </label>
-                <input
+                </Label>
+                <Input
+                  id="email"
                   type="email"
                   value={profileData.email}
                   onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                  className="input"
+                  className="transition-all duration-300 focus:scale-[1.02]"
                   required
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+              <div className="space-y-2">
+                <Label htmlFor="phone" className="text-sm font-medium">
                   Phone
-                </label>
-                <input
+                </Label>
+                <Input
+                  id="phone"
                   type="tel"
                   value={profileData.phone}
                   onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
-                  className="input"
+                  className="transition-all duration-300 focus:scale-[1.02]"
                 />
               </div>
             </div>
             
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Bio
-              </label>
-              <textarea
-                value={profileData.bio}
-                onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
-                className="input"
-                rows={3}
-                placeholder="Tell us about yourself..."
-              />
-            </div>
-            
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Location
-                </label>
-                <input
-                  type="text"
-                  value={profileData.location}
-                  onChange={(e) => setProfileData({ ...profileData, location: e.target.value })}
-                  className="input"
-                  placeholder="City, Country"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Date of Birth
-                </label>
-                <input
-                  type="date"
-                  value={profileData.dateOfBirth}
-                  onChange={(e) => setProfileData({ ...profileData, dateOfBirth: e.target.value })}
-                  className="input"
-                />
-              </div>
-            </div>
-            
-            <div className="flex justify-end space-x-3">
-              <button 
-                type="button"
-                onClick={() => setIsEditing(false)}
-                className="btn-secondary"
-              >
-                Cancel
-              </button>
-              <button 
-                type="submit" 
-                disabled={loading}
-                className="btn-primary flex items-center space-x-2"
-              >
-                {loading ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                ) : (
-                  <Save size={16} />
-                )}
-                <span>{loading ? 'Saving...' : 'Save Changes'}</span>
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+                <div className="space-y-2">
+                  <Label htmlFor="bio" className="text-sm font-medium">
+                    Bio
+                  </Label>
+                  <Textarea
+                    id="bio"
+                    value={profileData.bio}
+                    onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
+                    className="resize-none transition-all duration-300 focus:scale-[1.02]"
+                    rows={3}
+                    placeholder="Tell us about yourself..."
+                  />
+                </div>
+                
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="location" className="text-sm font-medium">
+                      Location
+                    </Label>
+                    <Input
+                      id="location"
+                      type="text"
+                      value={profileData.location}
+                      onChange={(e) => setProfileData({ ...profileData, location: e.target.value })}
+                      className="transition-all duration-300 focus:scale-[1.02]"
+                      placeholder="City, Country"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="dateOfBirth" className="text-sm font-medium">
+                      Date of Birth
+                    </Label>
+                    <Input
+                      id="dateOfBirth"
+                      type="date"
+                      value={profileData.dateOfBirth}
+                      onChange={(e) => setProfileData({ ...profileData, dateOfBirth: e.target.value })}
+                      className="transition-all duration-300 focus:scale-[1.02]"
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex justify-end space-x-3">
+                  <Button 
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsEditing(false)}
+                    className="hover:scale-105 hover:bg-muted/50 transition-all duration-300"
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    disabled={loading}
+                    className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white flex items-center space-x-2 hover:scale-105 hover:shadow-xl transition-all duration-300 disabled:hover:scale-100 disabled:hover:shadow-none"
+                  >
+                    {loading ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    ) : (
+                      <Save size={16} />
+                    )}
+                    <span>{loading ? 'Saving...' : 'Save Changes'}</span>
+                   </Button>
+                 </div>
+               </form>
+             </CardContent>
+           </Card>
+         )}
 
       {/* Recent Activity */}
       <div className="card">
@@ -480,211 +507,237 @@ const ProfilePage = () => {
 
   const renderSecurity = () => (
     <div className="space-y-6">
-      <div className="card">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Change Password</h3>
-        <form onSubmit={handlePasswordChange} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+      <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Change Password
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handlePasswordChange} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="currentPassword" className="text-sm font-medium">
               Current Password
-            </label>
+            </Label>
             <div className="relative">
-              <input
+              <Input
+                id="currentPassword"
                 type={showCurrentPassword ? 'text' : 'password'}
                 value={passwordData.currentPassword}
                 onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                className="input pr-10"
+                className="pr-12 transition-all duration-300 focus:scale-[1.02]"
                 required
               />
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon"
                 onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                className="absolute inset-y-0 right-0 h-full px-3 hover:bg-muted/50 hover:scale-110 transition-all duration-300"
               >
                 {showCurrentPassword ? (
-                  <EyeOff className="text-gray-400" size={20} />
+                  <EyeOff className="text-muted-foreground" size={20} />
                 ) : (
-                  <Eye className="text-gray-400" size={20} />
+                  <Eye className="text-muted-foreground" size={20} />
                 )}
-              </button>
+              </Button>
             </div>
           </div>
           
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+          <div className="space-y-2">
+            <Label htmlFor="newPassword" className="text-sm font-medium">
               New Password
-            </label>
+            </Label>
             <div className="relative">
-              <input
+              <Input
+                id="newPassword"
                 type={showNewPassword ? 'text' : 'password'}
                 value={passwordData.newPassword}
                 onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                className="input pr-10"
+                className="pr-12 transition-all duration-300 focus:scale-[1.02]"
                 required
                 minLength={6}
               />
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon"
                 onClick={() => setShowNewPassword(!showNewPassword)}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                className="absolute inset-y-0 right-0 h-full px-3 hover:bg-muted/50 hover:scale-110 transition-all duration-300"
               >
                 {showNewPassword ? (
-                  <EyeOff className="text-gray-400" size={20} />
+                  <EyeOff className="text-muted-foreground" size={20} />
                 ) : (
-                  <Eye className="text-gray-400" size={20} />
+                  <Eye className="text-muted-foreground" size={20} />
                 )}
-              </button>
+              </Button>
             </div>
           </div>
           
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword" className="text-sm font-medium">
               Confirm New Password
-            </label>
+            </Label>
             <div className="relative">
-              <input
+              <Input
+                id="confirmPassword"
                 type={showConfirmPassword ? 'text' : 'password'}
                 value={passwordData.confirmPassword}
                 onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                className="input pr-10"
+                className="pr-12 transition-all duration-300 focus:scale-[1.02]"
                 required
                 minLength={6}
               />
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                className="absolute inset-y-0 right-0 h-full px-3 hover:bg-muted/50 hover:scale-110 transition-all duration-300"
               >
                 {showConfirmPassword ? (
-                  <EyeOff className="text-gray-400" size={20} />
+                  <EyeOff className="text-muted-foreground" size={20} />
                 ) : (
-                  <Eye className="text-gray-400" size={20} />
+                  <Eye className="text-muted-foreground" size={20} />
                 )}
-              </button>
+              </Button>
             </div>
           </div>
           
-          <div className="flex justify-end">
-            <button 
-              type="submit" 
-              disabled={loading}
-              className="btn-primary flex items-center space-x-2"
-            >
-              {loading ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              ) : (
-                <Lock size={16} />
-              )}
-              <span>{loading ? 'Updating...' : 'Update Password'}</span>
-            </button>
-          </div>
-        </form>
-      </div>
+            <div className="flex justify-end">
+              <Button 
+                type="submit" 
+                disabled={loading}
+                className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white flex items-center space-x-2 hover:scale-105 hover:shadow-xl transition-all duration-300 disabled:hover:scale-100 disabled:hover:shadow-none"
+              >
+                {loading ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                ) : (
+                  <Lock size={16} />
+                )}
+                <span>{loading ? 'Updating...' : 'Update Password'}</span>
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 
   const renderPreferences = () => (
     <div className="space-y-6">
       {/* Notifications */}
-      <div className="card">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Notifications</h3>
+      <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Notifications
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h4 className="text-sm font-medium text-gray-900">Email Notifications</h4>
-              <p className="text-sm text-gray-600">Receive notifications via email</p>
+          <div className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/30 transition-all duration-300">
+            <div className="space-y-1">
+              <Label className="text-sm font-medium">Email Notifications</Label>
+              <p className="text-sm text-muted-foreground">Receive notifications via email</p>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={preferences.emailNotifications}
-                onChange={(e) => setPreferences({ ...preferences, emailNotifications: e.target.checked })}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
-            </label>
+            <Switch
+              checked={preferences.emailNotifications}
+              onCheckedChange={(checked) => setPreferences({ ...preferences, emailNotifications: checked })}
+              className="data-[state=checked]:bg-primary"
+            />
           </div>
           
-          <div className="flex items-center justify-between">
-            <div>
-              <h4 className="text-sm font-medium text-gray-900">Push Notifications</h4>
-              <p className="text-sm text-gray-600">Receive push notifications on your device</p>
+          <div className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/30 transition-all duration-300">
+            <div className="space-y-1">
+              <Label className="text-sm font-medium">Push Notifications</Label>
+              <p className="text-sm text-muted-foreground">Receive push notifications on your device</p>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={preferences.pushNotifications}
-                onChange={(e) => setPreferences({ ...preferences, pushNotifications: e.target.checked })}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
-            </label>
+            <Switch
+              checked={preferences.pushNotifications}
+              onCheckedChange={(checked) => setPreferences({ ...preferences, pushNotifications: checked })}
+              className="data-[state=checked]:bg-primary"
+            />
           </div>
           
-          <div className="flex items-center justify-between">
-            <div>
-              <h4 className="text-sm font-medium text-gray-900">Marketing Emails</h4>
-              <p className="text-sm text-gray-600">Receive promotional emails and updates</p>
+          <div className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/30 transition-all duration-300">
+            <div className="space-y-1">
+              <Label className="text-sm font-medium">Marketing Emails</Label>
+              <p className="text-sm text-muted-foreground">Receive promotional emails and updates</p>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={preferences.marketingEmails}
-                onChange={(e) => setPreferences({ ...preferences, marketingEmails: e.target.checked })}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
-            </label>
+            <Switch
+              checked={preferences.marketingEmails}
+              onCheckedChange={(checked) => setPreferences({ ...preferences, marketingEmails: checked })}
+              className="data-[state=checked]:bg-primary"
+            />
           </div>
-        </div>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Language & Region */}
-      <div className="card">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Language & Region</h3>
+      <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Language & Region
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+          <div className="space-y-2">
+            <Label htmlFor="language" className="text-sm font-medium">
               Language
-            </label>
-            <select
+            </Label>
+            <Select
               value={preferences.language}
-              onChange={(e) => setPreferences({ ...preferences, language: e.target.value })}
-              className="input"
+              onValueChange={(value) => setPreferences({ ...preferences, language: value })}
             >
-              <option value="en">English</option>
-              <option value="ar">العربية</option>
-              <option value="fr">Français</option>
-            </select>
+              <SelectTrigger className="transition-all duration-300 hover:scale-[1.02]">
+                <SelectValue placeholder="Select language" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="en">English</SelectItem>
+                <SelectItem value="ar">العربية</SelectItem>
+                <SelectItem value="fr">Français</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        </div>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Privacy */}
-      <div className="card">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Privacy</h3>
+      <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Privacy
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Profile Visibility
             </label>
-            <select
-              value={preferences.privacy}
-              onChange={(e) => setPreferences({ ...preferences, privacy: e.target.value })}
-              className="input"
-            >
-              <option value="public">Public - Anyone can see your profile</option>
-              <option value="friends">Friends only</option>
-              <option value="private">Private - Only you can see your profile</option>
-            </select>
+            <Select value={preferences.privacy} onValueChange={(value) => setPreferences({ ...preferences, privacy: value })}>
+              <SelectTrigger className="w-full hover:bg-muted/50 transition-colors duration-200">
+                <SelectValue placeholder="Select privacy level" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="public">Public - Anyone can see your profile</SelectItem>
+                <SelectItem value="friends">Friends only</SelectItem>
+                <SelectItem value="private">Private - Only you can see your profile</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        </div>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="flex justify-end">
-        <button 
+        <Button 
           onClick={handlePreferencesUpdate}
           disabled={loading}
-          className="btn-primary flex items-center space-x-2"
+          className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 hover:scale-105 text-white flex items-center space-x-2 transition-all duration-300 hover:shadow-xl"
         >
           {loading ? (
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
@@ -692,7 +745,7 @@ const ProfilePage = () => {
             <Save size={16} />
           )}
           <span>{loading ? 'Saving...' : 'Save Preferences'}</span>
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -704,45 +757,56 @@ const ProfilePage = () => {
   ];
 
   return (
-    <div className="container py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">My Profile</h1>
-        <p className="text-gray-600">
-          Manage your account settings and preferences
-        </p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <div className="w-full">
+        <div className="container-content py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="p-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl">
+              <User className="text-white" size={28} />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-1">
+                My Profile
+              </h1>
+              <p className="text-gray-600">
+                Manage your account settings and preferences
+              </p>
+            </div>
+          </div>
+        </div>
 
-      {/* Tabs */}
-      <div className="mb-8">
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8">
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-3 mb-8 bg-white/80 backdrop-blur-sm">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center space-x-2 py-2 px-1 border-b-2 font-medium text-sm ${
-                    activeTab === tab.id
-                      ? 'border-primary-500 text-primary-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
+                <TabsTrigger 
+                  key={tab.id} 
+                  value={tab.id}
+                  className="flex items-center space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white"
                 >
                   <Icon size={16} />
                   <span>{tab.name}</span>
-                </button>
+                </TabsTrigger>
               );
             })}
-          </nav>
-        </div>
-      </div>
+          </TabsList>
 
-      {/* Tab Content */}
-      <div>
-        {activeTab === 'profile' && renderProfile()}
-        {activeTab === 'security' && renderSecurity()}
-        {activeTab === 'preferences' && renderPreferences()}
+          {/* Tab Content */}
+          <TabsContent value="profile">
+            {renderProfile()}
+          </TabsContent>
+          <TabsContent value="security">
+            {renderSecurity()}
+          </TabsContent>
+          <TabsContent value="preferences">
+            {renderPreferences()}
+          </TabsContent>
+        </Tabs>
+        </div>
       </div>
     </div>
   );

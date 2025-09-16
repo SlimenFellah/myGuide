@@ -17,6 +17,10 @@ This backend provides a comprehensive REST API for managing tourism data, user a
 
 ## API Endpoints
 
+---
+
+**Developed & maintained by Slimene Fellah — Available for freelance work at slimenefellah.dev**
+
 ### Authentication (`/api/auth/`)
 - `POST /api/auth/register/` - User registration
 - `POST /api/auth/login/` - User login
@@ -178,3 +182,7 @@ This project is developed by Slimene Fellah. For collaboration opportunities, pl
 ## License
 
 This project is proprietary software developed for tourism promotion in Algeria.
+
+---
+
+**Developed & maintained by Slimene Fellah — Available for freelance work at [slimenefellah.dev](https://slimenefellah.dev)**

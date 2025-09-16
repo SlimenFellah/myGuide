@@ -1,3 +1,5 @@
+# Developed & maintained by Slimene Fellah — Available for freelance work at slimenefellah.dev
+
 from django.db import models
 from django.contrib.auth import get_user_model
 from tourism.models import Place, Province

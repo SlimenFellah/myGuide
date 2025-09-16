@@ -1,3 +1,5 @@
+# Developed & maintained by Slimene Fellah — Available for freelance work at slimenefellah.dev
+
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from PIL import Image

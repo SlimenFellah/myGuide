@@ -106,7 +106,7 @@ class PlaceListView(generics.ListAPIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
     pagination_class = StandardResultsSetPagination
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['province', 'district', 'municipality', 'category', 'is_featured']
+    filterset_fields = ['municipality__district__province', 'municipality__district', 'municipality', 'category', 'is_featured']
     search_fields = ['name', 'description', 'address']
     ordering_fields = ['name', 'created_at', 'average_rating']
     ordering = ['-created_at']

@@ -98,7 +98,7 @@ export const authService = {
 
   async register(userData) {
     try {
-      const response = await api.post('/auth/register', userData);
+      const response = await api.post('/auth/register/', userData);
       
       return {
         success: true,
@@ -194,4 +194,5 @@ export const authService = {
   },
 };
 
+export { api };
 export default api;

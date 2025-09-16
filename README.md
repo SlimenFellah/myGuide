@@ -148,3 +148,7 @@ This project is developed by Slimene Fellah. For collaboration or freelance oppo
 
 ## License
 This project is developed by Slimene Fellah and available for freelance collaboration.
+
+---
+
+**Developed & maintained by Slimene Fellah — Available for freelance work at slimenefellah.dev**

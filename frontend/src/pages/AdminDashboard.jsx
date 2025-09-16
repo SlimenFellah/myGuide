@@ -18,12 +18,20 @@ import {
   Upload,
   CheckCircle,
   XCircle,
+  Clock,
+  TrendingDown,
   AlertTriangle,
   BarChart3,
   Calendar,
   Star,
   Flag
 } from 'lucide-react';
+import { Button } from '../components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Input } from '../components/ui/input';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
+import { Badge } from '../components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -204,24 +212,27 @@ const AdminDashboard = () => {
   };
 
   const StatCard = ({ title, value, icon: Icon, color, change }) => (
-    <div className="card hover:shadow-lg transition-shadow duration-300">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-gray-600 mb-1">{title}</p>
-          <p className="text-3xl font-bold text-gray-900">{value.toLocaleString()}</p>
-          {change && (
-            <p className={`text-sm mt-1 ${
-              change > 0 ? 'text-green-600' : 'text-red-600'
-            }`}>
-              {change > 0 ? '+' : ''}{change}% from last month
-            </p>
-          )}
+    <Card className="hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer">
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-muted-foreground mb-1">{title}</p>
+            <p className="text-3xl font-bold">{value.toLocaleString()}</p>
+            {change && (
+              <p className={`text-sm mt-1 flex items-center ${
+                change > 0 ? 'text-green-600' : 'text-red-600'
+              }`}>
+                <TrendingUp size={14} className="mr-1" />
+                {change > 0 ? '+' : ''}{change}% from last month
+              </p>
+            )}
+          </div>
+          <div className={`p-3 rounded-xl ${color} shadow-lg`}>
+            <Icon className="text-white" size={24} />
+          </div>
         </div>
-        <div className={`p-3 rounded-lg ${color}`}>
-          <Icon className="text-white" size={24} />
-        </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 
   const renderOverview = () => (
@@ -260,65 +271,73 @@ const AdminDashboard = () => {
 
       {/* Recent Activity */}
       <div className="grid lg:grid-cols-2 gap-6">
-        <div className="card">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Recent Places</h3>
-            <button className="text-primary-600 hover:text-primary-700 text-sm font-medium">
-              View all
-            </button>
-          </div>
-          <div className="space-y-3">
-            {places.slice(0, 5).map((place) => (
-              <div key={place.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div>
-                  <h4 className="font-medium text-gray-900">{place.name}</h4>
-                  <p className="text-sm text-gray-600">{place.municipality}, {place.province}</p>
+        <Card className="hover:shadow-lg transition-shadow duration-300">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">Recent Places</CardTitle>
+              <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80 hover:bg-primary/10">
+                View all
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {places.slice(0, 5).map((place) => (
+                <div key={place.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors duration-200">
+                  <div>
+                    <h4 className="font-medium">{place.name}</h4>
+                    <p className="text-sm text-muted-foreground">{place.municipality}, {place.province}</p>
+                  </div>
+                  <Badge variant={
+                    place.status === 'approved' ? 'default' :
+                    place.status === 'pending' ? 'secondary' :
+                    'destructive'
+                  }>
+                    {place.status}
+                  </Badge>
                 </div>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  place.status === 'approved' ? 'bg-green-100 text-green-800' :
-                  place.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                  'bg-red-100 text-red-800'
-                }`}>
-                  {place.status}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
-        <div className="card">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Recent Feedbacks</h3>
-            <button className="text-primary-600 hover:text-primary-700 text-sm font-medium">
-              View all
-            </button>
-          </div>
-          <div className="space-y-3">
-            {feedbacks.slice(0, 5).map((feedback) => (
-              <div key={feedback.id} className="p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-medium text-gray-900">{feedback.placeName}</h4>
-                  <div className="flex items-center">
-                    <Star className="text-yellow-400 fill-current" size={14} />
-                    <span className="text-sm text-gray-600 ml-1">{feedback.rating}</span>
+        <Card className="hover:shadow-lg transition-shadow duration-300">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">Recent Feedbacks</CardTitle>
+              <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80 hover:bg-primary/10">
+                View all
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {feedbacks.slice(0, 5).map((feedback) => (
+                <div key={feedback.id} className="p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors duration-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-medium">{feedback.placeName}</h4>
+                    <div className="flex items-center">
+                      <Star className="text-yellow-400 fill-current" size={14} />
+                      <span className="text-sm text-muted-foreground ml-1">{feedback.rating}</span>
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-2">{feedback.comment.substring(0, 100)}...</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">by {feedback.userName}</span>
+                    <Badge variant={
+                      feedback.status === 'approved' ? 'default' :
+                      feedback.status === 'pending' ? 'secondary' :
+                      feedback.status === 'flagged' ? 'destructive' :
+                      'outline'
+                    }>
+                      {feedback.status}
+                    </Badge>
                   </div>
                 </div>
-                <p className="text-sm text-gray-600 mb-2">{feedback.comment.substring(0, 100)}...</p>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500">by {feedback.userName}</span>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    feedback.status === 'approved' ? 'bg-green-100 text-green-800' :
-                    feedback.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                    feedback.status === 'flagged' ? 'bg-red-100 text-red-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
-                    {feedback.status}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
@@ -326,44 +345,45 @@ const AdminDashboard = () => {
   const renderUsers = () => (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
+        <h2 className="text-2xl font-bold">User Management</h2>
         <div className="flex space-x-3">
-          <button className="btn-secondary flex items-center space-x-2">
-            <Download size={16} />
-            <span>Export</span>
-          </button>
-          <button className="btn-primary flex items-center space-x-2">
-            <Plus size={16} />
-            <span>Add User</span>
-          </button>
+          <Button variant="outline" className="hover:scale-105 transition-all duration-300">
+            <Download size={16} className="mr-2" />
+            Export
+          </Button>
+          <Button className="hover:scale-105 transition-all duration-300 hover:shadow-lg">
+            <Plus size={16} className="mr-2" />
+            Add User
+          </Button>
         </div>
       </div>
 
       {/* Search and Filters */}
       <div className="flex flex-col md:flex-row gap-4">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-          <input
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={20} />
+          <Input
             type="text"
             placeholder="Search users..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="input pl-10 w-full"
+            className="pl-10 hover:border-primary/50 transition-colors duration-200"
           />
         </div>
-        <select
-          value={selectedStatus}
-          onChange={(e) => setSelectedStatus(e.target.value)}
-          className="input"
-        >
-          <option value="all">All Status</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-        </select>
+        <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+          <SelectTrigger className="w-48 hover:border-primary/50 transition-colors duration-200">
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="inactive">Inactive</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Users Table */}
-      <div className="card overflow-hidden">
+      <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50">
@@ -400,36 +420,32 @@ const AdminDashboard = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      user.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'
-                    }`}>
+                    <Badge variant={user.role === 'admin' ? 'secondary' : 'outline'}>
                       {user.role}
-                    </span>
+                    </Badge>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      user.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
+                    <Badge variant={user.status === 'active' ? 'default' : 'destructive'}>
                       {user.status}
-                    </span>
+                    </Badge>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                     {new Date(user.joinDate).toLocaleDateString()}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                     {new Date(user.lastLogin).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex space-x-2">
-                      <button className="text-primary-600 hover:text-primary-900">
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary">
                         <Eye size={16} />
-                      </button>
-                      <button className="text-gray-600 hover:text-gray-900">
+                      </Button>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-muted hover:text-foreground">
                         <Edit size={16} />
-                      </button>
-                      <button className="text-red-600 hover:text-red-900">
+                      </Button>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive">
                         <Trash2 size={16} />
-                      </button>
+                      </Button>
                     </div>
                   </td>
                 </tr>
@@ -437,23 +453,23 @@ const AdminDashboard = () => {
             </tbody>
           </table>
         </div>
-      </div>
+      </Card>
     </div>
   );
 
   const renderPlaces = () => (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">Places Management</h2>
+        <h2 className="text-2xl font-bold">Places Management</h2>
         <div className="flex space-x-3">
-          <button className="btn-secondary flex items-center space-x-2">
-            <Upload size={16} />
-            <span>Import</span>
-          </button>
-          <button className="btn-primary flex items-center space-x-2">
-            <Plus size={16} />
-            <span>Add Place</span>
-          </button>
+          <Button variant="outline" className="hover:scale-105 transition-all duration-300">
+            <Upload size={16} className="mr-2" />
+            Import
+          </Button>
+          <Button className="hover:scale-105 transition-all duration-300 hover:shadow-lg">
+            <Plus size={16} className="mr-2" />
+            Add Place
+          </Button>
         </div>
       </div>
 
@@ -487,31 +503,31 @@ const AdminDashboard = () => {
               {places.map((place) => (
                 <tr key={place.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{place.name}</div>
-                    <div className="text-sm text-gray-500">Added by {place.addedBy}</div>
+                    <div className="text-sm font-medium">{place.name}</div>
+                    <div className="text-sm text-muted-foreground">Added by {place.addedBy}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{place.municipality}</div>
-                    <div className="text-sm text-gray-500">{place.province}</div>
+                    <div className="text-sm">{place.municipality}</div>
+                    <div className="text-sm text-muted-foreground">{place.province}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    <Badge variant="secondary">
                       {place.category}
-                    </span>
+                    </Badge>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      place.status === 'approved' ? 'bg-green-100 text-green-800' :
-                      place.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-red-100 text-red-800'
-                    }`}>
+                    <Badge variant={
+                      place.status === 'approved' ? 'default' :
+                      place.status === 'pending' ? 'secondary' :
+                      'destructive'
+                    }>
                       {place.status}
-                    </span>
+                    </Badge>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <Star className="text-yellow-400 fill-current" size={14} />
-                      <span className="text-sm text-gray-600 ml-1">
+                      <span className="text-sm text-muted-foreground ml-1">
                         {place.rating} ({place.reviews})
                       </span>
                     </div>
@@ -520,31 +536,35 @@ const AdminDashboard = () => {
                     <div className="flex space-x-2">
                       {place.status === 'pending' && (
                         <>
-                          <button 
+                          <Button 
                             onClick={() => handleApprovePlace(place.id)}
-                            className="text-green-600 hover:text-green-900"
+                            variant="ghost"
+                            size="sm"
+                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
                             title="Approve"
                           >
                             <CheckCircle size={16} />
-                          </button>
-                          <button 
+                          </Button>
+                          <Button 
                             onClick={() => handleRejectPlace(place.id)}
-                            className="text-red-600 hover:text-red-900"
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
                             title="Reject"
                           >
                             <XCircle size={16} />
-                          </button>
+                          </Button>
                         </>
                       )}
-                      <button className="text-primary-600 hover:text-primary-900">
+                      <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
                         <Eye size={16} />
-                      </button>
-                      <button className="text-gray-600 hover:text-gray-900">
+                      </Button>
+                      <Button variant="ghost" size="sm" className="hover:bg-muted">
                         <Edit size={16} />
-                      </button>
-                      <button className="text-red-600 hover:text-red-900">
+                      </Button>
+                      <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50">
                         <Trash2 size={16} />
-                      </button>
+                      </Button>
                     </div>
                   </td>
                 </tr>
@@ -559,84 +579,88 @@ const AdminDashboard = () => {
   const renderFeedbacks = () => (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">Feedback Management</h2>
+        <h2 className="text-2xl font-bold">Feedback Management</h2>
         <div className="flex space-x-3">
-          <button className="btn-secondary flex items-center space-x-2">
-            <Filter size={16} />
-            <span>Filter</span>
-          </button>
-          <button className="btn-secondary flex items-center space-x-2">
-            <Download size={16} />
-            <span>Export</span>
-          </button>
+          <Button variant="outline" className="hover:scale-105 transition-all duration-300">
+            <Filter size={16} className="mr-2" />
+            Filter
+          </Button>
+          <Button variant="outline" className="hover:scale-105 transition-all duration-300">
+            <Download size={16} className="mr-2" />
+            Export
+          </Button>
         </div>
       </div>
 
       {/* Feedbacks List */}
       <div className="space-y-4">
         {feedbacks.map((feedback) => (
-          <div key={feedback.id} className="card">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex-1">
-                <div className="flex items-center space-x-3 mb-2">
-                  <h3 className="text-lg font-semibold text-gray-900">{feedback.placeName}</h3>
-                  <div className="flex items-center">
-                    {[...Array(5)].map((_, i) => (
-                      <Star 
-                        key={i} 
-                        size={16} 
-                        className={i < feedback.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'} 
-                      />
-                    ))}
+          <Card key={feedback.id} className="hover:shadow-lg transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-3 mb-2">
+                    <h3 className="text-lg font-semibold">{feedback.placeName}</h3>
+                    <div className="flex items-center">
+                      {[...Array(5)].map((_, i) => (
+                        <Star 
+                          key={i} 
+                          size={16} 
+                          className={i < feedback.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'} 
+                        />
+                      ))}
+                    </div>
+                    <Badge variant={feedback.type === 'complaint' ? 'destructive' : 'secondary'}>
+                      {feedback.type}
+                    </Badge>
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    feedback.type === 'complaint' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
-                  }`}>
-                    {feedback.type}
-                  </span>
+                  <p className="text-muted-foreground mb-3">{feedback.comment}</p>
+                  <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                    <span>by {feedback.userName}</span>
+                    <span>{new Date(feedback.date).toLocaleDateString()}</span>
+                    <Badge variant={
+                      feedback.status === 'approved' ? 'default' :
+                      feedback.status === 'pending' ? 'secondary' :
+                      feedback.status === 'flagged' ? 'destructive' :
+                      'outline'
+                    }>
+                      {feedback.status}
+                    </Badge>
+                  </div>
                 </div>
-                <p className="text-gray-700 mb-3">{feedback.comment}</p>
-                <div className="flex items-center space-x-4 text-sm text-gray-500">
-                  <span>by {feedback.userName}</span>
-                  <span>{new Date(feedback.date).toLocaleDateString()}</span>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    feedback.status === 'approved' ? 'bg-green-100 text-green-800' :
-                    feedback.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                    feedback.status === 'flagged' ? 'bg-red-100 text-red-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
-                    {feedback.status}
-                  </span>
-                </div>
+                
+                {feedback.status === 'pending' && (
+                  <div className="flex space-x-2 ml-4">
+                    <Button 
+                      onClick={() => handleApproveFeedback(feedback.id)}
+                      variant="outline"
+                      size="sm"
+                      className="text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
+                    >
+                      <CheckCircle size={16} className="mr-1" />
+                      Approve
+                    </Button>
+                    <Button 
+                      onClick={() => handleRejectFeedback(feedback.id)}
+                      variant="outline"
+                      size="sm"
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                    >
+                      <XCircle size={16} className="mr-1" />
+                      Reject
+                    </Button>
+                  </div>
+                )}
+                
+                {feedback.status === 'flagged' && (
+                  <div className="flex items-center space-x-2 ml-4">
+                    <AlertTriangle className="text-red-500" size={16} />
+                    <span className="text-sm text-red-600 font-medium">Flagged for Review</span>
+                  </div>
+                )}
               </div>
-              
-              {feedback.status === 'pending' && (
-                <div className="flex space-x-2 ml-4">
-                  <button 
-                    onClick={() => handleApproveFeedback(feedback.id)}
-                    className="btn-secondary text-green-600 hover:text-green-700 hover:bg-green-50"
-                  >
-                    <CheckCircle size={16} className="mr-1" />
-                    Approve
-                  </button>
-                  <button 
-                    onClick={() => handleRejectFeedback(feedback.id)}
-                    className="btn-secondary text-red-600 hover:text-red-700 hover:bg-red-50"
-                  >
-                    <XCircle size={16} className="mr-1" />
-                    Reject
-                  </button>
-                </div>
-              )}
-              
-              {feedback.status === 'flagged' && (
-                <div className="flex items-center space-x-2 ml-4">
-                  <Flag className="text-red-500" size={16} />
-                  <span className="text-sm text-red-600 font-medium">Flagged for Review</span>
-                </div>
-              )}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         ))}
       </div>
     </div>
@@ -651,55 +675,73 @@ const AdminDashboard = () => {
 
   if (loading) {
     return (
-      <div className="container py-8">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+        <div className="w-full">
+          <div className="container-content py-8">
+            <div className="flex flex-col items-center justify-center h-64 space-y-4">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200 border-t-blue-600"></div>
+              <p className="text-muted-foreground animate-pulse">Loading admin dashboard...</p>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Dashboard</h1>
-        <p className="text-gray-600">
-          Manage users, places, and feedbacks for the myGuide platform
-        </p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <div className="w-full">
+        <div className="container-content py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="p-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl">
+              <BarChart3 className="text-white" size={28} />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-1">
+                Admin Dashboard
+              </h1>
+              <p className="text-muted-foreground">
+                Manage users, places, and feedbacks for the myGuide platform
+              </p>
+            </div>
+          </div>
+        </div>
 
-      {/* Tabs */}
-      <div className="mb-8">
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8">
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-4 mb-8 bg-white/80 backdrop-blur-sm">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center space-x-2 py-2 px-1 border-b-2 font-medium text-sm ${
-                    activeTab === tab.id
-                      ? 'border-primary-500 text-primary-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
+                <TabsTrigger 
+                  key={tab.id} 
+                  value={tab.id}
+                  className="flex items-center space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white hover:bg-muted/50 transition-all duration-300"
                 >
                   <Icon size={16} />
                   <span>{tab.name}</span>
-                </button>
+                </TabsTrigger>
               );
             })}
-          </nav>
-        </div>
-      </div>
+          </TabsList>
 
-      {/* Tab Content */}
-      <div>
-        {activeTab === 'overview' && renderOverview()}
-        {activeTab === 'users' && renderUsers()}
-        {activeTab === 'places' && renderPlaces()}
-        {activeTab === 'feedbacks' && renderFeedbacks()}
+          {/* Tab Content */}
+          <TabsContent value="overview">
+            {renderOverview()}
+          </TabsContent>
+          <TabsContent value="users">
+            {renderUsers()}
+          </TabsContent>
+          <TabsContent value="places">
+            {renderPlaces()}
+          </TabsContent>
+          <TabsContent value="feedbacks">
+            {renderFeedbacks()}
+          </TabsContent>
+        </Tabs>
+        </div>
       </div>
     </div>
   );

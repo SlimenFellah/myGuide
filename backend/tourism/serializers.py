@@ -151,7 +151,7 @@ class FeedbackCreateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Feedback
-        fields = ['place', 'rating', 'comment', 'visit_date']
+        fields = ['place', 'rating', 'comment']
     
     def create(self, validated_data):
         validated_data['user'] = self.context['request'].user

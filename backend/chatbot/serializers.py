@@ -20,7 +20,7 @@ class KnowledgeBaseCreateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = KnowledgeBase
-        fields = ['title', 'content', 'source_type', 'source_url', 'category', 'tags', 'is_active']
+        fields = ['title', 'content', 'source_type', 'source_url', 'is_active']
 
 class ChatSessionSerializer(serializers.ModelSerializer):
     """Chat session serializer"""
@@ -54,7 +54,7 @@ class ChatMessageCreateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = ChatMessage
-        fields = ['session', 'message', 'message_type']
+        fields = ['session', 'content', 'message_type']
     
     def validate_session(self, value):
         """Validate that the session belongs to the current user"""
@@ -68,13 +68,13 @@ class ChatMessageListSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = ChatMessage
-        fields = ['id', 'message', 'response', 'message_type', 'created_at', 'confidence_score']
+        fields = ['id', 'content', 'message_type', 'created_at', 'confidence_score']
         read_only_fields = ['id', 'created_at']
 
 class ChatFeedbackSerializer(serializers.ModelSerializer):
     """Chat feedback serializer"""
     user_name = serializers.CharField(source='user.full_name', read_only=True)
-    message_content = serializers.CharField(source='message.message', read_only=True)
+    message_content = serializers.CharField(source='message.content', read_only=True)
     
     class Meta:
         model = ChatFeedback
@@ -86,7 +86,7 @@ class ChatFeedbackCreateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = ChatFeedback
-        fields = ['message', 'rating', 'feedback_text']
+        fields = ['message', 'feedback_type', 'comment']
     
     def create(self, validated_data):
         validated_data['user'] = self.context['request'].user

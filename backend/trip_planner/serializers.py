@@ -18,8 +18,8 @@ class PlannedActivitySerializer(serializers.ModelSerializer):
         model = PlannedActivity
         fields = [
             'id', 'place', 'place_id', 'activity_type', 'start_time', 'end_time',
-            'duration_hours', 'estimated_cost', 'notes', 'is_confirmed',
-            'booking_reference', 'created_at'
+            'duration_minutes', 'estimated_cost', 'notes', 'is_completed',
+            'created_at'
         ]
         read_only_fields = ['id', 'created_at']
     
@@ -37,7 +37,7 @@ class PlannedActivityCreateSerializer(serializers.ModelSerializer):
         model = PlannedActivity
         fields = [
             'place_id', 'activity_type', 'start_time', 'end_time',
-            'duration_hours', 'estimated_cost', 'notes'
+            'duration_minutes', 'estimated_cost', 'notes'
         ]
     
     def validate_place_id(self, value):
@@ -56,7 +56,7 @@ class DailyPlanSerializer(serializers.ModelSerializer):
         model = DailyPlan
         fields = [
             'id', 'date', 'title', 'description', 'activities',
-            'total_estimated_cost', 'activity_count', 'notes', 'created_at'
+            'total_estimated_cost', 'activity_count', 'created_at'
         ]
         read_only_fields = ['id', 'created_at', 'total_estimated_cost', 'activity_count']
 
@@ -65,7 +65,7 @@ class DailyPlanCreateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = DailyPlan
-        fields = ['date', 'title', 'description', 'notes']
+        fields = ['date', 'title', 'description']
     
     def validate_date(self, value):
         """Validate date is not in the past"""
@@ -87,12 +87,11 @@ class TripPlanSerializer(serializers.ModelSerializer):
     class Meta:
         model = TripPlan
         fields = [
-            'id', 'user', 'title', 'description', 'start_date', 'end_date',
-            'budget', 'budget_currency', 'group_size', 'trip_type',
+            'id', 'user', 'title', 'ai_description', 'start_date', 'end_date',
+            'budget_range', 'estimated_cost', 'group_size', 'trip_type',
             'preferences', 'daily_plans', 'total_estimated_cost',
             'duration_days', 'status', 'is_public', 'average_rating',
-            'rating_count', 'is_saved', 'ai_generated', 'ai_confidence_score',
-            'created_at', 'updated_at'
+            'rating_count', 'is_saved', 'created_at', 'updated_at'
         ]
         read_only_fields = [
             'id', 'user', 'total_estimated_cost', 'duration_days',
@@ -128,8 +127,8 @@ class TripPlanCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = TripPlan
         fields = [
-            'title', 'description', 'start_date', 'end_date', 'budget',
-            'budget_currency', 'group_size', 'trip_type', 'preferences', 'is_public'
+            'title', 'ai_description', 'start_date', 'end_date', 'budget_range',
+            'estimated_cost', 'group_size', 'trip_type', 'preferences', 'is_public'
         ]
     
     def validate(self, data):
@@ -155,27 +154,24 @@ class TripPlanListSerializer(serializers.ModelSerializer):
     class Meta:
         model = TripPlan
         fields = [
-            'id', 'user', 'title', 'description', 'start_date', 'end_date',
-            'budget', 'budget_currency', 'group_size', 'trip_type',
-            'duration_days', 'status', 'is_public', 'average_rating',
-            'rating_count', 'ai_generated', 'ai_confidence_score',
-            'created_at', 'updated_at'
+            'id', 'user', 'title', 'ai_description', 'start_date', 'end_date',
+            'budget_range', 'estimated_cost', 'group_size', 'trip_type',
+            'duration_days', 'status', 'is_public',
+            'average_rating', 'rating_count', 'created_at', 'updated_at'
         ]
 
 class TripPlanTemplateSerializer(serializers.ModelSerializer):
     """Serializer for trip plan templates"""
     created_by = serializers.StringRelatedField(read_only=True)
-    usage_count = serializers.IntegerField(read_only=True)
     
     class Meta:
         model = TripPlanTemplate
         fields = [
-            'id', 'name', 'description', 'duration_days', 'budget_range_min',
-            'budget_range_max', 'budget_currency', 'trip_type', 'target_group_size',
-            'template_data', 'tags', 'is_active', 'is_featured',
-            'created_by', 'usage_count', 'created_at', 'updated_at'
+            'id', 'name', 'description', 'province', 'trip_type', 'duration_days',
+            'template_data', 'estimated_budget_min', 'estimated_budget_max',
+            'is_active', 'popularity_score', 'created_by', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'created_by', 'usage_count', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_by', 'created_at', 'updated_at']
 
 class TripPlanRatingSerializer(serializers.ModelSerializer):
     """Serializer for trip plan ratings"""
@@ -186,7 +182,7 @@ class TripPlanRatingSerializer(serializers.ModelSerializer):
         model = TripPlanRating
         fields = [
             'id', 'user', 'trip_plan', 'trip_plan_title', 'rating',
-            'review', 'created_at', 'updated_at'
+            'comment', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'user', 'created_at', 'updated_at']
     

@@ -2,7 +2,7 @@
  * Author: Slimene Fellah
  * Available for freelance projects
  */
-import { createContext, useContext, useReducer, useEffect } from 'react';
+import { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
 import { tourismService, chatbotService, tripPlannerService } from '../services';
 
 // Initial state
@@ -404,7 +404,30 @@ export const AppProvider = ({ children }) => {
       } finally {
         actions.setLoading(false);
       }
-    }
+    },
+
+    fetchSavedPlans: useCallback(async () => {
+      dispatch({ type: ActionTypes.SET_LOADING, payload: true });
+      try {
+        // Fetch user's own trip plans instead of saved public trip plans
+        const result = await tripPlannerService.getTripPlans();
+        if (result.success) {
+          dispatch({ 
+            type: ActionTypes.SET_SAVED_PLANS, 
+            payload: result.data.results || result.data || [] 
+          });
+          return result.data;
+        } else {
+          dispatch({ type: ActionTypes.SET_ERROR, payload: result.error });
+          throw new Error(result.error);
+        }
+      } catch (error) {
+        dispatch({ type: ActionTypes.SET_ERROR, payload: 'Failed to fetch trip plans' });
+        throw error;
+      } finally {
+        dispatch({ type: ActionTypes.SET_LOADING, payload: false });
+      }
+    }, [dispatch])
   };
 
   // Load initial data

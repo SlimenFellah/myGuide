@@ -100,6 +100,22 @@ export const tripPlannerService = {
     }
   },
 
+  // Get saved trip plans
+  async getSavedTripPlans() {
+    try {
+      const response = await api.get('/trip-planner/saved-trip-plans/');
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.detail || 'Failed to fetch saved trip plans',
+      };
+    }
+  },
+
   // Get trip templates
   async getTripTemplates() {
     try {

@@ -22,10 +22,11 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import TripDetailsModal from '../components/TripDetailsModal';
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const { state, dispatch } = useAppContext();
+  const { state, dispatch, fetchSavedPlans } = useAppContext();
   const { savedPlans = [], favorites = [], places = [] } = state || {};
   const [stats, setStats] = useState({
     totalTrips: 0,
@@ -35,21 +36,18 @@ const Dashboard = () => {
   });
   const [recentActivity, setRecentActivity] = useState([]);
   const [popularPlaces, setPopularPlaces] = useState([]);
+  const [selectedTrip, setSelectedTrip] = useState(null);
+  const [isTripModalOpen, setIsTripModalOpen] = useState(false);
 
   useEffect(() => {
     // Load dashboard data
     const loadDashboardData = async () => {
       try {
-        // Calculate stats from context state with safe defaults
-        setStats({
-          totalTrips: Array.isArray(savedPlans) ? savedPlans.length : 0,
-          placesVisited: Array.isArray(savedPlans) ? savedPlans.reduce((total, plan) => {
-            return total + (plan?.daily_plans?.reduce((dayTotal, day) => dayTotal + (day?.activities?.length || 0), 0) || 0);
-          }, 0) : 0,
-          reviewsGiven: 0, // This would come from a reviews API
-          favoriteSpots: Array.isArray(favorites) ? favorites.length : 0
-        });
-
+        // Fetch saved plans from backend
+        if (fetchSavedPlans) {
+          await fetchSavedPlans();
+        }
+        
         // Load popular places
         if (Array.isArray(places) && places.length === 0) {
           if (dispatch) {
@@ -71,13 +69,26 @@ const Dashboard = () => {
     };
 
     loadDashboardData();
+  }, [dispatch]); // Removed fetchSavedPlans from dependencies to prevent infinite loop
+
+  // Update stats and recent activity when savedPlans change
+  useEffect(() => {
+    // Calculate stats from context state with safe defaults
+    setStats({
+      totalTrips: Array.isArray(savedPlans) ? savedPlans.length : 0,
+      placesVisited: Array.isArray(savedPlans) ? savedPlans.reduce((total, plan) => {
+        return total + (plan?.daily_plans?.reduce((dayTotal, day) => dayTotal + (day?.activities?.length || 0), 0) || 0);
+      }, 0) : 0,
+      reviewsGiven: 0, // This would come from a reviews API
+      favoriteSpots: Array.isArray(favorites) ? favorites.length : 0
+    });
 
     // Set recent activity based on saved plans
     const activity = Array.isArray(savedPlans) ? savedPlans.slice(0, 3).map((plan, index) => ({
       id: plan?.id || index + 1,
       type: 'trip',
       title: `Trip to ${plan?.province || 'Unknown'} planned`,
-      description: `Created a ${plan?.duration || 'multi'}-day itinerary for ${plan?.province || 'your destination'}`,
+      description: `Created a ${plan?.duration_days || 'multi'}-day itinerary for ${plan?.province || 'your destination'}`,
       time: plan?.created_at ? new Date(plan.created_at).toLocaleDateString() : 'Recently',
       icon: Calendar
     })) : [];
@@ -95,7 +106,7 @@ const Dashboard = () => {
     ];
     
     setRecentActivity(activity.length > 0 ? activity : defaultActivity);
-  }, [savedPlans, favorites, places, dispatch]);
+  }, [savedPlans, favorites]);
 
 
 
@@ -315,6 +326,97 @@ const Dashboard = () => {
         </Card>
       </div>
 
+      {/* Saved Trips Section */}
+      {savedPlans && savedPlans.length > 0 && (
+        <Card className="mt-8">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-xl font-bold flex items-center space-x-2">
+                <Calendar className="h-5 w-5" />
+                <span>Your Saved Trips</span>
+              </CardTitle>
+              <Button variant="ghost" size="sm">
+                View all ({savedPlans.length})
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {savedPlans.slice(0, 6).map((tripPlan) => {
+                return (
+                  <div key={tripPlan.id} className="group cursor-pointer" onClick={() => {
+                    setSelectedTrip(tripPlan);
+                    setIsTripModalOpen(true);
+                  }}>
+                    <Card className="hover:shadow-lg transition-all duration-300 hover:scale-105">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-sm mb-1 truncate">
+                              {tripPlan.title || `Trip to ${tripPlan.province}`}
+                            </h3>
+                            <p className="text-xs text-muted-foreground mb-2">
+                              {tripPlan.province} • {tripPlan.duration_days || 'Multi'} days
+                            </p>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {tripPlan.created_at ? new Date(tripPlan.created_at).toLocaleDateString() : 'Recently'}
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <div className="flex items-center text-xs text-muted-foreground">
+                            <MapPin size={12} className="mr-1" />
+                            <span>{tripPlan.trip_type || 'Adventure'}</span>
+                          </div>
+                          
+                          {tripPlan.estimated_cost && (
+                            <div className="flex items-center text-xs text-muted-foreground">
+                              <span className="mr-1">💰</span>
+                              <span>${tripPlan.estimated_cost}</span>
+                            </div>
+                          )}
+                          
+                          <div className="flex items-center text-xs text-muted-foreground">
+                            <span className="mr-1">👥</span>
+                            <span>{tripPlan.group_size || 1} {tripPlan.group_size === 1 ? 'person' : 'people'}</span>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-3 pt-3 border-t">
+                          <Button size="sm" variant="outline" className="w-full text-xs" onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedTrip(savedPlan);
+                            setIsTripModalOpen(true);
+                          }}>
+                            View Details
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                );
+              })}
+            </div>
+            
+            {savedPlans.length === 0 && (
+              <div className="text-center py-8">
+                <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No saved trips yet</h3>
+                <p className="text-muted-foreground mb-4">
+                  Start planning your first trip to see it here!
+                </p>
+                <Button asChild>
+                  <Link to="/trip-planner">
+                    Plan Your First Trip
+                  </Link>
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* CTA Section */}
       <Card className="mt-8 border-0 bg-gradient-to-r from-primary to-primary/90">
         <CardContent className="p-8 text-center text-primary-foreground">
@@ -334,6 +436,16 @@ const Dashboard = () => {
         </CardContent>
       </Card>
       
+      {/* Trip Details Modal */}
+      <TripDetailsModal 
+        trip={selectedTrip}
+        isOpen={isTripModalOpen}
+        onClose={() => {
+          setIsTripModalOpen(false);
+          setSelectedTrip(null);
+        }}
+      />
+
       {/* Footer */}
       <footer className="mt-12 border-t pt-8">
         <div className="text-center text-sm text-muted-foreground">

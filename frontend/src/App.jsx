@@ -1,7 +1,7 @@
 /*
  * Developed & maintained by Slimene Fellah — Available for freelance work at slimenefellah.dev
  */
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import LandingPage from './pages/LandingPage';
@@ -20,6 +20,98 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider } from './contexts/AuthContext';
 import { AppProvider } from './contexts/AppContext';
 import './App.css';
+
+// Component to handle routes with location-based key for proper re-rendering
+function AppRoutes() {
+  const location = useLocation();
+  
+  return (
+    <Routes key={location.pathname}>
+      {/* Public Routes */}
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      
+      {/* Protected Routes */}
+      <Route path="/dashboard" element={
+        <ProtectedRoute>
+          <div className="min-h-screen bg-gray-50">
+            <Navbar />
+            <ErrorBoundary>
+              <Dashboard />
+            </ErrorBoundary>
+          </div>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/explore" element={
+        <ProtectedRoute>
+          <div className="min-h-screen bg-gray-50">
+            <Navbar />
+            <ErrorBoundary>
+              <ExplorePage />
+            </ErrorBoundary>
+          </div>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/trip-planner" element={
+        <ProtectedRoute>
+          <div className="min-h-screen bg-gray-50">
+            <Navbar />
+            <ErrorBoundary>
+              <TripPlannerPage />
+            </ErrorBoundary>
+          </div>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/chatbot" element={
+        <ProtectedRoute>
+          <div className="min-h-screen bg-gray-50">
+            <Navbar />
+            <ErrorBoundary>
+              <ChatbotPage />
+            </ErrorBoundary>
+          </div>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/profile" element={
+        <ProtectedRoute>
+          <div className="min-h-screen bg-gray-50">
+            <Navbar />
+            <ErrorBoundary>
+              <ProfilePage />
+            </ErrorBoundary>
+          </div>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/settings" element={
+        <ProtectedRoute>
+          <div className="min-h-screen bg-gray-50">
+            <Navbar />
+            <ErrorBoundary>
+              <SettingsPage />
+            </ErrorBoundary>
+          </div>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/admin" element={
+        <ProtectedRoute requireAdmin={true}>
+          <div className="min-h-screen bg-gray-50">
+            <Navbar />
+            <ErrorBoundary>
+              <AdminDashboard />
+            </ErrorBoundary>
+          </div>
+        </ProtectedRoute>
+      } />
+    </Routes>
+  );
+}
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -50,91 +142,7 @@ function App() {
         <div className="App">
           <Router>
             <NotificationSystem />
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              
-              {/* Protected Routes */}
-              <Route path="/dashboard" element={
-                <ProtectedRoute>
-                  <div className="min-h-screen bg-gray-50">
-                    <Navbar />
-                    <ErrorBoundary>
-                      <Dashboard />
-                    </ErrorBoundary>
-                  </div>
-                </ProtectedRoute>
-              } />
-              
-              <Route path="/explore" element={
-                <ProtectedRoute>
-                  <div className="min-h-screen bg-gray-50">
-                    <Navbar />
-                    <ErrorBoundary>
-                      <ExplorePage />
-                    </ErrorBoundary>
-                  </div>
-                </ProtectedRoute>
-              } />
-              
-              <Route path="/trip-planner" element={
-                <ProtectedRoute>
-                  <div className="min-h-screen bg-gray-50">
-                    <Navbar />
-                    <ErrorBoundary>
-                      <TripPlannerPage />
-                    </ErrorBoundary>
-                  </div>
-                </ProtectedRoute>
-              } />
-              
-              <Route path="/chatbot" element={
-                <ProtectedRoute>
-                  <div className="min-h-screen bg-gray-50">
-                    <Navbar />
-                    <ErrorBoundary>
-                      <ChatbotPage />
-                    </ErrorBoundary>
-                  </div>
-                </ProtectedRoute>
-              } />
-              
-              <Route path="/profile" element={
-                <ProtectedRoute>
-                  <div className="min-h-screen bg-gray-50">
-                    <Navbar />
-                    <ErrorBoundary>
-                      <ProfilePage />
-                    </ErrorBoundary>
-                  </div>
-                </ProtectedRoute>
-              } />
-              
-              <Route path="/settings" element={
-                <ProtectedRoute>
-                  <div className="min-h-screen bg-gray-50">
-                    <Navbar />
-                    <ErrorBoundary>
-                      <SettingsPage />
-                    </ErrorBoundary>
-                  </div>
-                </ProtectedRoute>
-              } />
-              
-              {/* Admin Routes */}
-              <Route path="/admin" element={
-                <ProtectedRoute requireAdmin={true}>
-                  <div className="min-h-screen bg-gray-50">
-                    <Navbar />
-                    <ErrorBoundary>
-                      <AdminDashboard />
-                    </ErrorBoundary>
-                  </div>
-                </ProtectedRoute>
-              } />
-            </Routes>
+            <AppRoutes />
           </Router>
         </div>
       </AppProvider>

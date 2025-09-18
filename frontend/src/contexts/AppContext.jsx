@@ -87,6 +87,7 @@ const ActionTypes = {
   SET_CONVERSATIONS: 'SET_CONVERSATIONS',
   SET_ACTIVE_CONVERSATION: 'SET_ACTIVE_CONVERSATION',
   ADD_MESSAGE: 'ADD_MESSAGE',
+  ADD_CHAT_MESSAGE: 'ADD_CHAT_MESSAGE',
   SET_CHAT_LOADING: 'SET_CHAT_LOADING',
   
   // Trip Planner Actions
@@ -149,6 +150,15 @@ const appReducer = (state, action) => {
     case ActionTypes.SET_ACTIVE_CONVERSATION:
       return { ...state, activeConversation: action.payload };
     case ActionTypes.ADD_MESSAGE:
+      if (state.activeConversation) {
+        const updatedConversation = {
+          ...state.activeConversation,
+          messages: [...(state.activeConversation.messages || []), action.payload]
+        };
+        return { ...state, activeConversation: updatedConversation };
+      }
+      return state;
+    case ActionTypes.ADD_CHAT_MESSAGE:
       if (state.activeConversation) {
         const updatedConversation = {
           ...state.activeConversation,
@@ -324,13 +334,23 @@ export const AppProvider = ({ children }) => {
       }
     },
     
-    async sendChatMessage(message, conversationId) {
+    async sendChatMessage(conversationId, message) {
       actions.setChatLoading(true);
       try {
         const result = await chatbotService.sendMessage(message, conversationId);
         if (result.success) {
-          actions.addMessage(result.data);
-          return result.data;
+          // Transform API response to message format
+          const botMessage = {
+            id: result.data.message_id,
+            content: result.data.response,
+            type: 'assistant',
+            timestamp: new Date(),
+            confidence_score: result.data.confidence_score,
+            sources: result.data.sources || [],
+            suggestions: result.data.suggestions || []
+          };
+          actions.addMessage(botMessage);
+          return botMessage;
         } else {
           actions.setError(result.error);
           return null;
@@ -340,6 +360,49 @@ export const AppProvider = ({ children }) => {
         return null;
       } finally {
         actions.setChatLoading(false);
+      }
+    },
+
+    async generateTripPlan(tripData) {
+      actions.setLoading(true);
+      try {
+        const result = await tripPlannerService.generateTripPlan(tripData);
+        if (result.success) {
+          actions.setActiveTrip(result.data);
+          return result.data;
+        } else {
+          actions.setError(result.error);
+          throw new Error(result.error);
+        }
+      } catch (error) {
+        actions.setError('Failed to generate trip plan');
+        throw error;
+      } finally {
+        actions.setLoading(false);
+      }
+    },
+
+    async saveTripPlan(tripData) {
+      actions.setLoading(true);
+      try {
+        const result = await tripPlannerService.saveTripPlan(tripData);
+        if (result.success) {
+          // Add to saved plans
+          const currentSavedPlans = state.savedPlans || [];
+          dispatch({ 
+            type: ActionTypes.SET_SAVED_PLANS, 
+            payload: [...currentSavedPlans, result.data] 
+          });
+          return result.data;
+        } else {
+          actions.setError(result.error);
+          throw new Error(result.error);
+        }
+      } catch (error) {
+        actions.setError('Failed to save trip plan');
+        throw error;
+      } finally {
+        actions.setLoading(false);
       }
     }
   };

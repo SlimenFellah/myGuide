@@ -151,4 +151,4 @@ This project is developed by Slimene Fellah and available for freelance collabor
 
 ---
 
-**Developed & maintained by Slimene Fellah — Available for freelance work at slimenefellah.dev**
+**Developed & maintained by Slimene Fellah — Available for freelance work at [slimenefellah.dev](https://slimenefellah.dev)**

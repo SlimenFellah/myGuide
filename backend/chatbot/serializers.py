@@ -31,7 +31,7 @@ class ChatSessionSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChatSession
         fields = '__all__'
-        read_only_fields = ('user', 'created_at', 'updated_at')
+        read_only_fields = ('user', 'session_id', 'created_at', 'updated_at')
     
     def get_messages_count(self, obj):
         return obj.messages.count()
@@ -124,7 +124,7 @@ class KnowledgeBaseStatsSerializer(serializers.Serializer):
     """Knowledge base statistics serializer"""
     total_documents = serializers.IntegerField()
     active_documents = serializers.IntegerField()
-    documents_by_category = serializers.DictField()
+    documents_by_content_type = serializers.DictField()
     documents_by_source = serializers.DictField()
     recent_additions = serializers.IntegerField()
 
@@ -146,7 +146,7 @@ class ChatSuggestionSerializer(serializers.Serializer):
 class KnowledgeSearchSerializer(serializers.Serializer):
     """Knowledge base search serializer"""
     query = serializers.CharField(required=True, max_length=500)
-    category = serializers.CharField(required=False, allow_blank=True)
+    content_type = serializers.CharField(required=False, allow_blank=True)
     source_type = serializers.ChoiceField(
         choices=KnowledgeBase.CONTENT_TYPES,
         required=False,

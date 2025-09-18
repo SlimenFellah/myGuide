@@ -9,11 +9,12 @@ export const chatbotService = {
   async sendMessage(message, conversationId = null) {
     try {
       const payload = {
-        message,
-        ...(conversationId && { conversation_id: conversationId })
+        content: message,
+        message_type: 'user',
+        ...(conversationId && { session: conversationId })
       };
       
-      const response = await api.post('/chatbot/chat/', payload);
+      const response = await api.post('/chatbot/messages/', payload);
       return {
         success: true,
         data: response.data,
@@ -29,7 +30,7 @@ export const chatbotService = {
   // Get user conversations
   async getConversations() {
     try {
-      const response = await api.get('/chatbot/conversations/');
+      const response = await api.get('/chatbot/sessions/');
       return {
         success: true,
         data: response.data,
@@ -45,7 +46,7 @@ export const chatbotService = {
   // Get conversation history
   async getConversation(conversationId) {
     try {
-      const response = await api.get(`/chatbot/conversations/${conversationId}/`);
+      const response = await api.get(`/chatbot/sessions/${conversationId}/`);
       return {
         success: true,
         data: response.data,
@@ -61,7 +62,7 @@ export const chatbotService = {
   // Create new conversation
   async createConversation(title = 'New Conversation') {
     try {
-      const response = await api.post('/chatbot/conversations/', { title });
+      const response = await api.post('/chatbot/sessions/', { title });
       return {
         success: true,
         data: response.data,
@@ -77,7 +78,7 @@ export const chatbotService = {
   // Delete conversation
   async deleteConversation(conversationId) {
     try {
-      await api.delete(`/chatbot/conversations/${conversationId}/`);
+      await api.delete(`/chatbot/sessions/${conversationId}/`);
       return {
         success: true,
       };
@@ -92,7 +93,7 @@ export const chatbotService = {
   // Update conversation title
   async updateConversation(conversationId, title) {
     try {
-      const response = await api.patch(`/chatbot/conversations/${conversationId}/`, { title });
+      const response = await api.patch(`/chatbot/sessions/${conversationId}/`, { title });
       return {
         success: true,
         data: response.data,

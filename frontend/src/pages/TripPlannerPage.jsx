@@ -3,6 +3,7 @@
  * Available for freelance projects
  */
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../contexts/AppContext';
 import { apiService } from '../services';
 import { 
@@ -28,7 +29,8 @@ import { Input } from '../components/ui/input';
 import tripPlannerImage from '../assets/448618032.png';
 
 const TripPlannerPage = () => {
-  const { state, dispatch, generateTripPlan, saveTripPlan, fetchProvinces } = useAppContext();
+  const { state, dispatch, generateTripPlan, saveTripPlan, fetchProvinces, setNotification } = useAppContext();
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedDay, setSelectedDay] = useState(0);
   
@@ -61,7 +63,7 @@ const TripPlannerPage = () => {
       }
     };
     loadProvinces();
-  }, [provinces?.length, fetchProvinces]);
+  }, []); // Empty dependency array to run only once on mount
   
   const provinceNames = (provinces && provinces.length > 0) 
     ? provinces.map(p => p.name) 
@@ -69,10 +71,14 @@ const TripPlannerPage = () => {
        'Sétif', 'Béjaïa', 'Tizi Ouzou', 'Blida', 'Skikda', 'Mostaganem'];
 
   const tripTypes = [
-    { id: 'solo', name: 'Solo Adventure', icon: '🧳', description: 'Perfect for self-discovery' },
-    { id: 'couple', name: 'Romantic Getaway', icon: '💕', description: 'Intimate experiences for two' },
-    { id: 'friends', name: 'Friends Trip', icon: '👥', description: 'Fun activities with your crew' },
-    { id: 'family', name: 'Family Vacation', icon: '👨‍👩‍👧‍👦', description: 'Kid-friendly adventures' }
+    { id: 'cultural', name: 'Cultural Heritage', icon: '🏛️', description: 'Explore history and traditions' },
+    { id: 'adventure', name: 'Adventure & Nature', icon: '🏔️', description: 'Outdoor activities and exploration' },
+    { id: 'relaxation', name: 'Relaxation & Wellness', icon: '🧘', description: 'Rest and rejuvenation' },
+    { id: 'family', name: 'Family Fun', icon: '👨‍👩‍👧‍👦', description: 'Kid-friendly adventures' },
+    { id: 'historical', name: 'Historical Sites', icon: '🏺', description: 'Ancient monuments and heritage' },
+    { id: 'culinary', name: 'Culinary Experience', icon: '🍽️', description: 'Food and dining adventures' },
+    { id: 'photography', name: 'Photography Tour', icon: '📸', description: 'Capture beautiful moments' },
+    { id: 'business', name: 'Business Travel', icon: '💼', description: 'Professional trips with leisure' }
   ];
 
   const preferenceOptions = [
@@ -92,36 +98,84 @@ const TripPlannerPage = () => {
   };
 
   const handlePreferenceChange = (preference) => {
-    setFormData(prev => ({
-      ...prev,
-      preferences: {
+    alert(`Preference button clicked: ${preference}`);
+    console.log('Preference button clicked:', preference);
+    console.log('Current preferences before change:', formData.preferences);
+    
+    setFormData(prev => {
+      const newPreferences = {
         ...prev.preferences,
         [preference]: !prev.preferences[preference]
-      }
-    }));
+      };
+      console.log('New preferences after change:', newPreferences);
+      
+      return {
+        ...prev,
+        preferences: newPreferences
+      };
+    });
   };
 
   const generateTrip = async () => {
-    try {
-      const tripData = {
-        province: formData.province,
-        trip_type: formData.tripType,
-        start_date: formData.startDate,
-        end_date: formData.endDate,
-        budget: parseFloat(formData.budget),
-        group_size: formData.groupSize,
-        preferences: formData.preferences,
-        allergies: formData.allergies,
-        additional_notes: formData.additionalNotes
-      };
-      
-      await generateTripPlan(tripData);
-      setCurrentStep(4);
-    } catch (error) {
+    if (!formData.province || !formData.tripType || !formData.startDate || !formData.endDate || !formData.budget || !formData.groupSize) {
       dispatch({ type: 'ADD_NOTIFICATION', payload: {
         type: 'error',
-        message: 'Failed to generate trip plan. Please try again.'
+        message: 'Please fill in all required fields'
       }});
+      return;
+    }
+
+    // Validate group size
+    if (formData.groupSize < 1 || formData.groupSize > 20) {
+      dispatch({ type: 'ADD_NOTIFICATION', payload: {
+        type: 'error',
+        message: 'Group size must be between 1 and 20 people'
+      }});
+      return;
+    }
+
+    // Map frontend data to backend expected format
+    const tripData = {
+      destination: formData.province, // Province name as destination
+      trip_type: formData.tripType,
+      start_date: formData.startDate,
+      end_date: formData.endDate,
+      budget: parseFloat(formData.budget),
+      budget_currency: 'USD', // Default currency
+      group_size: formData.groupSize,
+      interests: Object.keys(formData.preferences).filter(key => formData.preferences[key]), // Convert preferences to interests array
+      accommodation_preference: 'mid-range', // Valid choice: budget, mid-range, luxury
+      activity_level: 'moderate', // Valid choice: low, moderate, high
+      special_requirements: [formData.allergies, formData.additionalNotes].filter(Boolean).join('. ') // Combine allergies and notes
+    };
+
+    console.log('Sending trip data:', tripData);
+    
+    // Show loading state
+    setCurrentStep(3.5); // Intermediate loading step
+    
+    try {
+      const result = await generateTripPlan(tripData);
+      
+      // Show success notification
+      dispatch({ type: 'ADD_NOTIFICATION', payload: {
+        type: 'success',
+        message: `Trip plan "${result.title}" generated successfully!`
+      }});
+      
+      setCurrentStep(4);
+    } catch (error) {
+      console.error('Error generating trip:', error);
+      
+      // Show detailed error notification
+      const errorMessage = error.message || 'Failed to generate trip plan. Please try again.';
+      dispatch({ type: 'ADD_NOTIFICATION', payload: {
+        type: 'error',
+        message: errorMessage
+      }});
+      
+      // Go back to step 3 to allow retry
+      setCurrentStep(3);
     }
   };
 
@@ -139,11 +193,15 @@ const TripPlannerPage = () => {
       case 2:
         return formData.startDate && formData.endDate && formData.budget;
       case 3:
-        return Object.values(formData.preferences).some(Boolean);
+        const hasPreferences = Object.values(formData.preferences).some(Boolean);
+        console.log('Step 3 validation - preferences:', formData.preferences, 'hasPreferences:', hasPreferences);
+        return hasPreferences;
       default:
         return true;
     }
   };
+
+
 
   const renderStep1 = () => (
     <div className="space-y-8">
@@ -279,7 +337,11 @@ const TripPlannerPage = () => {
                 <Input
                   type="number"
                   value={formData.groupSize}
-                  onChange={(e) => handleInputChange('groupSize', parseInt(e.target.value))}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value) || 1;
+                    const constrainedValue = Math.min(Math.max(value, 1), 20);
+                    handleInputChange('groupSize', constrainedValue);
+                  }}
                   className="pl-10 w-full p-4 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent shadow-sm"
                   min="1"
                   max="20"
@@ -342,24 +404,28 @@ const TripPlannerPage = () => {
             <p className="text-gray-600 mt-2">Choose all that apply</p>
           </CardHeader>
           <CardContent>
+
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {preferenceOptions.map((option) => (
-                <Button
-                  key={option.key}
-                  onClick={() => handlePreferenceChange(option.key)}
-                  variant={formData.preferences[option.key] ? "default" : "outline"}
-                  className={`p-4 h-auto transition-all duration-200 ${
-                    formData.preferences[option.key]
-                      ? 'bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white shadow-lg'
-                      : 'border-gray-200 hover:border-primary-300 hover:bg-primary-50'
-                  }`}
-                >
-                  <div className="text-center">
-                    <span className="text-2xl mb-2 block">{option.icon}</span>
-                    <span className="text-sm font-medium">{option.label}</span>
-                  </div>
-                </Button>
-              ))}
+              {preferenceOptions.map((option) => {
+                const isSelected = formData.preferences[option.key];
+                return (
+                  <button
+                    key={option.key}
+                    type="button"
+                    onClick={() => handlePreferenceChange(option.key)}
+                    className={`p-4 h-auto transition-all duration-200 cursor-pointer rounded-lg border-2 w-full ${
+                      isSelected
+                        ? 'bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg border-primary'
+                        : 'border-gray-200 hover:border-primary/30 hover:bg-primary/5 bg-white'
+                    }`}
+                  >
+                    <div className="text-center">
+                      <span className="text-2xl mb-2 block">{option.icon}</span>
+                      <span className="text-sm font-medium">{option.label}</span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
@@ -437,7 +503,7 @@ const TripPlannerPage = () => {
   const renderTripPlan = () => {
     if (!currentPlan) return null;
     
-    const currentDay = currentPlan.days[selectedDay];
+    const currentDay = currentPlan.daily_plans[selectedDay];
     
     return (
       <div className="space-y-6">
@@ -489,8 +555,8 @@ const TripPlannerPage = () => {
                   Day {selectedDay + 1} of {currentPlan.duration}
                 </span>
                 <Button
-                  onClick={() => setSelectedDay(Math.min(currentPlan.days.length - 1, selectedDay + 1))}
-                  disabled={selectedDay === currentPlan.days.length - 1}
+                  onClick={() => setSelectedDay(Math.min(currentPlan.daily_plans.length - 1, selectedDay + 1))}
+                disabled={selectedDay === currentPlan.daily_plans.length - 1}
                   variant="outline"
                   size="sm"
                   className="p-2 border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
@@ -578,7 +644,54 @@ const TripPlannerPage = () => {
                 Plan Another Trip
               </Button>
               <Button 
-                onClick={() => saveTripPlan(currentPlan)}
+                onClick={async () => {
+                  try {
+                    // Transform currentPlan to match TripPlanCreateSerializer format
+                    const startDate = new Date(currentPlan.start_date);
+                    const endDate = new Date(currentPlan.end_date);
+                    const durationDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+                    
+                    // Find province ID based on province name
+                    const provinceName = currentPlan.destination || currentPlan.province;
+                    const provincesArray = Array.isArray(provinces) ? provinces : [];
+                    const province = provincesArray.find(p => p.name === provinceName);
+                    const provinceId = province ? province.id : (provincesArray.length > 0 ? provincesArray[0].id : 1);
+                    
+                    const planData = {
+                      title: currentPlan.title || `${currentPlan.destination || currentPlan.province} Trip`,
+                      ai_description: currentPlan.ai_description || currentPlan.description || '',
+                      start_date: currentPlan.start_date,
+                      end_date: currentPlan.end_date,
+                      duration_days: durationDays,
+                      budget_range: currentPlan.budget_range || 'medium',
+                      estimated_cost: currentPlan.total_cost || currentPlan.estimated_cost || 0,
+                      group_size: currentPlan.group_size || 1,
+                      trip_type: currentPlan.trip_type,
+                      preferences: currentPlan.preferences || {},
+                      is_public: false,
+                      province: provinceId
+                    };
+                    
+                    const savedTrip = await saveTripPlan(planData);
+                    
+                    // Show success notification
+                    setNotification({
+                      type: 'success',
+                      title: 'Trip Saved Successfully!',
+                      message: `Your ${currentPlan.destination || currentPlan.province} trip has been saved to your collection.`
+                    });
+                    
+                    // Redirect to the saved trip details (for now, redirect to dashboard)
+                    // In the future, you can create a trip details page and redirect there
+                    setTimeout(() => {
+                      navigate('/dashboard');
+                    }, 2000); // Wait 2 seconds to show the success message
+                    
+                  } catch (error) {
+                    console.error('Error saving trip:', error);
+                    // Error notification is already handled by the saveTripPlan function
+                  }
+                }}
                 className="px-8 py-3 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700"
               >
                 Save This Plan
@@ -616,15 +729,21 @@ const TripPlannerPage = () => {
                 {[1, 2, 3].map((step) => (
                   <div key={step} className="flex items-center">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${
-                      currentStep >= step 
+                      currentStep >= step || currentStep === 3.5
                         ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg' 
                         : 'bg-gray-200 text-gray-600'
                     }`}>
-                      {currentStep > step ? <CheckCircle size={18} /> : step}
+                      {currentStep > step || (currentStep === 3.5 && step === 3) ? (
+                        <CheckCircle size={18} />
+                      ) : currentStep === 3.5 && step === 3 ? (
+                        <Loader2 size={18} className="animate-spin" />
+                      ) : (
+                        step
+                      )}
                     </div>
                     {step < 3 && (
                       <div className={`w-20 h-2 mx-3 rounded-full transition-all duration-300 ${
-                        currentStep > step ? 'bg-gradient-to-r from-primary-500 to-primary-600' : 'bg-gray-200'
+                        currentStep > step || currentStep === 3.5 ? 'bg-gradient-to-r from-primary-500 to-primary-600' : 'bg-gray-200'
                       }`} />
                     )}
                   </div>
@@ -632,7 +751,7 @@ const TripPlannerPage = () => {
               </div>
               <div className="flex justify-center mt-6">
                 <div className="text-base font-medium text-gray-700">
-                  Step {currentStep} of 3: {currentStep === 1 ? 'Destination' : currentStep === 2 ? 'Details' : 'Preferences'}
+                  {currentStep === 3.5 ? 'Generating Your Trip...' : `Step ${Math.floor(currentStep)} of 3: ${currentStep === 1 ? 'Destination' : currentStep === 2 ? 'Details' : 'Preferences'}`}
                 </div>
               </div>
             </CardContent>
@@ -646,11 +765,11 @@ const TripPlannerPage = () => {
               {currentStep === 1 && renderStep1()}
               {currentStep === 2 && renderStep2()}
               {currentStep === 3 && renderStep3()}
-              {isGenerating && renderGenerating()}
+              {currentStep === 3.5 && renderGenerating()}
               {currentStep === 4 && renderTripPlan()}
           
               {/* Navigation Buttons */}
-              {currentStep < 4 && !isGenerating && (
+              {currentStep < 4 && currentStep !== 3.5 && (
                 <div className="flex justify-between mt-8 pt-6 border-t border-gray-200">
                   <Button
                     onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}

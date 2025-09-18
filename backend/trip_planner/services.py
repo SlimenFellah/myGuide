@@ -96,15 +96,30 @@ class TripPlannerAIService:
         """Find suitable destinations based on criteria"""
         queryset = Place.objects.filter(is_active=True)
         
+        # Map common English destination names to local names
+        destination_mapping = {
+            'algiers': 'alger',
+            'constantine': 'constantine',
+            'oran': 'oran',
+            'annaba': 'annaba',
+            'tlemcen': 'tlemcen',
+            'bejaia': 'béjaïa',
+            'béjaïa': 'béjaïa'
+        }
+        
         # Filter by destination preference (province/district)
         if destination_preference:
+            # Normalize destination preference
+            normalized_dest = destination_preference.lower()
+            mapped_dest = destination_mapping.get(normalized_dest, destination_preference)
+            
             queryset = queryset.filter(
-                Q(province__name__icontains=destination_preference) |
-                Q(district__name__icontains=destination_preference) |
-                Q(municipality__name__icontains=destination_preference)
+                Q(municipality__district__province__name__icontains=mapped_dest) |
+                Q(municipality__district__name__icontains=mapped_dest) |
+                Q(municipality__name__icontains=mapped_dest)
             )
         
-        # Filter by categories that match trip type and interests
+        # Filter by categories that match trip type and interests (optional)
         preferred_activities = self.trip_type_preferences.get(trip_type, [])
         if interests:
             preferred_activities.extend(interests)
@@ -128,9 +143,15 @@ class TripPlannerAIService:
                 category_names.extend(category_mapping.get(interest, [interest]))
             
             if category_names:
-                queryset = queryset.filter(
+                # Try to filter by categories, but if no matches, fall back to all places
+                category_filtered = queryset.filter(
                     category__name__in=category_names
                 ).distinct()
+                
+                # If no places match the category filter, use all places in the location
+                if category_filtered.exists():
+                    queryset = category_filtered
+                # If no category matches, keep all places (don't filter by category)
         
         # Order by rating and popularity
         queryset = queryset.annotate(
@@ -320,8 +341,8 @@ class TripPlannerAIService:
         base_cost = base_costs.get(activity_type, 25)
         
         # Add some randomness and adjust for budget
-        cost_multiplier = min(budget / 50, 3.0)  # Cap at 3x base cost
-        estimated_cost = base_cost * cost_multiplier * random.uniform(0.7, 1.3)
+        cost_multiplier = min(float(budget) / 50, 3.0)  # Cap at 3x base cost
+        estimated_cost = float(base_cost) * cost_multiplier * random.uniform(0.7, 1.3)
         
         return round(estimated_cost, 2)
     

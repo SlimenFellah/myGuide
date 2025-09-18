@@ -12,6 +12,7 @@ from datetime import timedelta
 import json
 import time
 import openai
+import uuid
 from django.conf import settings
 
 from .models import (
@@ -74,7 +75,9 @@ class ChatSessionListCreateView(generics.ListCreateAPIView):
         return ChatSession.objects.filter(user=self.request.user)
     
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        # Generate unique session_id
+        session_id = f"session_{uuid.uuid4().hex[:12]}_{int(time.time())}"
+        serializer.save(user=self.request.user, session_id=session_id)
 
 class ChatSessionDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Retrieve, update or delete a chat session"""
@@ -120,11 +123,11 @@ class ChatMessageCreateView(generics.CreateAPIView):
             chatbot_service = ChatbotService()
             
             # Get relevant context from knowledge base
-            context = rag_service.search_knowledge_base(message.message)
+            context = rag_service.get_relevant_context(message.content)
             
             # Generate response using AI
             ai_response = chatbot_service.generate_response(
-                message.message, 
+                message.content, 
                 context, 
                 message.session.get_conversation_history()
             )
@@ -134,31 +137,32 @@ class ChatMessageCreateView(generics.CreateAPIView):
             # Create AI response message
             ai_message = ChatMessage.objects.create(
                 session=message.session,
-                message=ai_response['response'],
-                message_type='bot',
-                response_time=response_time,
+                content=ai_response['response'],
+                message_type='assistant',
+                processing_time_ms=int(response_time * 1000),
                 confidence_score=ai_response.get('confidence', 0.8),
-                sources_used=json.dumps(ai_response.get('sources', []))
+                retrieved_context=ai_response.get('sources', [])
             )
             
             # Update session
             message.session.updated_at = timezone.now()
             message.session.save()
             
-            # Log analytics
-            ChatAnalytics.objects.create(
-                session=message.session,
-                user_message=message.message,
-                bot_response=ai_message.message,
-                response_time=response_time,
-                confidence_score=ai_response.get('confidence', 0.8),
-                sources_count=len(ai_response.get('sources', []))
-            )
+            # Log analytics (simplified for now)
+            # Note: ChatAnalytics model needs to be updated to match these fields
+            # ChatAnalytics.objects.create(
+            #     session=message.session,
+            #     user_message=message.content,
+            #     bot_response=ai_message.content,
+            #     response_time=response_time,
+            #     confidence_score=ai_response.get('confidence', 0.8),
+            #     sources_count=len(ai_response.get('sources', []))
+            # )
             
             # Return response
             response_data = ChatResponseSerializer({
                 'message_id': ai_message.id,
-                'response': ai_message.message,
+                'response': ai_message.content,
                 'confidence_score': ai_message.confidence_score,
                 'sources': ai_response.get('sources', []),
                 'response_time': response_time,
@@ -171,15 +175,15 @@ class ChatMessageCreateView(generics.CreateAPIView):
             # Create error response
             error_message = ChatMessage.objects.create(
                 session=message.session,
-                message="I'm sorry, I'm having trouble processing your request right now. Please try again later.",
-                message_type='bot',
-                response_time=0,
-                confidence_score=0
+                content="I'm sorry, I'm having trouble processing your request right now. Please try again later.",
+                message_type='assistant',
+                processing_time_ms=0,
+                confidence_score=0.0
             )
             
             return Response({
                 'message_id': error_message.id,
-                'response': error_message.message,
+                'response': error_message.content,
                 'confidence_score': 0,
                 'sources': [],
                 'response_time': 0,
@@ -245,7 +249,7 @@ def quick_chat(request):
         chatbot_service = ChatbotService()
         
         # Get relevant context
-        context = rag_service.search_knowledge_base(message)
+        context = rag_service.get_relevant_context(message)
         
         # Generate response
         ai_response = chatbot_service.generate_response(message, context)
@@ -303,7 +307,7 @@ def search_knowledge_base(request):
             rag_service = RAGService()
             results = rag_service.search_knowledge_base(
                 query=serializer.validated_data['query'],
-                category=serializer.validated_data.get('category'),
+                content_type=serializer.validated_data.get('content_type'),
                 source_type=serializer.validated_data.get('source_type'),
                 limit=serializer.validated_data.get('limit', 10)
             )
@@ -407,11 +411,11 @@ def knowledge_base_statistics(request):
     stats = {
         'total_documents': KnowledgeBase.objects.count(),
         'active_documents': KnowledgeBase.objects.filter(is_active=True).count(),
-        'documents_by_category': dict(
-            KnowledgeBase.objects.values('category').annotate(
-                count=Count('id')
-            ).values_list('category', 'count')
-        ),
+        'documents_by_content_type': dict(
+                KnowledgeBase.objects.values('content_type').annotate(
+                    count=Count('id')
+                ).values_list('content_type', 'count')
+            ),
         'documents_by_source': dict(
             KnowledgeBase.objects.values('source_type').annotate(
                 count=Count('id')

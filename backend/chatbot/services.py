@@ -27,7 +27,7 @@ class RAGService:
     def _update_knowledge_vectors(self):
         """Update the vectorized knowledge base"""
         documents = KnowledgeBase.objects.filter(is_active=True).values(
-            'id', 'title', 'content', 'category', 'source_type', 'tags'
+            'id', 'title', 'content', 'content_type', 'source_type'
         )
         
         if not documents:
@@ -40,7 +40,7 @@ class RAGService:
         doc_list = list(documents)
         
         for doc in doc_list:
-            combined_text = f"{doc['title']} {doc['content']} {doc['tags'] or ''}"
+            combined_text = f"{doc['title']} {doc['content']}"
             texts.append(combined_text)
         
         # Vectorize the documents
@@ -54,7 +54,7 @@ class RAGService:
     def search_knowledge_base(
         self, 
         query: str, 
-        category: Optional[str] = None,
+        content_type: Optional[str] = None,
         source_type: Optional[str] = None,
         limit: int = 5,
         min_similarity: float = 0.1
@@ -68,10 +68,10 @@ class RAGService:
         if not self._knowledge_documents:
             return []
         
-        # Filter documents by category and source_type if specified
-        filtered_docs = self._knowledge_documents
-        if category:
-            filtered_docs = [doc for doc in filtered_docs if doc['category'] == category]
+        # Filter documents by content_type and source_type if specified
+        filtered_docs = self._knowledge_documents.copy()
+        if content_type:
+            filtered_docs = [doc for doc in filtered_docs if doc['content_type'] == content_type]
         if source_type:
             filtered_docs = [doc for doc in filtered_docs if doc['source_type'] == source_type]
         
@@ -100,7 +100,7 @@ class RAGService:
                     'id': doc['id'],
                     'title': doc['title'],
                     'content': doc['content'][:500] + '...' if len(doc['content']) > 500 else doc['content'],
-                    'category': doc['category'],
+                    'content_type': doc['content_type'],
                     'source_type': doc['source_type'],
                     'similarity_score': float(similarity),
                     'tags': doc['tags']
@@ -168,10 +168,11 @@ class ChatbotService:
         """Generate response using Ollama API"""
         try:
             # Build the prompt with context and conversation history
+            context_text = context if context else "No specific context available."
             system_prompt = f"""You are a helpful tourism assistant for Algeria. Use the following context to answer questions about Algeria's tourism, culture, places to visit, and travel information.
             
 Context:
-{context}
+{context_text}
             
 Instructions:
 - Provide accurate and helpful information about Algeria
@@ -185,8 +186,8 @@ Instructions:
             conversation_context = ""
             if conversation_history:
                 for msg in conversation_history[-4:]:  # Last 4 messages for context
-                    role = "Human" if msg['message_type'] == 'user' else "Assistant"
-                    conversation_context += f"{role}: {msg['message']}\n"
+                    role = "Human" if msg['role'] == 'user' else "Assistant"
+                    conversation_context += f"{role}: {msg['content']}\n"
             
             # Create the full prompt
             full_prompt = f"{system_prompt}\n\n{conversation_context}Human: {user_message}\nAssistant:"
@@ -231,18 +232,19 @@ Instructions:
         """Generate response using OpenAI API"""
         try:
             # Build conversation messages
+            context_text = context if context else "No specific context available."
             messages = [
                 {
                     "role": "system",
-                    "content": f"""You are a helpful tourism assistant for Rwanda. Use the following context to answer questions about Rwanda's tourism, culture, places to visit, and travel information.
+                    "content": f"""You are a helpful tourism assistant for Algeria. Use the following context to answer questions about Algeria's tourism, culture, places to visit, and travel information.
                     
 Context:
-{context}
+{context_text}
                     
 Instructions:
-- Provide accurate and helpful information about Rwanda
-- If the context doesn't contain relevant information, use your general knowledge about Rwanda
-- Be friendly and encouraging about visiting Rwanda
+- Provide accurate and helpful information about Algeria
+- If the context doesn't contain relevant information, use your general knowledge about Algeria
+- Be friendly and encouraging about visiting Algeria
 - Suggest specific places, activities, or experiences when appropriate
 - If asked about travel logistics, provide practical advice
 - Keep responses concise but informative"""

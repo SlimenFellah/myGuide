@@ -11,6 +11,7 @@ from django.utils import timezone
 from datetime import timedelta, datetime
 import json
 import random
+import traceback
 
 from .models import (
     TripPlan, DailyPlan, PlannedActivity, TripPlanTemplate,
@@ -43,7 +44,7 @@ class TripPlanListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
     pagination_class = TripPlanPagination
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['trip_type', 'status', 'is_public', 'ai_generated']
+    filterset_fields = ['trip_type', 'status', 'is_public']
     search_fields = ['title', 'description']
     ordering_fields = ['created_at', 'start_date', 'budget', 'average_rating']
     ordering = ['-created_at']
@@ -51,8 +52,7 @@ class TripPlanListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         return TripPlan.objects.filter(user=self.request.user).annotate(
             average_rating=Avg('ratings__rating'),
-            rating_count=Count('ratings'),
-            duration_days=F('end_date') - F('start_date')
+            rating_count=Count('ratings')
         )
     
     def get_serializer_class(self):
@@ -71,9 +71,7 @@ class TripPlanDetailView(generics.RetrieveUpdateDestroyAPIView):
     def get_queryset(self):
         return TripPlan.objects.filter(user=self.request.user).annotate(
             average_rating=Avg('ratings__rating'),
-            rating_count=Count('ratings'),
-            duration_days=F('end_date') - F('start_date'),
-            total_estimated_cost=Sum('daily_plans__activities__estimated_cost')
+            rating_count=Count('ratings')
         ).prefetch_related('daily_plans__activities__place')
 
 class PublicTripPlanListView(generics.ListAPIView):
@@ -82,7 +80,7 @@ class PublicTripPlanListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     pagination_class = TripPlanPagination
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['trip_type', 'ai_generated']
+    filterset_fields = ['trip_type']
     search_fields = ['title', 'description']
     ordering_fields = ['created_at', 'start_date', 'budget', 'average_rating']
     ordering = ['-average_rating', '-created_at']
@@ -93,8 +91,7 @@ class PublicTripPlanListView(generics.ListAPIView):
             status='active'
         ).annotate(
             average_rating=Avg('ratings__rating'),
-            rating_count=Count('ratings'),
-            duration_days=F('end_date') - F('start_date')
+            rating_count=Count('ratings')
         ).exclude(user=self.request.user)
 
 class PublicTripPlanDetailView(generics.RetrieveAPIView):
@@ -108,9 +105,7 @@ class PublicTripPlanDetailView(generics.RetrieveAPIView):
             status='active'
         ).annotate(
             average_rating=Avg('ratings__rating'),
-            rating_count=Count('ratings'),
-            duration_days=F('end_date') - F('start_date'),
-            total_estimated_cost=Sum('daily_plans__activities__estimated_cost')
+            rating_count=Count('ratings')
         ).prefetch_related('daily_plans__activities__place')
 
 # Daily Plan Views
@@ -259,55 +254,104 @@ class SavedTripPlanListView(generics.ListAPIView):
 @permission_classes([IsAuthenticated])
 def generate_trip_plan(request):
     """Generate an AI-powered trip plan"""
+    print(f"\n=== TRIP GENERATION REQUEST ===")
+    print(f"Request data: {request.data}")
+    
     serializer = TripGenerationRequestSerializer(data=request.data)
     if serializer.is_valid():
         try:
             ai_service = TripPlannerAIService()
+            # Map destination to destination_preference for the AI service
+            ai_params = serializer.validated_data.copy()
+            if 'destination' in ai_params:
+                ai_params['destination_preference'] = ai_params.pop('destination')
+            
             trip_data = ai_service.generate_trip_plan(
                 user=request.user,
-                **serializer.validated_data
+                **ai_params
             )
+            
+            # Get the province for the destination
+            from tourism.models import Province
+            try:
+                province = Province.objects.filter(
+                    name__icontains=serializer.validated_data['destination']
+                ).first()
+                if not province:
+                    # Default to first province if not found
+                    province = Province.objects.first()
+            except Exception:
+                province = Province.objects.first()
+            
+            # Calculate duration
+            duration = (serializer.validated_data['end_date'] - serializer.validated_data['start_date']).days + 1
+            
+            # Map budget to budget_range
+            budget = float(serializer.validated_data['budget'])
+            if budget < 50:
+                budget_range = 'low'
+            elif budget <= 150:
+                budget_range = 'medium'
+            else:
+                budget_range = 'high'
             
             # Create the trip plan
             trip_plan = TripPlan.objects.create(
                 user=request.user,
                 title=trip_data['title'],
-                description=trip_data['description'],
+                province=province,
+                trip_type=serializer.validated_data['trip_type'],
+                budget_range=budget_range,
                 start_date=serializer.validated_data['start_date'],
                 end_date=serializer.validated_data['end_date'],
-                budget=serializer.validated_data['budget'],
-                budget_currency=serializer.validated_data['budget_currency'],
+                duration_days=duration,
                 group_size=serializer.validated_data['group_size'],
-                trip_type=serializer.validated_data['trip_type'],
-                preferences=json.dumps({
+                preferences={
                     'interests': serializer.validated_data.get('interests', []),
                     'accommodation_preference': serializer.validated_data.get('accommodation_preference'),
                     'activity_level': serializer.validated_data.get('activity_level'),
-                    'special_requirements': serializer.validated_data.get('special_requirements')
-                }),
-                ai_generated=True,
-                ai_confidence_score=trip_data.get('confidence_score', 0.8)
+                    'budget': float(serializer.validated_data['budget']),
+                    'budget_currency': serializer.validated_data['budget_currency']
+                },
+                special_requirements=serializer.validated_data.get('special_requirements'),
+                ai_description=trip_data['description'],
+                ai_recommendations={
+                    'confidence_score': trip_data.get('confidence_score', 0.8),
+                    'recommended_destinations': trip_data.get('recommended_destinations', []),
+                    'estimated_total_cost': trip_data.get('estimated_total_cost', 0)
+                },
+                estimated_cost=trip_data.get('estimated_total_cost', 0),
+                status='generated'
             )
             
             # Create daily plans and activities
-            for day_data in trip_data['daily_plans']:
+            for day_index, day_data in enumerate(trip_data['daily_plans'], 1):
                 daily_plan = DailyPlan.objects.create(
                     trip_plan=trip_plan,
+                    day_number=day_index,
                     date=day_data['date'],
                     title=day_data['title'],
                     description=day_data['description']
                 )
                 
                 for activity_data in day_data['activities']:
+                    # Convert duration from hours to minutes if provided
+                    duration_minutes = None
+                    if activity_data.get('duration_hours'):
+                        duration_minutes = int(float(activity_data['duration_hours']) * 60)
+                    
                     PlannedActivity.objects.create(
                         daily_plan=daily_plan,
-                        place_id=activity_data['place_id'],
-                        activity_type=activity_data['activity_type'],
+                        place_id=activity_data.get('place_id'),
+                        activity_type=activity_data.get('activity_type', 'visit'),
+                        title=activity_data.get('title', activity_data.get('name', 'Activity')),
+                        description=activity_data.get('description', ''),
                         start_time=activity_data.get('start_time'),
                         end_time=activity_data.get('end_time'),
-                        duration_hours=activity_data.get('duration_hours'),
+                        duration_minutes=duration_minutes,
                         estimated_cost=activity_data.get('estimated_cost', 0),
-                        notes=activity_data.get('notes', '')
+                        notes=activity_data.get('notes', ''),
+                        order=activity_data.get('order', 0)
                     )
             
             # Return the created trip plan
@@ -315,11 +359,21 @@ def generate_trip_plan(request):
             return Response(trip_serializer.data, status=status.HTTP_201_CREATED)
             
         except Exception as e:
+            print(f"\n=== TRIP GENERATION ERROR ===")
+            print(f"Error: {str(e)}")
+            print(f"Error type: {type(e).__name__}")
+            print(f"Traceback:")
+            traceback.print_exc()
+            print(f"Request data: {request.data}")
+            print(f"=== END ERROR ===")
             return Response({
                 'error': 'Failed to generate trip plan',
                 'details': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
+    print(f"\n=== VALIDATION ERRORS ===")
+    print(f"Serializer errors: {serializer.errors}")
+    print(f"=== END VALIDATION ERRORS ===")
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
@@ -475,8 +529,7 @@ def search_trip_plans(request):
             status='active'
         ).annotate(
             average_rating=Avg('ratings__rating'),
-            rating_count=Count('ratings'),
-            duration_days=F('end_date') - F('start_date')
+            rating_count=Count('ratings')
         )
         
         # Apply filters

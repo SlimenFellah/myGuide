@@ -36,15 +36,17 @@ const ChatbotPage = () => {
   // Initialize conversation
   useEffect(() => {
     const initializeChat = async () => {
-      if (!currentConversationId) {
+      if (!currentConversationId && user) {
         try {
           const result = await apiService.chatbot.createConversation();
           if (result.success) {
             setCurrentConversationId(result.data.id);
+            // Set as active conversation
+            dispatch({ type: 'SET_ACTIVE_CONVERSATION', payload: { id: result.data.id, messages: [] } });
             // Send welcome message
             const welcomeMessage = {
               id: Date.now(),
-              type: 'bot',
+              type: 'assistant',
               content: `Hello ${user?.firstName || 'there'}! 👋 I'm your AI travel guide for Algeria. I can help you with:\n\n• Information about provinces, districts, and municipalities\n• Recommendations for places to visit\n• Local cuisine and restaurants\n• Cultural insights and travel tips\n• Planning your itinerary\n\nWhat would you like to know about Algeria?`,
               timestamp: new Date(),
               suggestions: [
@@ -66,7 +68,7 @@ const ChatbotPage = () => {
     };
     
     initializeChat();
-  }, [user, currentConversationId, dispatch]);
+  }, [user, dispatch]); // Removed currentConversationId from dependencies
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -94,8 +96,22 @@ const ChatbotPage = () => {
     
     // Send message to API
     try {
-      await sendChatMessage(currentConversationId, message);
+      // Ensure we have a conversation ID
+      let conversationId = currentConversationId;
+      if (!conversationId && user) {
+        const result = await apiService.chatbot.createConversation();
+        if (result.success) {
+          conversationId = result.data.id;
+          setCurrentConversationId(conversationId);
+          dispatch({ type: 'SET_ACTIVE_CONVERSATION', payload: { id: conversationId, messages: [] } });
+        } else {
+          throw new Error('Failed to create conversation');
+        }
+      }
+      
+      await sendChatMessage(conversationId, message);
     } catch (error) {
+      console.error('Error sending message:', error);
       dispatch({ type: 'ADD_NOTIFICATION', payload: {
         type: 'error',
         message: 'Failed to send message. Please try again.'
@@ -239,8 +255,8 @@ const ChatbotPage = () => {
                 {/* Avatar */}
                 <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
                   message.type === 'user' 
-                    ? 'bg-primary-600 text-white' 
-                    : 'bg-gray-100 text-gray-600'
+                    ? 'bg-blue-600 text-white' 
+                    : 'bg-gray-200 text-gray-700'
                 }`}>
                   {message.type === 'user' ? <User size={16} /> : <Bot size={16} />}
                 </div>
@@ -251,8 +267,8 @@ const ChatbotPage = () => {
                 }`}>
                   <div className={`inline-block p-4 rounded-2xl ${
                     message.type === 'user'
-                      ? 'bg-primary-600 text-white'
-                      : 'bg-gray-50 text-gray-900'
+                      ? 'bg-blue-600 text-white shadow-lg'
+                      : 'bg-white text-gray-900 border border-gray-300 shadow-sm'
                   }`}>
                     <div 
                       className="prose prose-sm max-w-none"
@@ -336,7 +352,7 @@ const ChatbotPage = () => {
                     message.type === 'user' ? 'text-right' : 'text-left'
                   }`}>
                     <Clock size={12} className="inline mr-1" />
-                    {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </div>
                 </div>
               </div>

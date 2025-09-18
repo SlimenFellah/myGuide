@@ -124,7 +124,7 @@ const ExplorePage = () => {
     <Card className="group hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden border-0 shadow-sm hover:shadow-xl">
       <div className="relative">
         <img 
-          src={place.image} 
+          src={place.main_image || '/api/placeholder/400/300'} 
           alt={place.name}
           className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
         />
@@ -183,7 +183,7 @@ const ExplorePage = () => {
         </div>
         
         <div className="flex flex-wrap gap-1.5 mt-4">
-          {place.tags.slice(0, 3).map((tag, index) => (
+          {(place.tags || []).slice(0, 3).map((tag, index) => (
             <span key={index} className="text-xs bg-primary-50 text-primary-700 px-2.5 py-1 rounded-full font-medium">
               {tag}
             </span>
@@ -198,7 +198,7 @@ const ExplorePage = () => {
       <CardContent className="p-4">
         <div className="flex items-center space-x-4">
           <img 
-            src={place.image} 
+            src={place.main_image || '/api/placeholder/400/300'} 
             alt={place.name}
             className="w-20 h-20 object-cover rounded-lg transition-transform duration-300 group-hover:scale-105"
           />

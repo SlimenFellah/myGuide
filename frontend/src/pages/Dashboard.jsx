@@ -44,7 +44,7 @@ const Dashboard = () => {
         setStats({
           totalTrips: Array.isArray(savedPlans) ? savedPlans.length : 0,
           placesVisited: Array.isArray(savedPlans) ? savedPlans.reduce((total, plan) => {
-            return total + (plan?.days?.reduce((dayTotal, day) => dayTotal + (day?.activities?.length || 0), 0) || 0);
+            return total + (plan?.daily_plans?.reduce((dayTotal, day) => dayTotal + (day?.activities?.length || 0), 0) || 0);
           }, 0) : 0,
           reviewsGiven: 0, // This would come from a reviews API
           favoriteSpots: Array.isArray(favorites) ? favorites.length : 0
@@ -290,7 +290,7 @@ const Dashboard = () => {
                 <div key={place.id} className="flex items-center space-x-4 p-3 rounded-lg hover:bg-muted/50 transition-colors duration-200 cursor-pointer group">
                   <div className="relative overflow-hidden rounded-lg">
                     <img 
-                      src={place.image} 
+                      src={place.main_image || '/api/placeholder/400/300'} 
                       alt={place.name}
                       className="w-16 h-16 object-cover group-hover:scale-105 transition-transform duration-200"
                     />

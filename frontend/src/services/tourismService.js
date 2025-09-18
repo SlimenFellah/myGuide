@@ -89,7 +89,7 @@ export const tourismService = {
       const response = await api.get(url);
       return {
         success: true,
-        data: response.data,
+        data: response.data.results || response.data, // Handle paginated response
       };
     } catch (error) {
       return {
@@ -124,7 +124,7 @@ export const tourismService = {
       const response = await api.get(`/tourism/places/?${params.toString()}`);
       return {
         success: true,
-        data: response.data,
+        data: response.data.results || response.data, // Handle paginated response
       };
     } catch (error) {
       return {

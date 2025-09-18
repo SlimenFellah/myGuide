@@ -113,7 +113,7 @@ class PlaceListView(generics.ListAPIView):
     
     def get_queryset(self):
         queryset = Place.objects.filter(is_active=True).select_related(
-            'province', 'district', 'municipality', 'category'
+            'municipality__district__province', 'category', 'created_by'
         ).prefetch_related('images', 'feedbacks')
         
         # Custom filtering
@@ -132,7 +132,7 @@ class PlaceCreateView(generics.CreateAPIView):
 class PlaceDetailView(generics.RetrieveAPIView):
     """Retrieve a place with full details"""
     queryset = Place.objects.filter(is_active=True).select_related(
-        'province', 'district', 'municipality', 'category'
+        'municipality__district__province', 'category', 'created_by'
     ).prefetch_related('images', 'feedbacks__user')
     serializer_class = PlaceDetailSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
@@ -152,7 +152,7 @@ class PlaceDeleteView(generics.DestroyAPIView):
 class FeaturedPlacesView(generics.ListAPIView):
     """List featured places"""
     queryset = Place.objects.filter(is_active=True, is_featured=True).select_related(
-        'province', 'district', 'municipality', 'category'
+        'municipality__district__province', 'category', 'created_by'
     ).prefetch_related('images')[:10]
     serializer_class = PlaceListSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
@@ -249,10 +249,10 @@ def search_places(request):
             )
         
         if data.get('province'):
-            queryset = queryset.filter(province_id=data['province'])
+            queryset = queryset.filter(municipality__district__province_id=data['province'])
         
         if data.get('district'):
-            queryset = queryset.filter(district_id=data['district'])
+            queryset = queryset.filter(municipality__district_id=data['district'])
         
         if data.get('municipality'):
             queryset = queryset.filter(municipality_id=data['municipality'])
@@ -320,7 +320,7 @@ def province_statistics(request):
         'total_municipalities': Municipality.objects.count(),
         'places_distribution': dict(
             Province.objects.annotate(
-                places_count=Count('places', filter=Q(places__is_active=True)),
+                places_count=Count('districts__municipalities__places', filter=Q(districts__municipalities__places__is_active=True)),
                 districts_count=Count('districts'),
                 municipalities_count=Count('districts__municipalities')
             ).values_list('name', 'places_count')

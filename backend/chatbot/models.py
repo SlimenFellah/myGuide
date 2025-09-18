@@ -84,6 +84,17 @@ class ChatSession(models.Model):
     @property
     def message_count(self):
         return self.messages.count()
+    
+    def get_conversation_history(self, limit=10):
+        """Get recent conversation history for context"""
+        messages = self.messages.order_by('-created_at')[:limit]
+        history = []
+        for msg in reversed(messages):
+            history.append({
+                'role': 'user' if msg.message_type == 'user' else 'assistant',
+                'content': msg.content
+            })
+        return history
 
 class ChatMessage(models.Model):
     """Individual chat messages"""

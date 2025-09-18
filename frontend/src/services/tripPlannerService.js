@@ -8,7 +8,7 @@ export const tripPlannerService = {
   // Generate trip plan
   async generateTripPlan(tripData) {
     try {
-      const response = await api.post('/trip-planner/generate/', tripData);
+      const response = await api.post('/trip-planner/generate-trip-plan/', tripData);
       return {
         success: true,
         data: response.data,
@@ -24,7 +24,7 @@ export const tripPlannerService = {
   // Get user's trip plans
   async getTripPlans() {
     try {
-      const response = await api.get('/trip-planner/plans/');
+      const response = await api.get('/trip-planner/trip-plans/');
       return {
         success: true,
         data: response.data,
@@ -40,7 +40,7 @@ export const tripPlannerService = {
   // Get specific trip plan
   async getTripPlan(planId) {
     try {
-      const response = await api.get(`/trip-planner/plans/${planId}/`);
+      const response = await api.get(`/trip-planner/trip-plans/${planId}/`);
       return {
         success: true,
         data: response.data,
@@ -56,7 +56,7 @@ export const tripPlannerService = {
   // Update trip plan
   async updateTripPlan(planId, planData) {
     try {
-      const response = await api.put(`/trip-planner/plans/${planId}/`, planData);
+      const response = await api.put(`/trip-planner/trip-plans/${planId}/`, planData);
       return {
         success: true,
         data: response.data,
@@ -72,7 +72,7 @@ export const tripPlannerService = {
   // Delete trip plan
   async deleteTripPlan(planId) {
     try {
-      await api.delete(`/trip-planner/plans/${planId}/`);
+      await api.delete(`/trip-planner/trip-plans/${planId}/`);
       return {
         success: true,
       };
@@ -87,7 +87,7 @@ export const tripPlannerService = {
   // Save trip plan
   async saveTripPlan(planData) {
     try {
-      const response = await api.post('/trip-planner/plans/', planData);
+      const response = await api.post('/trip-planner/trip-plans/', planData);
       return {
         success: true,
         data: response.data,
@@ -151,7 +151,7 @@ export const tripPlannerService = {
   // Add activity to trip plan
   async addActivity(planId, activityData) {
     try {
-      const response = await api.post(`/trip-planner/plans/${planId}/activities/`, activityData);
+      const response = await api.post(`/trip-planner/trip-plans/${planId}/activities/`, activityData);
       return {
         success: true,
         data: response.data,
@@ -167,7 +167,7 @@ export const tripPlannerService = {
   // Update activity
   async updateActivity(planId, activityId, activityData) {
     try {
-      const response = await api.put(`/trip-planner/plans/${planId}/activities/${activityId}/`, activityData);
+      const response = await api.put(`/trip-planner/trip-plans/${planId}/activities/${activityId}/`, activityData);
       return {
         success: true,
         data: response.data,
@@ -183,7 +183,7 @@ export const tripPlannerService = {
   // Remove activity
   async removeActivity(planId, activityId) {
     try {
-      await api.delete(`/trip-planner/plans/${planId}/activities/${activityId}/`);
+      await api.delete(`/trip-planner/trip-plans/${planId}/activities/${activityId}/`);
       return {
         success: true,
       };
@@ -214,7 +214,7 @@ export const tripPlannerService = {
   // Calculate trip cost
   async calculateTripCost(planId) {
     try {
-      const response = await api.get(`/trip-planner/plans/${planId}/cost/`);
+      const response = await api.get(`/trip-planner/trip-plans/${planId}/cost/`);
       return {
         success: true,
         data: response.data,
@@ -230,7 +230,7 @@ export const tripPlannerService = {
   // Share trip plan
   async shareTripPlan(planId, shareData) {
     try {
-      const response = await api.post(`/trip-planner/plans/${planId}/share/`, shareData);
+      const response = await api.post(`/trip-planner/trip-plans/${planId}/share/`, shareData);
       return {
         success: true,
         data: response.data,
@@ -246,7 +246,7 @@ export const tripPlannerService = {
   // Export trip plan
   async exportTripPlan(planId, format = 'pdf') {
     try {
-      const response = await api.get(`/trip-planner/plans/${planId}/export/?format=${format}`, {
+      const response = await api.get(`/trip-planner/trip-plans/${planId}/export/?format=${format}`, {
         responseType: 'blob'
       });
       return {

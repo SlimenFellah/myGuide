@@ -16,7 +16,7 @@ class ProvinceSerializer(serializers.ModelSerializer):
         fields = '__all__'
     
     def get_places_count(self, obj):
-        return obj.places.filter(is_active=True).count()
+        return obj.places_count
 
 class DistrictSerializer(serializers.ModelSerializer):
     """District serializer"""
@@ -28,7 +28,7 @@ class DistrictSerializer(serializers.ModelSerializer):
         fields = '__all__'
     
     def get_places_count(self, obj):
-        return obj.places.filter(is_active=True).count()
+        return obj.places_count
 
 class MunicipalitySerializer(serializers.ModelSerializer):
     """Municipality serializer"""
@@ -41,7 +41,7 @@ class MunicipalitySerializer(serializers.ModelSerializer):
         fields = '__all__'
     
     def get_places_count(self, obj):
-        return obj.places.filter(is_active=True).count()
+        return obj.places_count
 
 class PlaceCategorySerializer(serializers.ModelSerializer):
     """Place category serializer"""
@@ -64,8 +64,8 @@ class PlaceImageSerializer(serializers.ModelSerializer):
 
 class PlaceListSerializer(serializers.ModelSerializer):
     """Place list serializer (for listing views)"""
-    province_name = serializers.CharField(source='province.name', read_only=True)
-    district_name = serializers.CharField(source='district.name', read_only=True)
+    province_name = serializers.CharField(source='municipality.district.province.name', read_only=True)
+    district_name = serializers.CharField(source='municipality.district.name', read_only=True)
     municipality_name = serializers.CharField(source='municipality.name', read_only=True)
     category_name = serializers.CharField(source='category.name', read_only=True)
     main_image = serializers.SerializerMethodField()
@@ -81,7 +81,7 @@ class PlaceListSerializer(serializers.ModelSerializer):
         ]
     
     def get_main_image(self, obj):
-        main_image = obj.images.filter(is_main=True).first()
+        main_image = obj.images.filter(is_primary=True).first()
         if main_image:
             request = self.context.get('request')
             if request:
@@ -91,8 +91,8 @@ class PlaceListSerializer(serializers.ModelSerializer):
 
 class PlaceDetailSerializer(serializers.ModelSerializer):
     """Place detail serializer (for detail views)"""
-    province = ProvinceSerializer(read_only=True)
-    district = DistrictSerializer(read_only=True)
+    province = ProvinceSerializer(source='municipality.district.province', read_only=True)
+    district = DistrictSerializer(source='municipality.district', read_only=True)
     municipality = MunicipalitySerializer(read_only=True)
     category = PlaceCategorySerializer(read_only=True)
     images = PlaceImageSerializer(many=True, read_only=True)

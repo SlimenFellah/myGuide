@@ -128,7 +128,7 @@ class TripPlanCreateSerializer(serializers.ModelSerializer):
         model = TripPlan
         fields = [
             'title', 'ai_description', 'start_date', 'end_date', 'budget_range',
-            'estimated_cost', 'group_size', 'trip_type', 'preferences', 'is_public'
+            'estimated_cost', 'group_size', 'trip_type', 'preferences', 'is_public', 'duration_days', 'province'
         ]
     
     def validate(self, data):

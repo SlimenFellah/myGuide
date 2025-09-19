@@ -176,7 +176,7 @@ class ChatSessionAdminSerializer(serializers.ModelSerializer):
         return obj.messages.count()
     
     def get_total_response_time(self, obj):
-        return sum(msg.response_time or 0 for msg in obj.messages.all())
+        return sum(msg.processing_time_ms or 0 for msg in obj.messages.all())
     
     def get_average_confidence(self, obj):
         messages = obj.messages.filter(confidence_score__isnull=False)

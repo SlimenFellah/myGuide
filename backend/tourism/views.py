@@ -293,18 +293,18 @@ def place_statistics(request):
         'featured_places': Place.objects.filter(is_active=True, is_featured=True).count(),
         'places_by_category': dict(
             PlaceCategory.objects.annotate(
-                count=Count('places', filter=Q(places__is_active=True))
+                count=Count('place', filter=Q(place__is_active=True))
             ).values_list('name', 'count')
         ),
         'places_by_province': dict(
             Province.objects.annotate(
-                count=Count('places', filter=Q(places__is_active=True))
+                count=Count('districts__municipalities__places', filter=Q(districts__municipalities__places__is_active=True))
             ).values_list('name', 'count')
         ),
         'average_rating': Place.objects.filter(is_active=True).aggregate(
             avg_rating=Avg('average_rating')
         )['avg_rating'] or 0,
-        'total_feedbacks': Feedback.objects.filter(is_approved=True).count()
+        'total_feedbacks': Feedback.objects.filter(status='approved').count()
     }
     
     serializer = PlaceStatsSerializer(stats)

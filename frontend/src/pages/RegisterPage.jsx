@@ -2,13 +2,26 @@
  * Author: Slimene Fellah
  * Available for freelance projects
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAppDispatch, useIsAuthenticated, useAuthError, useAuthLoading } from '../store/hooks';
+import { registerUser } from '../store/slices/authSlice';
 import { Eye, EyeOff, Mail, Lock, User, AlertCircle, ArrowLeft, Loader2, CheckCircle, Phone } from 'lucide-react';
-import { Button } from '../components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Input } from '../components/ui/input';
+import {
+  Box,
+  Container,
+  Typography,
+  Card,
+  CardContent,
+  Button,
+  TextField,
+  InputAdornment,
+  IconButton,
+  Alert,
+  Checkbox,
+  FormControlLabel,
+  CircularProgress
+} from '@mui/material';
 import myGuideLogo from '../assets/myGuide-logo.png';
 
 const RegisterPage = () => {
@@ -16,7 +29,8 @@ const RegisterPage = () => {
     name: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    terms: false
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -24,8 +38,18 @@ const RegisterPage = () => {
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  const { register } = useAuth();
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const isAuthenticated = useIsAuthenticated();
+  const authError = useAuthError();
+  const authLoading = useAuthLoading();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   const validateForm = () => {
     if (formData.password !== formData.confirmPassword) {
@@ -56,230 +80,320 @@ const RegisterPage = () => {
     
     if (!validateForm()) return;
     
-    setIsLoading(true);
-
     try {
-      const result = await register({
+      const result = await dispatch(registerUser({
         name: formData.name,
         email: formData.email,
         password: formData.password,
         password_confirm: formData.confirmPassword
-      });
+      })).unwrap();
       
-      if (result.success) {
-        setSuccess('Account created successfully! Redirecting to login...');
-        setTimeout(() => {
-          navigate('/login');
-        }, 2000);
-      } else {
-        setError(result.error || 'Registration failed. Please try again.');
-      }
+      setSuccess('Account created successfully! Redirecting to login...');
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
     } catch (err) {
-      setError('Registration failed. Please try again.');
-    } finally {
-      setIsLoading(false);
+      setError(err.message || 'Registration failed. Please try again.');
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 flex flex-col">
+    <Box sx={{ 
+      minHeight: '100vh', 
+      background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+      display: 'flex',
+      flexDirection: 'column'
+    }}>
       {/* Header */}
-      <div className="flex items-center justify-between p-4 sm:p-6">
-        <Link to="/" className="inline-flex items-center space-x-2">
+      <Box sx={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between', 
+        p: { xs: 2, sm: 3 } 
+      }}>
+        <Box component={Link} to="/" sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 1, 
+          textDecoration: 'none' 
+        }}>
           <img 
             src={myGuideLogo} 
             alt="MyGuide" 
-            className="h-8 w-auto"
+            style={{ height: 32, width: 'auto' }}
           />
-          <span className="text-xl font-bold text-gradient">MyGuide</span>
-        </Link>
-        <Button variant="ghost" asChild className="hover:scale-105 hover:bg-muted/70 transition-all duration-300">
-          <Link to="/" className="flex items-center space-x-2">
-            <ArrowLeft className="h-4 w-4" />
-            <span className="hidden sm:inline">Back to Home</span>
-          </Link>
+          <Typography variant="h5" sx={{ 
+            fontWeight: 'bold', 
+            background: 'linear-gradient(45deg, #1976d2, #1565c0)',
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            color: 'transparent'
+          }}>
+            MyGuide
+          </Typography>
+        </Box>
+        <Button 
+          component={Link} 
+          to="/" 
+          variant="text" 
+          startIcon={<ArrowLeft size={16} />}
+          sx={{ 
+            '&:hover': { 
+              transform: 'scale(1.05)', 
+              bgcolor: 'rgba(0,0,0,0.04)' 
+            },
+            transition: 'all 0.3s ease'
+          }}
+        >
+          <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+            Back to Home
+          </Box>
         </Button>
-      </div>
+      </Box>
 
       {/* Main Content */}
-      <div className="flex-1 flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
-          <Card className="border border-border shadow-2xl bg-card/95 backdrop-blur-sm">
-            <CardHeader className="space-y-1 text-center pb-6">
-              <CardTitle className="text-2xl font-bold">
+      <Box sx={{ 
+        flex: 1, 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        p: 2 
+      }}>
+        <Container maxWidth="sm" sx={{ width: '100%', maxWidth: 400 }}>
+          <Card sx={{ 
+            boxShadow: 6, 
+            bgcolor: 'rgba(255,255,255,0.95)', 
+            backdropFilter: 'blur(10px)',
+            borderRadius: 2
+          }}>
+            <Box sx={{ p: 3, textAlign: 'center', pb: 2 }}>
+              <Typography variant="h4" component="h1" sx={{ 
+                fontWeight: 'bold', 
+                mb: 1 
+              }}>
                 Join MyGuide
-              </CardTitle>
-              <CardDescription className="text-base">
+              </Typography>
+              <Typography variant="body1" sx={{ 
+                color: 'text.secondary' 
+              }}>
                 Start your journey through Algeria's wonders
-              </CardDescription>
-            </CardHeader>
+              </Typography>
+            </Box>
             
-            <CardContent className="space-y-6">
+            <CardContent sx={{ pt: 0 }}>
               {error && (
-                <div className="flex items-center space-x-2 p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
-                  <AlertCircle className="h-4 w-4" />
-                  <span>{error}</span>
-                </div>
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {error}
+                </Alert>
               )}
 
               {success && (
-                <div className="flex items-center space-x-2 p-3 text-sm text-green-700 bg-green-50 border border-green-200 rounded-md">
-                  <CheckCircle className="h-4 w-4" />
-                  <span>{success}</span>
-                </div>
+                <Alert severity="success" sx={{ mb: 2 }}>
+                  {success}
+                </Alert>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                 {/* Name Field */}
-                <div className="space-y-2">
-                  <label htmlFor="name" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                    Full Name
-                  </label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="name"
-                      name="name"
-                      type="text"
-                      required
-                      value={formData.name}
-                      onChange={handleChange}
-                      className="pl-10"
-                      placeholder="Enter your full name"
-                    />
-                  </div>
-                </div>
+                <TextField
+                  id="name"
+                  name="name"
+                  type="text"
+                  label="Full Name"
+                  autoComplete="name"
+                  required
+                  fullWidth
+                  value={formData.name}
+                  onChange={handleChange}
+                  placeholder="Enter your full name"
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <User size={20} />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
 
                 {/* Email Field */}
-                <div className="space-y-2">
-                  <label htmlFor="email" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                    Email Address
-                  </label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      required
-                      value={formData.email}
-                      onChange={handleChange}
-                      className="pl-10"
-                      placeholder="Enter your email"
-                    />
-                  </div>
-                </div>
+                <TextField
+                  id="email"
+                  name="email"
+                  type="email"
+                  label="Email Address"
+                  autoComplete="email"
+                  required
+                  fullWidth
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="Enter your email"
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Mail size={20} />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
 
                 {/* Password Field */}
-                <div className="space-y-2">
-                  <label htmlFor="password" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                    Password
-                  </label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="password"
-                      name="password"
-                      type={showPassword ? 'text' : 'password'}
-                      required
-                      value={formData.password}
-                      onChange={handleChange}
-                      className="pl-10 pr-10"
-                      placeholder="Create a password"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-0 top-0 h-full px-3 py-2 border border-border hover:bg-foreground hover:text-background transition-all duration-300"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </div>
+                <TextField
+                  id="password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  label="Password"
+                  required
+                  fullWidth
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="Create a password"
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Lock size={20} />
+                      </InputAdornment>
+                    ),
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={() => setShowPassword(!showPassword)}
+                          edge="end"
+                        >
+                          {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
 
                 {/* Confirm Password Field */}
-                <div className="space-y-2">
-                  <label htmlFor="confirmPassword" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                    Confirm Password
-                  </label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="confirmPassword"
-                      name="confirmPassword"
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      required
-                      value={formData.confirmPassword}
-                      onChange={handleChange}
-                      className="pl-10 pr-10"
-                      placeholder="Confirm your password"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-0 top-0 h-full px-3 py-2 border border-border hover:bg-foreground hover:text-background transition-all duration-300"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    >
-                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </div>
+                <TextField
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  label="Confirm Password"
+                  required
+                  fullWidth
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  placeholder="Confirm your password"
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Lock size={20} />
+                      </InputAdornment>
+                    ),
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          edge="end"
+                        >
+                          {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
 
                 {/* Terms and Conditions */}
-                <div className="flex items-start space-x-2">
-                  <input
-                    id="terms"
-                    type="checkbox"
-                    required
-                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary mt-1"
-                  />
-                  <label htmlFor="terms" className="text-sm leading-relaxed">
-                    I agree to the{' '}
-                    <Button variant="link" asChild className="px-0 h-auto font-normal text-sm hover:scale-105 hover:text-primary transition-all duration-300">
-                      <Link to="/terms">Terms of Service</Link>
-                    </Button>
-                    {' '}and{' '}
-                    <Button variant="link" asChild className="px-0 h-auto font-normal text-sm hover:scale-105 hover:text-primary transition-all duration-300">
-                      <Link to="/privacy">Privacy Policy</Link>
-                    </Button>
-                  </label>
-                </div>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      id="terms"
+                      name="terms"
+                      required
+                      checked={formData.terms}
+                      onChange={(e) => setFormData(prev => ({ ...prev, terms: e.target.checked }))}
+                    />
+                  }
+                  label={
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                      I agree to the{' '}
+                      <Button
+                        component={Link}
+                        to="/terms"
+                        variant="text"
+                        size="small"
+                        sx={{ p: 0, minWidth: 'auto', textDecoration: 'underline', fontSize: 'inherit' }}
+                      >
+                        Terms of Service
+                      </Button>{' '}
+                      and{' '}
+                      <Button
+                        component={Link}
+                        to="/privacy"
+                        variant="text"
+                        size="small"
+                        sx={{ p: 0, minWidth: 'auto', textDecoration: 'underline', fontSize: 'inherit' }}
+                      >
+                        Privacy Policy
+                      </Button>
+                    </Typography>
+                  }
+                />
 
                 {/* Submit Button */}
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full border border-primary hover:bg-background hover:text-foreground transition-all duration-300"
-                  size="lg"
+                  variant="contained"
+                  fullWidth
+                  size="large"
+                  sx={{
+                    mt: 2,
+                    py: 1.5,
+                    fontSize: '1rem',
+                    fontWeight: 600,
+                    textTransform: 'none',
+                    borderRadius: 2,
+                    '&:hover': {
+                      transform: 'translateY(-1px)',
+                      boxShadow: 4
+                    },
+                    transition: 'all 0.3s ease'
+                  }}
                 >
                   {isLoading ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <CircularProgress size={20} sx={{ mr: 1 }} />
                       Creating Account...
                     </>
                   ) : (
                     'Create Account'
                   )}
                 </Button>
-              </form>
+              </Box>
 
               {/* Sign In Link */}
-              <div className="text-center text-sm">
-                <span className="text-muted-foreground">Already have an account? </span>
-                <Button variant="link" asChild className="px-0 font-normal border border-border hover:bg-foreground hover:text-background transition-all duration-300">
-                  <Link to="/login">
+              <Box sx={{ textAlign: 'center', mt: 3 }}>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  Already have an account?{' '}
+                  <Button
+                    component={Link}
+                    to="/login"
+                    variant="text"
+                    sx={{
+                      p: 0,
+                      minWidth: 'auto',
+                      textDecoration: 'underline',
+                      fontSize: 'inherit',
+                      fontWeight: 600,
+                      '&:hover': {
+                        transform: 'scale(1.05)'
+                      },
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
                     Sign in
-                  </Link>
-                </Button>
-              </div>
+                  </Button>
+                </Typography>
+              </Box>
             </CardContent>
           </Card>
-        </div>
-      </div>
-    </div>
+        </Container>
+      </Box>
+    </Box>
   );
 };
 

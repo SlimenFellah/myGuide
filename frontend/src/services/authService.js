@@ -40,21 +40,35 @@ api.interceptors.response.use(
       const refreshToken = localStorage.getItem('refresh_token');
       if (refreshToken) {
         try {
-          const response = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, {
-            refresh: refreshToken
-          });
-          
-          const { access } = response.data;
-          localStorage.setItem('access_token', access);
-          
-          // Retry original request with new token
-          originalRequest.headers.Authorization = `Bearer ${access}`;
-          return api(originalRequest);
+          // Make direct axios call to avoid circular dependency
+           const response = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, {
+             refresh: refreshToken
+           });
+           
+           const { access } = response.data;
+           localStorage.setItem('access_token', access);
+           
+           // Update Redux store if available
+           if (window.__REDUX_STORE__) {
+             window.__REDUX_STORE__.dispatch({
+               type: 'auth/setTokens',
+               payload: { access, refresh: refreshToken }
+             });
+           }
+           
+           // Retry original request with new token
+           originalRequest.headers.Authorization = `Bearer ${access}`;
+           return api(originalRequest);
         } catch (refreshError) {
+          console.error('Token refresh failed:', refreshError);
           // Refresh failed, logout user
           localStorage.removeItem('access_token');
           localStorage.removeItem('refresh_token');
           localStorage.removeItem('user');
+          // Dispatch logout action to Redux store if available
+          if (window.__REDUX_STORE__) {
+            window.__REDUX_STORE__.dispatch({ type: 'auth/clearAuth' });
+          }
           window.location.href = '/login';
         }
       } else {
@@ -62,6 +76,10 @@ api.interceptors.response.use(
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
+        // Dispatch logout action to Redux store if available
+        if (window.__REDUX_STORE__) {
+          window.__REDUX_STORE__.dispatch({ type: 'auth/clearAuth' });
+        }
         window.location.href = '/login';
       }
     }

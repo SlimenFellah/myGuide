@@ -43,6 +43,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             'profile_picture': self.user.profile_picture.url if self.user.profile_picture else None,
             'is_staff': self.user.is_staff,
             'is_superuser': self.user.is_superuser,
+            'is_admin': self.user.is_admin,
             'date_joined': self.user.date_joined,
         }
         
@@ -52,22 +53,48 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     """User registration serializer"""
     password = serializers.CharField(write_only=True, validators=[validate_password])
     password_confirm = serializers.CharField(write_only=True)
+    name = serializers.CharField(write_only=True, required=False)  # Accept name from frontend
     
     class Meta:
         model = User
         fields = (
             'username', 'email', 'password', 'password_confirm',
-            'first_name', 'last_name', 'phone'
+            'first_name', 'last_name', 'phone', 'name'
         )
         extra_kwargs = {
             'email': {'required': True},
-            'first_name': {'required': True},
-            'last_name': {'required': True},
+            'username': {'required': False},    # Make username optional
+            'first_name': {'required': False},  # Make optional since we'll handle via name
+            'last_name': {'required': False},   # Make optional since we'll handle via name
         }
     
     def validate(self, attrs):
         if attrs['password'] != attrs['password_confirm']:
             raise serializers.ValidationError("Passwords don't match.")
+        
+        # Handle name field - split into first_name and last_name
+        if 'name' in attrs:
+            name_parts = attrs['name'].strip().split(' ', 1)
+            attrs['first_name'] = name_parts[0]
+            attrs['last_name'] = name_parts[1] if len(name_parts) > 1 else ''
+            attrs.pop('name')  # Remove name field as it's not in the model
+        
+        # Ensure we have first_name at minimum
+        if not attrs.get('first_name'):
+            raise serializers.ValidationError("Name is required.")
+        
+        # Generate username from email if not provided
+        if not attrs.get('username'):
+            email = attrs.get('email', '')
+            username_base = email.split('@')[0] if email else 'user'
+            # Ensure username is unique
+            username = username_base
+            counter = 1
+            while User.objects.filter(username=username).exists():
+                username = f"{username_base}{counter}"
+                counter += 1
+            attrs['username'] = username
+            
         return attrs
     
     def validate_email(self, value):

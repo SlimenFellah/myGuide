@@ -3,6 +3,9 @@
  */
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { ThemeProvider } from '@mui/material/styles';
+import { CssBaseline, Box, CircularProgress, Typography } from '@mui/material';
+import theme from './theme/theme';
 import Navbar from './components/Navbar';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
@@ -15,18 +18,32 @@ import AdminDashboard from './pages/AdminDashboard';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
 import ProtectedRoute from './components/ProtectedRoute';
+import DashboardRouter from './components/DashboardRouter';
 import NotificationSystem from './components/NotificationSystem';
 import ErrorBoundary from './components/ErrorBoundary';
-import { AuthProvider } from './contexts/AuthContext';
-import { AppProvider } from './contexts/AppContext';
-import './App.css';
+import { Provider } from 'react-redux';
+import { store } from './store';
+
+import { useAppDispatch } from './store/hooks';
+import { initializeAuth } from './store/slices/authSlice';
+
+// Component to initialize Redux auth state
+function AppInitializer({ children }) {
+  const dispatch = useAppDispatch();
+  
+  useEffect(() => {
+    dispatch(initializeAuth());
+  }, [dispatch]);
+  
+  return children;
+}
 
 // Component to handle routes with location-based key for proper re-rendering
 function AppRoutes() {
   const location = useLocation();
   
   return (
-    <Routes key={location.pathname}>
+    <Routes>
       {/* Public Routes */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
@@ -35,78 +52,78 @@ function AppRoutes() {
       {/* Protected Routes */}
       <Route path="/dashboard" element={
         <ProtectedRoute>
-          <div className="min-h-screen bg-gray-50">
+          <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
             <Navbar />
             <ErrorBoundary>
-              <Dashboard />
+              <DashboardRouter />
             </ErrorBoundary>
-          </div>
+          </Box>
         </ProtectedRoute>
       } />
       
       <Route path="/explore" element={
         <ProtectedRoute>
-          <div className="min-h-screen bg-gray-50">
+          <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
             <Navbar />
             <ErrorBoundary>
               <ExplorePage />
             </ErrorBoundary>
-          </div>
+          </Box>
         </ProtectedRoute>
       } />
       
       <Route path="/trip-planner" element={
         <ProtectedRoute>
-          <div className="min-h-screen bg-gray-50">
+          <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
             <Navbar />
             <ErrorBoundary>
               <TripPlannerPage />
             </ErrorBoundary>
-          </div>
+          </Box>
         </ProtectedRoute>
       } />
       
       <Route path="/chatbot" element={
         <ProtectedRoute>
-          <div className="min-h-screen bg-gray-50">
+          <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
             <Navbar />
             <ErrorBoundary>
               <ChatbotPage />
             </ErrorBoundary>
-          </div>
+          </Box>
         </ProtectedRoute>
       } />
       
       <Route path="/profile" element={
         <ProtectedRoute>
-          <div className="min-h-screen bg-gray-50">
+          <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
             <Navbar />
             <ErrorBoundary>
               <ProfilePage />
             </ErrorBoundary>
-          </div>
+          </Box>
         </ProtectedRoute>
       } />
       
       <Route path="/settings" element={
         <ProtectedRoute>
-          <div className="min-h-screen bg-gray-50">
+          <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
             <Navbar />
             <ErrorBoundary>
               <SettingsPage />
             </ErrorBoundary>
-          </div>
+          </Box>
         </ProtectedRoute>
       } />
       
       <Route path="/admin" element={
         <ProtectedRoute requireAdmin={true}>
-          <div className="min-h-screen bg-gray-50">
+          <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
             <Navbar />
             <ErrorBoundary>
               <AdminDashboard />
             </ErrorBoundary>
-          </div>
+          </Box>
         </ProtectedRoute>
       } />
     </Routes>
@@ -127,26 +144,42 @@ function App() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading MyGuide...</p>
-        </div>
-      </div>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Box 
+          sx={{ 
+            minHeight: '100vh', 
+            backgroundColor: 'background.paper', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center' 
+          }}
+        >
+          <Box sx={{ textAlign: 'center' }}>
+            <CircularProgress size={48} sx={{ mb: 2 }} />
+            <Typography variant="body1" color="text.secondary">
+              Loading MyGuide...
+            </Typography>
+          </Box>
+        </Box>
+      </ThemeProvider>
     );
   }
 
   return (
-    <AuthProvider>
-      <AppProvider>
-        <div className="App">
-          <Router>
-            <NotificationSystem />
-            <AppRoutes />
-          </Router>
-        </div>
-      </AppProvider>
-    </AuthProvider>
+    <Provider store={store}>
+      <AppInitializer>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <Box className="App">
+            <Router>
+              <NotificationSystem />
+              <AppRoutes />
+            </Router>
+          </Box>
+        </ThemeProvider>
+      </AppInitializer>
+    </Provider>
   );
 }
 

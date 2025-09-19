@@ -430,9 +430,13 @@ export const AppProvider = ({ children }) => {
     }, [dispatch])
   };
 
-  // Load initial data
+  // Load initial data only when user is authenticated
   useEffect(() => {
-    actions.fetchProvinces();
+    // Only fetch provinces if we have a valid token
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      actions.fetchProvinces();
+    }
   }, []);
 
   const value = {

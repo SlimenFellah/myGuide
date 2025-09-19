@@ -3,31 +3,38 @@
  * Available for freelance projects
  */
 import { useEffect } from 'react';
-import { useAppContext } from '../contexts/AppContext';
+import { useAppDispatch } from '../store/hooks';
+import { useNotifications, useGlobalError } from '../store/hooks';
+import { removeNotification, clearGlobalError } from '../store/slices/appSlice';
 import { CheckCircle, AlertCircle, XCircle, X, Info } from 'lucide-react';
 
 const NotificationSystem = () => {
-  const { notification, error, clearNotification, clearError } = useAppContext();
+  const dispatch = useAppDispatch();
+  const notifications = useNotifications();
+  const error = useGlobalError();
+  
+  // Get the most recent notification for display
+  const notification = notifications.length > 0 ? notifications[0] : null;
 
   // Auto-clear notifications after 5 seconds
   useEffect(() => {
     if (notification) {
       const timer = setTimeout(() => {
-        clearNotification();
+        dispatch(removeNotification(notification.id));
       }, 5000);
       return () => clearTimeout(timer);
     }
-  }, [notification, clearNotification]);
+  }, [notification, dispatch]);
 
   // Auto-clear errors after 8 seconds
   useEffect(() => {
     if (error) {
       const timer = setTimeout(() => {
-        clearError();
+        dispatch(clearGlobalError());
       }, 8000);
       return () => clearTimeout(timer);
     }
-  }, [error, clearError]);
+  }, [error, dispatch]);
 
   const getNotificationIcon = (type) => {
     switch (type) {
@@ -67,7 +74,7 @@ const NotificationSystem = () => {
               <p className="text-sm mt-1">{error}</p>
             </div>
             <button
-              onClick={clearError}
+              onClick={() => dispatch(clearGlobalError())}
               className="ml-3 flex-shrink-0 text-red-400 hover:text-red-600 transition-colors"
             >
               <X className="w-4 h-4" />
@@ -92,7 +99,7 @@ const NotificationSystem = () => {
               </p>
             </div>
             <button
-              onClick={clearNotification}
+              onClick={() => dispatch(removeNotification(notification.id))}
               className="ml-3 flex-shrink-0 opacity-70 hover:opacity-100 transition-opacity"
             >
               <X className="w-4 h-4" />

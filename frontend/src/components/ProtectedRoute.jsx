@@ -3,10 +3,12 @@
  * Available for freelance projects
  */
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useIsAuthenticated, useCurrentUser, useAuthLoading } from '../store/hooks';
 
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
-  const { isAuthenticated, user, loading } = useAuth();
+  const isAuthenticated = useIsAuthenticated();
+  const user = useCurrentUser();
+  const loading = useAuthLoading();
   const location = useLocation();
 
   if (loading) {
@@ -25,7 +27,7 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (requireAdmin && user?.role !== 'admin') {
+  if (requireAdmin && !user?.is_admin) {
     // Redirect to dashboard if user is not admin
     return <Navigate to="/dashboard" replace />;
   }

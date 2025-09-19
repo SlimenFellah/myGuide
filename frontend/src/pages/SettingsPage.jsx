@@ -3,15 +3,10 @@
  * Available for freelance projects
  */
 import React, { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { useAppContext } from '../contexts/AppContext';
-import { Button } from '../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { Switch } from '../components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { useCurrentUser } from '../store/hooks';
+import { useAppDispatch } from '../store/hooks';
+import { addNotification } from '../store/slices/appSlice';
+import { Button, Card, CardContent, Typography, Box, TextField, Switch, Select, MenuItem, FormControl, InputLabel, Tabs, Tab, FormControlLabel, Grid, Container } from '@mui/material';
 import { 
   Settings,
   Bell,
@@ -24,8 +19,8 @@ import {
 } from 'lucide-react';
 
 const SettingsPage = () => {
-  const { user } = useAuth();
-  const { state } = useAppContext();
+  const user = useCurrentUser();
+  const dispatch = useAppDispatch();
   const [activeTab, setActiveTab] = useState('general');
   const [loading, setLoading] = useState(false);
   
@@ -65,9 +60,16 @@ const SettingsPage = () => {
     try {
       // Here you would typically save to backend
       await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-      // Show success notification
+      dispatch(addNotification({
+        type: 'success',
+        message: 'Settings saved successfully!'
+      }));
     } catch (error) {
       console.error('Failed to save settings:', error);
+      dispatch(addNotification({
+        type: 'error',
+        message: 'Failed to save settings. Please try again.'
+      }));
     } finally {
       setLoading(false);
     }
@@ -99,245 +101,267 @@ const SettingsPage = () => {
         </div>
 
         {/* Settings Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-8 bg-white/80 backdrop-blur-sm">
+        <Box sx={{ width: '100%', mb: 4 }}>
+          <Tabs 
+            value={activeTab} 
+            onChange={(event, newValue) => setActiveTab(newValue)}
+            sx={{ 
+              mb: 3,
+              '& .MuiTabs-indicator': {
+                background: 'linear-gradient(45deg, #2196F3 30%, #21C653 90%)'
+              }
+            }}
+          >
             {tabs.map((tab) => {
               const IconComponent = tab.icon;
               return (
-                <TabsTrigger 
+                <Tab 
                   key={tab.id} 
                   value={tab.id}
-                  className="flex items-center space-x-2 py-3"
-                >
-                  <IconComponent size={18} />
-                  <span className="hidden sm:inline">{tab.label}</span>
-                </TabsTrigger>
+                  label={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <IconComponent size={18} />
+                      <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                        {tab.label}
+                      </Box>
+                    </Box>
+                  }
+                  sx={{
+                    textTransform: 'none',
+                    minWidth: 100,
+                    '&.Mui-selected': {
+                      background: 'linear-gradient(45deg, #2196F3 30%, #21C653 90%)',
+                      color: 'white',
+                      borderRadius: 1
+                    }
+                  }}
+                />
               );
             })}
-          </TabsList>
+          </Tabs>
 
-          {/* General Settings */}
-          <TabsContent value="general" className="space-y-6">
+          {/* Tab Content */}
+          {activeTab === 'general' && (
+            <Box sx={{ mt: 3 }}>
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Globe className="h-5 w-5" />
-                  <span>General Preferences</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="language">Language</Label>
-                    <Select value={settings.language} onValueChange={(value) => handleSettingChange('language', value)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="en">English</SelectItem>
-                        <SelectItem value="fr">Français</SelectItem>
-                        <SelectItem value="ar">العربية</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+                  <Globe size={20} />
+                  General Preferences
+                </Typography>
+                <Grid container spacing={3} sx={{ mb: 3 }}>
+                  <Grid item xs={12} md={6}>
+                    <FormControl fullWidth>
+                      <InputLabel>Language</InputLabel>
+                      <Select 
+                        value={settings.language} 
+                        onChange={(e) => handleSettingChange('language', e.target.value)}
+                        label="Language"
+                      >
+                        <MenuItem value="en">English</MenuItem>
+                        <MenuItem value="fr">Français</MenuItem>
+                        <MenuItem value="ar">العربية</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
                   
-                  <div className="space-y-2">
-                    <Label htmlFor="timezone">Timezone</Label>
-                    <Select value={settings.timezone} onValueChange={(value) => handleSettingChange('timezone', value)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="UTC">UTC</SelectItem>
-                        <SelectItem value="Africa/Algiers">Algeria Time</SelectItem>
-                        <SelectItem value="Europe/Paris">Central European Time</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+                  <Grid item xs={12} md={6}>
+                    <FormControl fullWidth>
+                      <InputLabel>Timezone</InputLabel>
+                      <Select 
+                        value={settings.timezone} 
+                        onChange={(e) => handleSettingChange('timezone', e.target.value)}
+                        label="Timezone"
+                      >
+                        <MenuItem value="UTC">UTC</MenuItem>
+                        <MenuItem value="Africa/Algiers">Algeria Time</MenuItem>
+                        <MenuItem value="Europe/Paris">Central European Time</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                </Grid>
                 
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label>Auto-save</Label>
-                      <p className="text-sm text-gray-600">Automatically save your progress</p>
-                    </div>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Box>
+                      <Typography variant="body1">Auto-save</Typography>
+                      <Typography variant="body2" color="text.secondary">Automatically save your progress</Typography>
+                    </Box>
                     <Switch 
                       checked={settings.autoSave} 
-                      onCheckedChange={(checked) => handleSettingChange('autoSave', checked)}
+                      onChange={(e) => handleSettingChange('autoSave', e.target.checked)}
                     />
-                  </div>
+                  </Box>
                   
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label>Offline Mode</Label>
-                      <p className="text-sm text-gray-600">Enable offline functionality</p>
-                    </div>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Box>
+                      <Typography variant="body1">Offline Mode</Typography>
+                      <Typography variant="body2" color="text.secondary">Enable offline functionality</Typography>
+                    </Box>
                     <Switch 
                       checked={settings.offlineMode} 
-                      onCheckedChange={(checked) => handleSettingChange('offlineMode', checked)}
+                      onChange={(e) => handleSettingChange('offlineMode', e.target.checked)}
                     />
-                  </div>
-                </div>
+                  </Box>
+                </Box>
               </CardContent>
             </Card>
-          </TabsContent>
-
-          {/* Notification Settings */}
-          <TabsContent value="notifications" className="space-y-6">
+          </Box>
+          )}
+          {activeTab === 'notifications' && (
+            <Box sx={{ mt: 3 }}>
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Bell className="h-5 w-5" />
-                  <span>Notification Preferences</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Email Notifications</Label>
-                    <p className="text-sm text-gray-600">Receive updates via email</p>
-                  </div>
-                  <Switch 
-                    checked={settings.emailNotifications} 
-                    onCheckedChange={(checked) => handleSettingChange('emailNotifications', checked)}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Push Notifications</Label>
-                    <p className="text-sm text-gray-600">Receive push notifications</p>
-                  </div>
-                  <Switch 
-                    checked={settings.pushNotifications} 
-                    onCheckedChange={(checked) => handleSettingChange('pushNotifications', checked)}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Marketing Emails</Label>
-                    <p className="text-sm text-gray-600">Receive promotional content</p>
-                  </div>
-                  <Switch 
-                    checked={settings.marketingEmails} 
-                    onCheckedChange={(checked) => handleSettingChange('marketingEmails', checked)}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Trip Reminders</Label>
-                    <p className="text-sm text-gray-600">Get reminders about your trips</p>
-                  </div>
-                  <Switch 
-                    checked={settings.tripReminders} 
-                    onCheckedChange={(checked) => handleSettingChange('tripReminders', checked)}
-                  />
-                </div>
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+                  <Bell size={20} />
+                  Notification Preferences
+                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Box>
+                      <Typography variant="body1">Email Notifications</Typography>
+                      <Typography variant="body2" color="text.secondary">Receive updates via email</Typography>
+                    </Box>
+                    <Switch 
+                      checked={settings.emailNotifications} 
+                      onChange={(e) => handleSettingChange('emailNotifications', e.target.checked)}
+                    />
+                  </Box>
+                  
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Box>
+                      <Typography variant="body1">Push Notifications</Typography>
+                      <Typography variant="body2" color="text.secondary">Receive push notifications</Typography>
+                    </Box>
+                    <Switch 
+                      checked={settings.pushNotifications} 
+                      onChange={(e) => handleSettingChange('pushNotifications', e.target.checked)}
+                    />
+                  </Box>
+                  
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Box>
+                      <Typography variant="body1">Marketing Emails</Typography>
+                      <Typography variant="body2" color="text.secondary">Receive promotional content</Typography>
+                    </Box>
+                    <Switch 
+                      checked={settings.marketingEmails} 
+                      onChange={(e) => handleSettingChange('marketingEmails', e.target.checked)}
+                    />
+                  </Box>
+                  
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Box>
+                      <Typography variant="body1">Trip Reminders</Typography>
+                      <Typography variant="body2" color="text.secondary">Get reminders about your trips</Typography>
+                    </Box>
+                    <Switch 
+                      checked={settings.tripReminders} 
+                      onChange={(e) => handleSettingChange('tripReminders', e.target.checked)}
+                    />
+                  </Box>
+                </Box>
               </CardContent>
             </Card>
-          </TabsContent>
-
-          {/* Privacy Settings */}
-          <TabsContent value="privacy" className="space-y-6">
+            </Box>
+          )}
+          {activeTab === 'privacy' && (
+            <Box sx={{ mt: 3 }}>
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Shield className="h-5 w-5" />
-                  <span>Privacy & Security</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Profile Visibility</Label>
-                  <Select value={settings.profileVisibility} onValueChange={(value) => handleSettingChange('profileVisibility', value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="public">Public</SelectItem>
-                      <SelectItem value="friends">Friends Only</SelectItem>
-                      <SelectItem value="private">Private</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Show Email</Label>
-                    <p className="text-sm text-gray-600">Display email on profile</p>
-                  </div>
-                  <Switch 
-                    checked={settings.showEmail} 
-                    onCheckedChange={(checked) => handleSettingChange('showEmail', checked)}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Show Phone</Label>
-                    <p className="text-sm text-gray-600">Display phone on profile</p>
-                  </div>
-                  <Switch 
-                    checked={settings.showPhone} 
-                    onCheckedChange={(checked) => handleSettingChange('showPhone', checked)}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Data Sharing</Label>
-                    <p className="text-sm text-gray-600">Share anonymous usage data</p>
-                  </div>
-                  <Switch 
-                    checked={settings.dataSharing} 
-                    onCheckedChange={(checked) => handleSettingChange('dataSharing', checked)}
-                  />
-                </div>
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+                  <Shield size={20} />
+                  Privacy & Security
+                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  <FormControl fullWidth>
+                    <InputLabel>Profile Visibility</InputLabel>
+                    <Select 
+                      value={settings.profileVisibility} 
+                      onChange={(e) => handleSettingChange('profileVisibility', e.target.value)}
+                      label="Profile Visibility"
+                    >
+                      <MenuItem value="public">Public</MenuItem>
+                      <MenuItem value="friends">Friends Only</MenuItem>
+                      <MenuItem value="private">Private</MenuItem>
+                    </Select>
+                  </FormControl>
+                  
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Box>
+                      <Typography variant="body1">Show Email</Typography>
+                      <Typography variant="body2" color="text.secondary">Display email on profile</Typography>
+                    </Box>
+                    <Switch 
+                      checked={settings.showEmail} 
+                      onChange={(e) => handleSettingChange('showEmail', e.target.checked)}
+                    />
+                  </Box>
+                  
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Box>
+                      <Typography variant="body1">Show Phone</Typography>
+                      <Typography variant="body2" color="text.secondary">Display phone on profile</Typography>
+                    </Box>
+                    <Switch 
+                      checked={settings.showPhone} 
+                      onChange={(e) => handleSettingChange('showPhone', e.target.checked)}
+                    />
+                  </Box>
+                  
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Box>
+                      <Typography variant="body1">Data Sharing</Typography>
+                      <Typography variant="body2" color="text.secondary">Share anonymous usage data</Typography>
+                    </Box>
+                    <Switch 
+                      checked={settings.dataSharing} 
+                      onChange={(e) => handleSettingChange('dataSharing', e.target.checked)}
+                    />
+                  </Box>
+                </Box>
               </CardContent>
             </Card>
-          </TabsContent>
-
-          {/* Appearance Settings */}
-          <TabsContent value="appearance" className="space-y-6">
+            </Box>
+          )}
+          {activeTab === 'appearance' && (
+            <Box sx={{ mt: 3 }}>
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Palette className="h-5 w-5" />
-                  <span>Appearance</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Theme</Label>
-                  <Select value={settings.theme} onValueChange={(value) => handleSettingChange('theme', value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="light">Light</SelectItem>
-                      <SelectItem value="dark">Dark</SelectItem>
-                      <SelectItem value="system">System</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>High Quality Images</Label>
-                    <p className="text-sm text-gray-600">Load high resolution images</p>
-                  </div>
-                  <Switch 
-                    checked={settings.highQualityImages} 
-                    onCheckedChange={(checked) => handleSettingChange('highQualityImages', checked)}
-                  />
-                </div>
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+                  <Palette size={20} />
+                  Appearance
+                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  <FormControl fullWidth>
+                    <InputLabel>Theme</InputLabel>
+                    <Select 
+                      value={settings.theme} 
+                      onChange={(e) => handleSettingChange('theme', e.target.value)}
+                      label="Theme"
+                    >
+                      <MenuItem value="light">Light</MenuItem>
+                      <MenuItem value="dark">Dark</MenuItem>
+                      <MenuItem value="system">System</MenuItem>
+                    </Select>
+                  </FormControl>
+                  
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Box>
+                      <Typography variant="body1">High Quality Images</Typography>
+                      <Typography variant="body2" color="text.secondary">Load high resolution images</Typography>
+                    </Box>
+                    <Switch 
+                      checked={settings.highQualityImages} 
+                      onChange={(e) => handleSettingChange('highQualityImages', e.target.checked)}
+                    />
+                  </Box>
+                </Box>
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+            </Box>
+          )}
+        </Box>
 
         {/* Save Button */}
         <div className="flex justify-end mt-8">

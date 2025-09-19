@@ -3,66 +3,95 @@
  * Available for freelance projects
  */
 import { useState, useRef, useEffect } from 'react';
-import { useAppContext } from '../contexts/AppContext';
-import { useAuth } from '../contexts/AuthContext';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { useConversations, useActiveConversation, useChatLoading } from '../store/hooks';
+import ChatDebugger from '../components/ChatDebugger';
+import { createConversation, sendChatMessage, addMessage, setActiveConversation, clearMessages, clearSendError } from '../store/slices/chatbotSlice';
+import { addNotification } from '../store/slices/appSlice';
+import { useAuth } from '../store/hooks';
 import { apiService } from '../services';
-import { 
-  Send, 
-  Bot, 
-  User, 
-  Loader, 
-  RefreshCw, 
-  MessageCircle,
-  Sparkles,
-  MapPin,
-  Clock,
+import {
+  Box,
+  Container,
+  Typography,
+  Button,
+  Paper,
+  Avatar,
+  Chip,
+  IconButton,
+  TextField,
+  Divider,
+  CircularProgress
+} from '@mui/material';
+import {
+  Send,
+  SmartToy as Bot,
+  Person as User,
+  Refresh as RefreshCw,
+  Chat as MessageCircle,
+  AutoAwesome as Sparkles,
+  LocationOn as MapPin,
+  AccessTime as Clock,
   Star,
-  DollarSign,
-  Copy,
-  ThumbsUp,
-  ThumbsDown
-} from 'lucide-react';
+  AttachMoney as DollarSign,
+  ContentCopy as Copy,
+  ThumbUp,
+  ThumbDown
+} from '@mui/icons-material';
 
 const ChatbotPage = () => {
-  const { user } = useAuth();
-  const { state, dispatch, sendChatMessage } = useAppContext();
+  const auth = useAuth();
+  const user = auth.user;
+  const dispatch = useAppDispatch();
+  const conversations = useConversations();
+  const activeConversation = useActiveConversation();
+  const chatLoading = useChatLoading();
+  
   const [inputMessage, setInputMessage] = useState('');
   const [currentConversationId, setCurrentConversationId] = useState(null);
   
-  const { conversations, activeConversation, chatLoading } = state;
-  const messages = activeConversation?.messages || [];
-  const isTyping = chatLoading;
+  // Get messages and loading/error states from Redux
+  const allMessages = useAppSelector((state) => state.chatbot.messages);
+  const isSending = useAppSelector((state) => state.chatbot.isSending);
+  const sendError = useAppSelector((state) => state.chatbot.sendError);
+  const isLoading = useAppSelector((state) => state.chatbot.isLoading);
+  const messages = currentConversationId ? (allMessages[currentConversationId] || []) : [];
+  const isTyping = chatLoading || isSending;
   
   // Initialize conversation
   useEffect(() => {
     const initializeChat = async () => {
+      console.log('🔄 Initializing chat, current user:', user);
+      console.log('🔄 Current conversation ID:', currentConversationId);
       if (!currentConversationId && user) {
+        console.log('🆕 Creating new conversation for user:', user.firstName);
         try {
-          const result = await apiService.chatbot.createConversation();
-          if (result.success) {
-            setCurrentConversationId(result.data.id);
-            // Set as active conversation
-            dispatch({ type: 'SET_ACTIVE_CONVERSATION', payload: { id: result.data.id, messages: [] } });
-            // Send welcome message
-            const welcomeMessage = {
-              id: Date.now(),
-              type: 'assistant',
-              content: `Hello ${user?.firstName || 'there'}! 👋 I'm your AI travel guide for Algeria. I can help you with:\n\n• Information about provinces, districts, and municipalities\n• Recommendations for places to visit\n• Local cuisine and restaurants\n• Cultural insights and travel tips\n• Planning your itinerary\n\nWhat would you like to know about Algeria?`,
-              timestamp: new Date(),
-              suggestions: [
-                'Tell me about Algiers',
-                'Best restaurants in Oran',
-                'Historic sites in Constantine',
-                'Nature parks in Algeria'
-              ]
-            };
-            dispatch({ type: 'ADD_CHAT_MESSAGE', payload: welcomeMessage });
-          }
+          const result = await dispatch(createConversation()).unwrap();
+          console.log('📋 Create conversation result:', result);
+          const conversationId = result.data?.id || result.id;
+          console.log('🆔 Setting conversation ID:', conversationId);
+          setCurrentConversationId(conversationId);
+          // Set as active conversation
+          dispatch(setActiveConversation({ id: conversationId, messages: [] }));
+          // Send welcome message
+          const welcomeMessage = {
+            id: Date.now(),
+            type: 'assistant',
+            content: `Hello ${user?.firstName || 'there'}! 👋 I'm your AI travel guide for Algeria. I can help you with:\n\n• Information about provinces, districts, and municipalities\n• Recommendations for places to visit\n• Local cuisine and restaurants\n• Cultural insights and travel tips\n• Planning your itinerary\n\nWhat would you like to know about Algeria?`,
+            timestamp: new Date().toISOString(),
+            suggestions: [
+              'Tell me about Algiers',
+              'Best restaurants in Oran',
+              'Historic sites in Constantine',
+              'Nature parks in Algeria'
+            ]
+          };
+          dispatch(addMessage({ conversationId: conversationId, message: welcomeMessage }));
         } catch (error) {
-          dispatch({ type: 'ADD_NOTIFICATION', payload: {
+          dispatch(addNotification({
             type: 'error',
             message: 'Failed to initialize chat'
-          }});
+          }));
         }
       }
     };
@@ -80,42 +109,78 @@ const ChatbotPage = () => {
     scrollToBottom();
   }, [messages]);
 
+  // Clear send errors after 5 seconds
+  useEffect(() => {
+    if (sendError) {
+      const timer = setTimeout(() => {
+        dispatch(clearSendError());
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [sendError, dispatch]);
+
   const handleSendMessage = async (message = inputMessage) => {
     if (!message.trim() || !currentConversationId) return;
+
+    console.log('🚀 Starting handleSendMessage with:', message);
 
     const userMessage = {
       id: Date.now(),
       type: 'user',
       content: message,
-      timestamp: new Date()
+      timestamp: new Date().toISOString()
     };
 
+    console.log('📝 Adding user message:', userMessage);
     // Add user message to state
-    dispatch({ type: 'ADD_CHAT_MESSAGE', payload: userMessage });
+    dispatch(addMessage({ conversationId: currentConversationId, message: userMessage }));
+    console.log('✅ User message dispatched');
     setInputMessage('');
     
     // Send message to API
     try {
       // Ensure we have a conversation ID
       let conversationId = currentConversationId;
+      console.log('💬 Current conversation ID:', conversationId);
       if (!conversationId && user) {
-        const result = await apiService.chatbot.createConversation();
-        if (result.success) {
-          conversationId = result.data.id;
-          setCurrentConversationId(conversationId);
-          dispatch({ type: 'SET_ACTIVE_CONVERSATION', payload: { id: conversationId, messages: [] } });
-        } else {
-          throw new Error('Failed to create conversation');
-        }
+        console.log('🆕 Creating new conversation...');
+        const result = await dispatch(createConversation()).unwrap();
+        console.log('📋 Create conversation result:', result);
+        conversationId = result.data?.id || result.id;
+        console.log('🆔 New conversation ID:', conversationId);
+        setCurrentConversationId(conversationId);
+        dispatch(setActiveConversation({ id: conversationId, messages: [] }));
       }
       
-      await sendChatMessage(conversationId, message);
+      console.log('📤 Sending message to conversation:', conversationId);
+      const response = await dispatch(sendChatMessage({
+        conversationId: conversationId,
+        message: message
+      })).unwrap();
+      console.log('📥 Received response:', response);
+      
+      // Add bot response
+      const botMessage = {
+        id: Date.now() + 1,
+        type: 'assistant',
+        content: response.data?.content || response.data?.response || 'Sorry, I could not process your request.',
+        timestamp: new Date().toISOString()
+      };
+      console.log('🤖 Adding bot message:', botMessage);
+      dispatch(addMessage({ conversationId: conversationId, message: botMessage }));
+      console.log('✅ Bot message dispatched');
     } catch (error) {
       console.error('Error sending message:', error);
-      dispatch({ type: 'ADD_NOTIFICATION', payload: {
-        type: 'error',
-        message: 'Failed to send message. Please try again.'
-      }});
+      
+      // Show error message as a chatbot message
+      const errorMessage = {
+        id: Date.now() + 1,
+        type: 'assistant',
+        content: '❌ **Error occurred**\n\nSorry, I encountered an error while processing your message. Please try again.\n\n*If the problem persists, please check your internet connection or try refreshing the page.*',
+        timestamp: new Date().toISOString(),
+        isError: true
+      };
+      dispatch(addMessage({ conversationId: conversationId, message: errorMessage }));
     }
   };
 
@@ -170,9 +235,9 @@ const ChatbotPage = () => {
 
     return {
       id: Date.now(),
-      type: 'bot',
+      type: 'assistant',
       content: response,
-      timestamp: new Date(),
+      timestamp: new Date().toISOString(),
       suggestions,
       places
     };
@@ -190,20 +255,23 @@ const ChatbotPage = () => {
   };
 
   const clearChat = () => {
-    setMessages([
-      {
-        id: 1,
-        type: 'bot',
-        content: `Hello ${user?.firstName || 'there'}! 👋 I'm your AI travel guide for Algeria. What would you like to know?`,
-        timestamp: new Date(),
-        suggestions: [
-          'Tell me about Algiers',
-          'Best restaurants in Oran',
-          'Historic sites in Constantine',
-          'Nature parks in Algeria'
-        ]
-      }
-    ]);
+    if (!currentConversationId) return;
+    
+    const welcomeMessage = {
+      id: 1,
+      type: 'assistant',
+      content: `Hello ${user?.firstName || 'there'}! 👋 I'm your AI travel guide for Algeria. What would you like to know?`,
+      timestamp: new Date(),
+      suggestions: [
+        'Tell me about Algiers',
+        'Best restaurants in Oran',
+        'Historic sites in Constantine',
+        'Nature parks in Algeria'
+      ]
+    };
+    // Clear current conversation and add welcome message
+    dispatch(clearMessages(currentConversationId));
+    dispatch(addMessage({ conversationId: currentConversationId, message: welcomeMessage }));
   };
 
   const copyMessage = (content) => {
@@ -219,222 +287,286 @@ const ChatbotPage = () => {
   };
 
   return (
-    <div className="w-full">
-      <div className="container-content py-8">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center">
-              <MessageCircle className="mr-2 text-primary-600" />
-              AI Travel Guide
-            </h1>
-            <p className="text-gray-600">
-              Ask me anything about Algeria - places, culture, food, and travel tips!
-            </p>
-          </div>
-          <button
-            onClick={clearChat}
-            className="btn-secondary flex items-center space-x-2"
-          >
-            <RefreshCw size={16} />
-            <span>Clear Chat</span>
-          </button>
-        </div>
-      </div>
+    <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
+      <ChatDebugger currentConversationId={currentConversationId} />
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        {/* Header */}
+        <Box sx={{ mb: 4 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Box>
+              <Typography variant="h3" component="h1" sx={{ fontWeight: 'bold', mb: 1, display: 'flex', alignItems: 'center' }}>
+                <MessageCircle sx={{ mr: 1, color: 'primary.main' }} />
+                AI Travel Guide
+              </Typography>
+              <Typography variant="body1" color="text.secondary">
+                Ask me anything about Algeria - places, culture, food, and travel tips!
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button
+                onClick={clearChat}
+                variant="outlined"
+                startIcon={<RefreshCw />}
+                sx={{ textTransform: 'none' }}
+              >
+                Clear Chat
+              </Button>
+              <Button
+                onClick={() => {
+                  console.log('🧪 Test button clicked');
+                  handleSendMessage('Test message from button');
+                }}
+                variant="contained"
+                color="secondary"
+                sx={{ textTransform: 'none' }}
+              >
+                Test Send
+              </Button>
+            </Box>
+          </Box>
+        </Box>
 
-      {/* Chat Container */}
-      <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-        {/* Messages Area */}
-        <div className="h-96 md:h-[500px] overflow-y-auto p-6 space-y-6">
-          {messages.map((message) => (
-            <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`flex items-start space-x-3 max-w-4xl ${
-                message.type === 'user' ? 'flex-row-reverse space-x-reverse' : ''
-              }`}>
-                {/* Avatar */}
-                <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                  message.type === 'user' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-gray-200 text-gray-700'
-                }`}>
-                  {message.type === 'user' ? <User size={16} /> : <Bot size={16} />}
-                </div>
+        {/* Chat Container */}
+        <Paper elevation={3} sx={{ borderRadius: 3, overflow: 'hidden' }}>
+          {/* Messages Area */}
+          <Box sx={{ height: { xs: 400, md: 500 }, overflowY: 'auto', p: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {messages.map((message) => (
+              <Box key={message.id} sx={{ display: 'flex', justifyContent: message.type === 'user' ? 'flex-end' : 'flex-start' }}>
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'flex-start', 
+                  gap: 1.5, 
+                  maxWidth: '80%',
+                  flexDirection: message.type === 'user' ? 'row-reverse' : 'row'
+                }}>
+                  {/* Avatar */}
+                  <Avatar sx={{ 
+                    width: 32, 
+                    height: 32,
+                    bgcolor: message.type === 'user' ? 'primary.main' : (message.isError ? 'error.main' : 'grey.300'),
+                    color: message.type === 'user' ? 'white' : (message.isError ? 'white' : 'grey.700')
+                  }}>
+                    {message.type === 'user' ? <User sx={{ fontSize: 16 }} /> : <Bot sx={{ fontSize: 16 }} />}
+                  </Avatar>
                 
-                {/* Message Content */}
-                <div className={`flex-1 ${
-                  message.type === 'user' ? 'text-right' : 'text-left'
-                }`}>
-                  <div className={`inline-block p-4 rounded-2xl ${
-                    message.type === 'user'
-                      ? 'bg-blue-600 text-white shadow-lg'
-                      : 'bg-white text-gray-900 border border-gray-300 shadow-sm'
-                  }`}>
-                    <div 
-                      className="prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ __html: formatMessageContent(message.content) }}
-                    />
-                  </div>
+                  {/* Message Content */}
+                  <Box sx={{ flex: 1, textAlign: message.type === 'user' ? 'right' : 'left' }}>
+                    <Paper 
+                      elevation={message.type === 'user' ? 3 : 1}
+                      sx={{
+                        display: 'inline-block',
+                        p: 2,
+                        borderRadius: 3,
+                        bgcolor: message.type === 'user' ? 'primary.main' : (message.isError ? 'error.50' : 'background.paper'),
+                        color: message.type === 'user' ? 'white' : (message.isError ? 'error.main' : 'text.primary'),
+                        border: message.type === 'user' ? 'none' : '1px solid',
+                        borderColor: message.isError ? 'error.main' : 'divider'
+                      }}
+                    >
+                      <Typography 
+                        variant="body2" 
+                        component="div"
+                        dangerouslySetInnerHTML={{ __html: formatMessageContent(message.content) }}
+                        sx={{ '& strong': { fontWeight: 'bold' }, '& em': { fontStyle: 'italic' } }}
+                      />
+                    </Paper>
                   
-                  {/* Places Cards */}
-                  {message.places && message.places.length > 0 && (
-                    <div className="mt-3 space-y-2">
-                      {message.places.map((place, index) => (
-                        <div key={index} className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <h4 className="font-semibold text-gray-900 text-sm">{place.name}</h4>
-                              <div className="flex items-center space-x-3 text-xs text-gray-500 mt-1">
-                                <div className="flex items-center">
-                                  <Star className="text-yellow-400 fill-current" size={12} />
-                                  <span className="ml-1">{place.rating}</span>
-                                </div>
-                                <div className="flex items-center">
-                                  <DollarSign size={12} />
-                                  <span>${place.cost}</span>
-                                </div>
-                                <span className="bg-gray-100 px-2 py-1 rounded-full">
-                                  {place.category}
-                                </span>
-                              </div>
-                            </div>
-                            <button className="text-primary-600 hover:text-primary-700">
-                              <MapPin size={16} />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                    {/* Places Cards */}
+                    {message.places && message.places.length > 0 && (
+                      <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                        {message.places.map((place, index) => (
+                          <Paper key={index} elevation={1} sx={{ p: 2, borderRadius: 2 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <Box>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{place.name}</Typography>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 0.5 }}>
+                                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                    <Star sx={{ color: 'warning.main', fontSize: 14 }} />
+                                    <Typography variant="caption" sx={{ ml: 0.5 }}>{place.rating}</Typography>
+                                  </Box>
+                                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                    <DollarSign sx={{ fontSize: 14 }} />
+                                    <Typography variant="caption">${place.cost}</Typography>
+                                  </Box>
+                                  <Chip 
+                                    label={place.category} 
+                                    size="small" 
+                                    variant="outlined"
+                                    sx={{ height: 20, fontSize: '0.7rem' }}
+                                  />
+                                </Box>
+                              </Box>
+                              <IconButton color="primary" size="small">
+                                <MapPin sx={{ fontSize: 16 }} />
+                              </IconButton>
+                            </Box>
+                          </Paper>
+                        ))}
+                      </Box>
+                    )}
+                    
+                    {/* Suggestions */}
+                    {message.suggestions && message.suggestions.length > 0 && (
+                      <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                        {message.suggestions.map((suggestion, index) => (
+                          <Chip
+                            key={index}
+                            label={suggestion}
+                            onClick={() => handleSuggestionClick(suggestion)}
+                            size="small"
+                            variant="outlined"
+                            color="primary"
+                            clickable
+                            sx={{ fontSize: '0.75rem' }}
+                          />
+                        ))}
+                      </Box>
+                    )}
                   
-                  {/* Suggestions */}
-                  {message.suggestions && message.suggestions.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {message.suggestions.map((suggestion, index) => (
-                        <button
-                          key={index}
-                          onClick={() => handleSuggestionClick(suggestion)}
-                          className="text-xs bg-primary-50 text-primary-700 hover:bg-primary-100 px-3 py-1 rounded-full transition-colors duration-200"
+                    {/* Message Actions */}
+                    {message.type === 'bot' && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 1 }}>
+                        <IconButton
+                          onClick={() => copyMessage(message.content)}
+                          size="small"
+                          title="Copy message"
+                          sx={{ color: 'text.secondary', '&:hover': { color: 'text.primary' } }}
                         >
-                          {suggestion}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                          <Copy sx={{ fontSize: 14 }} />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          title="Helpful"
+                          sx={{ color: 'text.secondary', '&:hover': { color: 'success.main' } }}
+                        >
+                          <ThumbUp sx={{ fontSize: 14 }} />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          title="Not helpful"
+                          sx={{ color: 'text.secondary', '&:hover': { color: 'error.main' } }}
+                        >
+                          <ThumbDown sx={{ fontSize: 14 }} />
+                        </IconButton>
+                      </Box>
+                    )}
                   
-                  {/* Message Actions */}
-                  {message.type === 'bot' && (
-                    <div className="flex items-center space-x-2 mt-2">
-                      <button
-                        onClick={() => copyMessage(message.content)}
-                        className="text-gray-400 hover:text-gray-600 p-1"
-                        title="Copy message"
-                      >
-                        <Copy size={14} />
-                      </button>
-                      <button
-                        className="text-gray-400 hover:text-green-600 p-1"
-                        title="Helpful"
-                      >
-                        <ThumbsUp size={14} />
-                      </button>
-                      <button
-                        className="text-gray-400 hover:text-red-600 p-1"
-                        title="Not helpful"
-                      >
-                        <ThumbsDown size={14} />
-                      </button>
-                    </div>
-                  )}
-                  
-                  {/* Timestamp */}
-                  <div className={`text-xs text-gray-400 mt-2 ${
-                    message.type === 'user' ? 'text-right' : 'text-left'
-                  }`}>
-                    <Clock size={12} className="inline mr-1" />
-                    {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
+                    {/* Timestamp */}
+                    <Typography 
+                      variant="caption" 
+                      color="text.secondary" 
+                      sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        mt: 1,
+                        justifyContent: message.type === 'user' ? 'flex-end' : 'flex-start'
+                      }}
+                    >
+                      <Clock sx={{ fontSize: 12, mr: 0.5 }} />
+                      {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+            ))}
           
-          {/* Typing Indicator */}
-          {isTyping && (
-            <div className="flex justify-start">
-              <div className="flex items-start space-x-3 max-w-4xl">
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center">
-                  <Bot size={16} />
-                </div>
-                <div className="bg-gray-50 text-gray-900 p-4 rounded-2xl">
-                  <div className="flex items-center space-x-1">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+            {/* Typing Indicator */}
+            {isTyping && (
+              <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, maxWidth: '80%' }}>
+                  <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main', color: 'white' }}>
+                    <Bot sx={{ fontSize: 16 }} />
+                  </Avatar>
+                  <Paper elevation={1} sx={{ bgcolor: 'primary.50', p: 2, borderRadius: 3, border: '1px solid', borderColor: 'primary.100' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <CircularProgress size={16} sx={{ color: 'primary.main' }} />
+                      <Typography variant="body2" color="primary.main" sx={{ fontStyle: 'italic' }}>
+                        Chatbot is thinking...
+                      </Typography>
+                    </Box>
+                  </Paper>
+                </Box>
+              </Box>
+            )}
           
-          <div ref={messagesEndRef} />
-        </div>
-        
-        {/* Input Area */}
-        <div className="border-t border-gray-200 p-4">
-          <div className="flex items-end space-x-3">
-            <div className="flex-1">
-              <textarea
-                ref={inputRef}
+            <Box ref={messagesEndRef} />
+          </Box>
+          
+          <Divider />
+          
+          {/* Input Area */}
+          <Box sx={{ p: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 1.5 }}>
+              <TextField
+                inputRef={inputRef}
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Ask me about places to visit, local cuisine, culture, or anything about Algeria..."
-                className="w-full resize-none border border-gray-200 rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                rows={1}
-                style={{ minHeight: '44px', maxHeight: '120px' }}
+                multiline
+                maxRows={4}
+                fullWidth
+                variant="outlined"
+                size="small"
+                sx={{ 
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2
+                  }
+                }}
               />
-            </div>
-            <button
-              onClick={() => handleSendMessage()}
-              disabled={!inputMessage.trim() || isTyping}
-              className="btn-primary p-3 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isTyping ? <Loader className="animate-spin" size={20} /> : <Send size={20} />}
-            </button>
-          </div>
-          
-          {/* Quick Actions */}
-          <div className="flex flex-wrap gap-2 mt-3">
-            {[
-              '🏛️ Historic sites',
-              '🍽️ Local cuisine',
-              '🏞️ Nature parks',
-              '🏖️ Beach destinations',
-              '💰 Budget tips',
-              '🎭 Cultural events'
-            ].map((action, index) => (
-              <button
-                key={index}
-                onClick={() => handleSendMessage(action.split(' ').slice(1).join(' '))}
-                className="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-full transition-colors duration-200"
+              <Button
+                onClick={() => handleSendMessage()}
+                disabled={!inputMessage.trim() || isTyping}
+                variant="contained"
+                sx={{ 
+                  minWidth: 48, 
+                  height: 48, 
+                  borderRadius: 2,
+                  p: 1.5
+                }}
               >
-                {action}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-      
-      {/* Disclaimer */}
-      <div className="mt-4 text-center">
-        <p className="text-xs text-gray-500">
-          <Sparkles className="inline mr-1" size={12} />
-          AI responses are generated based on available data. Always verify important travel information.
-        </p>
-      </div>
-      </div>
-    </div>
+                {isTyping ? <CircularProgress size={20} color="inherit" /> : <Send />}
+              </Button>
+            </Box>
+          
+            {/* Quick Actions */}
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 2 }}>
+              {[
+                '🏛️ Historic sites',
+                '🍽️ Local cuisine',
+                '🏞️ Nature parks',
+                '🏖️ Beach destinations',
+                '💰 Budget tips',
+                '🎭 Cultural events'
+              ].map((action, index) => (
+                <Chip
+                  key={index}
+                  label={action}
+                  onClick={() => handleSendMessage(action.split(' ').slice(1).join(' '))}
+                  size="small"
+                  variant="outlined"
+                  clickable
+                  sx={{ 
+                    fontSize: '0.75rem',
+                    '&:hover': {
+                      bgcolor: 'action.hover'
+                    }
+                  }}
+                />
+              ))}
+            </Box>
+          </Box>
+        </Paper>
+        
+        {/* Disclaimer */}
+        <Box sx={{ mt: 3, textAlign: 'center' }}>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Sparkles sx={{ fontSize: 12, mr: 0.5 }} />
+            AI responses are generated based on available data. Always verify important travel information.
+          </Typography>
+        </Box>
+      </Container>
+    </Box>
   );
 };
 

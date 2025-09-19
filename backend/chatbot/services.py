@@ -300,23 +300,23 @@ Instructions:
         patterns = {
             'greeting': {
                 'keywords': ['hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening'],
-                'response': "Hello! I'm here to help you discover the beauty of Rwanda. What would you like to know about our amazing country?"
+                'response': "Hello! I'm here to help you discover the beauty of Algeria. What would you like to know about our amazing country?"
             },
             'places': {
                 'keywords': ['places', 'visit', 'attractions', 'destinations', 'where to go'],
-                'response': "Rwanda has many incredible places to visit! Some highlights include Volcanoes National Park for gorilla trekking, Lake Kivu for relaxation, Nyungwe Forest for canopy walks, and Kigali city for culture and history. What type of experience interests you most?"
+                'response': "Algeria has many incredible places to visit! Some highlights include the Casbah of Algiers (UNESCO World Heritage site), the Roman ruins of Timgad and Djémila, the stunning Sahara Desert, and the beautiful Mediterranean coastline. What type of experience interests you most?"
             },
             'gorillas': {
                 'keywords': ['gorilla', 'gorillas', 'mountain gorilla', 'trekking'],
-                'response': "Gorilla trekking in Volcanoes National Park is Rwanda's most famous attraction! You can encounter mountain gorillas in their natural habitat. The experience requires permits and moderate fitness. Would you like to know more about booking or what to expect?"
+                'response': "The Sahara Desert is Algeria's most famous attraction! You can experience camel trekking, visit ancient rock art at Tassili n'Ajjer, and enjoy stunning desert landscapes. Desert tours can be arranged from cities like Tamanrasset. Would you like to know more about desert excursions?"
             },
             'culture': {
                 'keywords': ['culture', 'tradition', 'people', 'customs', 'history'],
-                'response': "Rwandan culture is rich and welcoming! Known as the 'Land of a Thousand Hills,' Rwanda has a strong tradition of unity, beautiful traditional dances, and delicious cuisine. The people are incredibly friendly and proud of their heritage. What aspect of culture interests you?"
+                'response': "Algerian culture is rich and diverse! Known as the 'Gateway to Africa,' Algeria has a blend of Berber, Arab, and Mediterranean influences, beautiful traditional music like Raï, and delicious cuisine including couscous and tagines. The people are incredibly hospitable and proud of their heritage. What aspect of culture interests you?"
             },
             'weather': {
                 'keywords': ['weather', 'climate', 'temperature', 'rain', 'season'],
-                'response': "Rwanda has a pleasant tropical highland climate with two rainy seasons (March-May and October-December) and two dry seasons. Temperatures are generally mild year-round due to the altitude. The best time to visit depends on your activities - dry seasons are great for trekking!"
+                'response': "Algeria has a Mediterranean climate along the coast and a desert climate in the south. The best time to visit the coast is spring (March-May) and fall (September-November), while winter is ideal for the Sahara. Summer can be very hot, especially inland. The best time depends on your destinations and activities!"
             },
             'visa': {
                 'keywords': ['visa', 'entry', 'passport', 'requirements', 'border'],
@@ -342,14 +342,14 @@ Instructions:
         elif best_match:
             response = best_match['response']
         else:
-            response = "I'd be happy to help you learn about Rwanda! You can ask me about places to visit, culture, gorilla trekking, weather, visa requirements, or any other travel-related questions."
+            response = "I'd be happy to help you learn about Algeria! You can ask me about places to visit, culture, desert excursions, weather, visa requirements, or any other travel-related questions."
         
         # Generate simple suggestions
         suggestions = [
-            "What are the best places to visit in Rwanda?",
-            "Tell me about gorilla trekking",
-            "What's the weather like in Rwanda?",
-            "What should I know about Rwandan culture?"
+            "What are the best places to visit in Algeria?",
+            "Tell me about the Sahara Desert",
+            "What's the weather like in Algeria?",
+            "What should I know about Algerian culture?"
         ]
         
         return {
@@ -380,28 +380,28 @@ Instructions:
         message_lower = user_message.lower()
         
         # Context-aware suggestions
-        if any(word in message_lower for word in ['gorilla', 'trekking']):
+        if any(word in message_lower for word in ['desert', 'sahara', 'trekking']):
             return [
-                "What should I bring for gorilla trekking?",
-                "How much does a gorilla permit cost?",
-                "What other activities are available in Volcanoes National Park?"
+                "What should I bring for desert trekking?",
+                "How much does a Sahara tour cost?",
+                "What other activities are available in the desert?"
             ]
         elif any(word in message_lower for word in ['places', 'visit', 'attractions']):
             return [
-                "Tell me about Nyungwe Forest National Park",
-                "What can I do at Lake Kivu?",
-                "How many days should I spend in Rwanda?"
+                "Tell me about the Casbah of Algiers",
+                "What can I do in Constantine?",
+                "How many days should I spend in Algeria?"
             ]
         elif any(word in message_lower for word in ['culture', 'people', 'tradition']):
             return [
-                "What is traditional Rwandan food like?",
-                "Tell me about Rwandan music and dance",
-                "What languages are spoken in Rwanda?"
+                "What is traditional Algerian food like?",
+                "Tell me about Algerian music and dance",
+                "What languages are spoken in Algeria?"
             ]
         else:
             return [
-                "What's the best time to visit Rwanda?",
-                "How do I get around Rwanda?",
+                "What's the best time to visit Algeria?",
+                "How do I get around Algeria?",
                 "What are the must-see attractions?"
             ]
     

@@ -6,15 +6,12 @@ import React from 'react';
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
   DialogTitle,
-} from './ui/dialog';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
-import { Card, CardContent } from './ui/card';
+} from '@mui/material';
+import { Button, Chip, Card, CardContent, DialogActions, Typography, Box } from '@mui/material';
+import { CalendarToday as Calendar } from '@mui/icons-material';
 import {
   MapPin,
-  Calendar,
   Users,
   DollarSign,
   Clock,

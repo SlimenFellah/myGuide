@@ -3,17 +3,13 @@
  * Available for freelance projects
  */
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { useAppContext } from '../contexts/AppContext';
+import { useCurrentUser } from '../store/hooks';
+import { useAppDispatch } from '../store/hooks';
+import { useSavedPlans, useFavorites } from '../store/hooks';
+import { addNotification } from '../store/slices/appSlice';
 import { apiService } from '../services';
-import { Button } from '../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Input } from '../components/ui/input';
-import { Textarea } from '../components/ui/textarea';
-import { Label } from '../components/ui/label';
-import { Switch } from '../components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { Button, Card, CardContent, Typography, Box, TextField, Switch, Select, MenuItem, FormControl, InputLabel, Tabs, Tab, FormControlLabel, Grid, Container, CircularProgress } from '@mui/material';
+import { CalendarToday as Calendar } from '@mui/icons-material';
 import { 
   User, 
   Edit3, 
@@ -21,7 +17,6 @@ import {
   X, 
   Camera, 
   MapPin, 
-  Calendar, 
   Star, 
   Heart, 
   Lock, 
@@ -35,9 +30,10 @@ import {
 } from 'lucide-react';
 
 const ProfilePage = () => {
-  const { user, updateProfile } = useAuth();
-  const { state, dispatch } = useAppContext();
-  const { savedPlans, favorites } = state;
+  const user = useCurrentUser();
+  const dispatch = useAppDispatch();
+  const savedPlans = useSavedPlans();
+  const favorites = useFavorites();
   const [activeTab, setActiveTab] = useState('profile');
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -150,13 +146,19 @@ const ProfilePage = () => {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      await updateProfile(profileData);
+      await apiService.auth.updateProfile(profileData);
       setIsEditing(false);
       
-      // Show success message (you can implement toast notifications)
-      alert('Profile updated successfully!');
+      // Show success message
+      dispatch(addNotification({
+        type: 'success',
+        message: 'Profile updated successfully!'
+      }));
     } catch (error) {
-      alert('Failed to update profile. Please try again.');
+      dispatch(addNotification({
+        type: 'error',
+        message: 'Failed to update profile. Please try again.'
+      }));
     } finally {
       setLoading(false);
     }
@@ -166,12 +168,18 @@ const ProfilePage = () => {
     e.preventDefault();
     
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      alert('New passwords do not match!');
+      dispatch(addNotification({
+        type: 'error',
+        message: 'New passwords do not match!'
+      }));
       return;
     }
 
     if (passwordData.newPassword.length < 6) {
-      alert('Password must be at least 6 characters long!');
+      dispatch(addNotification({
+        type: 'error',
+        message: 'Password must be at least 6 characters long!'
+      }));
       return;
     }
 
@@ -188,9 +196,15 @@ const ProfilePage = () => {
         confirmPassword: ''
       });
       
-      alert('Password changed successfully!');
+      dispatch(addNotification({
+        type: 'success',
+        message: 'Password changed successfully!'
+      }));
     } catch (error) {
-      alert('Failed to change password. Please try again.');
+      dispatch(addNotification({
+        type: 'error',
+        message: 'Failed to change password. Please try again.'
+      }));
     } finally {
       setLoading(false);
     }
@@ -203,9 +217,15 @@ const ProfilePage = () => {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      alert('Preferences updated successfully!');
+      dispatch(addNotification({
+        type: 'success',
+        message: 'Preferences updated successfully!'
+      }));
     } catch (error) {
-      alert('Failed to update preferences. Please try again.');
+      dispatch(addNotification({
+        type: 'error',
+        message: 'Failed to update preferences. Please try again.'
+      }));
     } finally {
       setLoading(false);
     }
@@ -344,134 +364,199 @@ const ProfilePage = () => {
         {/* Profile Form */}
         {isEditing && (
           <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+              <Typography variant="h6" sx={{
+                fontWeight: 600,
+                background: 'linear-gradient(45deg, #1976d2, #9c27b0)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent'
+              }}>
                 Edit Profile Information
-              </CardTitle>
-            </CardHeader>
+              </Typography>
+            </Box>
             <CardContent>
-              <form onSubmit={handleProfileUpdate} className="space-y-4">
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="firstName" className="text-sm font-medium">
-                  First Name
-                </Label>
-                <Input
+              <form onSubmit={handleProfileUpdate}>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <TextField
                   id="firstName"
+                  label="First Name"
                   type="text"
                   value={profileData.firstName}
                   onChange={(e) => setProfileData({ ...profileData, firstName: e.target.value })}
-                  className="transition-all duration-300 focus:scale-[1.02]"
+                  fullWidth
                   required
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      transition: 'all 0.3s',
+                      '&:focus-within': {
+                        transform: 'scale(1.02)'
+                      }
+                    }
+                  }}
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastName" className="text-sm font-medium">
-                  Last Name
-                </Label>
-                <Input
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
                   id="lastName"
+                  label="Last Name"
                   type="text"
                   value={profileData.lastName}
                   onChange={(e) => setProfileData({ ...profileData, lastName: e.target.value })}
-                  className="transition-all duration-300 focus:scale-[1.02]"
+                  fullWidth
                   required
                 />
-              </div>
-            </div>
+               </Grid>
+            </Grid>
             
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium">
-                  Email
-                </Label>
-                <Input
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <TextField
                   id="email"
+                  label="Email"
                   type="email"
                   value={profileData.email}
                   onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                  className="transition-all duration-300 focus:scale-[1.02]"
+                  fullWidth
                   required
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      transition: 'all 0.3s',
+                      '&:focus-within': {
+                        transform: 'scale(1.02)'
+                      }
+                    }
+                  }}
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone" className="text-sm font-medium">
-                  Phone
-                </Label>
-                <Input
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
                   id="phone"
+                  label="Phone"
                   type="tel"
                   value={profileData.phone}
                   onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
-                  className="transition-all duration-300 focus:scale-[1.02]"
+                  fullWidth
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      transition: 'all 0.3s',
+                      '&:focus-within': {
+                        transform: 'scale(1.02)'
+                      }
+                    }
+                  }}
                 />
-              </div>
-            </div>
+              </Grid>
+            </Grid>
             
-                <div className="space-y-2">
-                  <Label htmlFor="bio" className="text-sm font-medium">
-                    Bio
-                  </Label>
-                  <Textarea
+                <Grid item xs={12}>
+                  <TextField
                     id="bio"
+                    label="Bio"
                     value={profileData.bio}
                     onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
-                    className="resize-none transition-all duration-300 focus:scale-[1.02]"
+                    multiline
                     rows={3}
                     placeholder="Tell us about yourself..."
+                    fullWidth
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        transition: 'all 0.3s',
+                        '&:focus-within': {
+                          transform: 'scale(1.02)'
+                        }
+                      }
+                    }}
                   />
-                </div>
+                </Grid>
                 
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="location" className="text-sm font-medium">
-                      Location
-                    </Label>
-                    <Input
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={6}>
+                    <TextField
                       id="location"
+                      label="Location"
                       type="text"
                       value={profileData.location}
                       onChange={(e) => setProfileData({ ...profileData, location: e.target.value })}
-                      className="transition-all duration-300 focus:scale-[1.02]"
                       placeholder="City, Country"
+                      fullWidth
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          transition: 'all 0.3s',
+                          '&:focus-within': {
+                            transform: 'scale(1.02)'
+                          }
+                        }
+                      }}
                     />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="dateOfBirth" className="text-sm font-medium">
-                      Date of Birth
-                    </Label>
-                    <Input
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
                       id="dateOfBirth"
+                      label="Date of Birth"
                       type="date"
                       value={profileData.dateOfBirth}
                       onChange={(e) => setProfileData({ ...profileData, dateOfBirth: e.target.value })}
-                      className="transition-all duration-300 focus:scale-[1.02]"
+                      fullWidth
+                      InputLabelProps={{ shrink: true }}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          transition: 'all 0.3s',
+                          '&:focus-within': {
+                            transform: 'scale(1.02)'
+                          }
+                        }
+                      }}
                     />
-                  </div>
-                </div>
+                  </Grid>
+                </Grid>
                 
-                <div className="flex justify-end space-x-3">
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 3 }}>
                   <Button 
                     type="button"
-                    variant="outline"
+                    variant="outlined"
                     onClick={() => setIsEditing(false)}
-                    className="hover:scale-105 hover:bg-muted/50 transition-all duration-300"
+                    sx={{
+                      '&:hover': {
+                        transform: 'scale(1.05)',
+                        backgroundColor: 'rgba(0, 0, 0, 0.04)'
+                      },
+                      transition: 'all 0.3s'
+                    }}
                   >
                     Cancel
                   </Button>
                   <Button 
                     type="submit" 
                     disabled={loading}
-                    className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white flex items-center space-x-2 hover:scale-105 hover:shadow-xl transition-all duration-300 disabled:hover:scale-100 disabled:hover:shadow-none"
+                    variant="contained"
+                    sx={{
+                      background: 'linear-gradient(45deg, #2196f3, #9c27b0)',
+                      '&:hover': {
+                        background: 'linear-gradient(45deg, #1976d2, #7b1fa2)',
+                        transform: 'scale(1.05)',
+                        boxShadow: '0 8px 25px rgba(0,0,0,0.3)'
+                      },
+                      '&:disabled': {
+                        '&:hover': {
+                          transform: 'none',
+                          boxShadow: 'none'
+                        }
+                      },
+                      transition: 'all 0.3s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1
+                    }}
                   >
                     {loading ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <CircularProgress size={16} sx={{ color: 'white' }} />
                     ) : (
                       <Save size={16} />
                     )}
                     <span>{loading ? 'Saving...' : 'Save Changes'}</span>
                    </Button>
-                 </div>
+                 </Box>
                </form>
              </CardContent>
            </Card>
@@ -778,34 +863,60 @@ const ProfilePage = () => {
         </div>
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-8 bg-white/80 backdrop-blur-sm">
+        <Box sx={{ width: '100%', mb: 4 }}>
+          <Tabs 
+            value={activeTab} 
+            onChange={(event, newValue) => setActiveTab(newValue)}
+            sx={{ 
+              mb: 3,
+              '& .MuiTabs-indicator': {
+                background: 'linear-gradient(45deg, #2196F3 30%, #9C27B0 90%)'
+              }
+            }}
+          >
             {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
-                <TabsTrigger 
+                <Tab 
                   key={tab.id} 
                   value={tab.id}
-                  className="flex items-center space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white"
-                >
-                  <Icon size={16} />
-                  <span>{tab.name}</span>
-                </TabsTrigger>
+                  label={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Icon size={16} />
+                      <span>{tab.name}</span>
+                    </Box>
+                  }
+                  sx={{
+                    textTransform: 'none',
+                    minWidth: 120,
+                    '&.Mui-selected': {
+                      background: 'linear-gradient(45deg, #2196F3 30%, #9C27B0 90%)',
+                      color: 'white',
+                      borderRadius: 1
+                    }
+                  }}
+                />
               );
             })}
-          </TabsList>
+          </Tabs>
 
           {/* Tab Content */}
-          <TabsContent value="profile">
-            {renderProfile()}
-          </TabsContent>
-          <TabsContent value="security">
-            {renderSecurity()}
-          </TabsContent>
-          <TabsContent value="preferences">
-            {renderPreferences()}
-          </TabsContent>
-        </Tabs>
+          {activeTab === 'profile' && (
+            <Box>
+              {renderProfile()}
+            </Box>
+          )}
+          {activeTab === 'security' && (
+            <Box>
+              {renderSecurity()}
+            </Box>
+          )}
+          {activeTab === 'preferences' && (
+            <Box>
+              {renderPreferences()}
+            </Box>
+          )}
+        </Box>
         </div>
       </div>
     </div>

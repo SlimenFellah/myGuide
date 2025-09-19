@@ -4,8 +4,7 @@
  */
 import React from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
-import { Button } from './ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Button, Card, CardContent, CardHeader, Typography, Box } from '@mui/material';
 import { useLocation } from 'react-router-dom';
 
 class ErrorBoundary extends React.Component {
@@ -45,16 +44,16 @@ class ErrorBoundary extends React.Component {
       return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
           <Card className="w-full max-w-md">
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-4 p-3 bg-red-100 rounded-full w-fit">
-                <AlertTriangle className="h-8 w-8 text-red-600" />
-              </div>
-              <CardTitle className="text-xl font-semibold text-gray-900">
+            <CardHeader sx={{ textAlign: 'center' }}>
+              <Box sx={{ mx: 'auto', mb: 2, p: 1.5, bgcolor: 'error.light', borderRadius: '50%', width: 'fit-content' }}>
+                <AlertTriangle size={32} color="#d32f2f" />
+              </Box>
+              <Typography variant="h5" component="h2" sx={{ fontWeight: 600, color: 'text.primary', mb: 1 }}>
                 Something went wrong
-              </CardTitle>
-              <CardDescription className="text-gray-600">
-                We encountered an unexpected error. Please try refreshing the page.
-              </CardDescription>
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                 We encountered an unexpected error. Please try refreshing the page.
+               </Typography>
             </CardHeader>
             <CardContent className="space-y-4">
               <Button 

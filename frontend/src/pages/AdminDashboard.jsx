@@ -22,16 +22,38 @@ import {
   TrendingDown,
   AlertTriangle,
   BarChart3,
-  Calendar,
   Star,
   Flag
 } from 'lucide-react';
-import { Button } from '../components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Input } from '../components/ui/input';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
-import { Badge } from '../components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { 
+  Button, 
+  Card, 
+  CardContent, 
+  CardHeader, 
+  Typography, 
+  Box, 
+  TextField, 
+  Tabs, 
+  Tab, 
+  Chip, 
+  Select, 
+  MenuItem, 
+  FormControl, 
+  InputLabel, 
+  Grid, 
+  Container,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  InputAdornment,
+  IconButton,
+  Badge
+} from '@mui/material';
+import { CalendarToday as Calendar } from '@mui/icons-material';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -46,146 +68,140 @@ const AdminDashboard = () => {
   const [feedbacks, setFeedbacks] = useState([]);
   const [provinces, setProvinces] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
 
   useEffect(() => {
-    // Simulate API calls to fetch admin data
-    setTimeout(() => {
+    fetchAdminData();
+  }, []);
+
+  const fetchAdminData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const token = localStorage.getItem('access_token');
+      
+      if (!token) {
+        throw new Error('No authentication token found. Please login again.');
+      }
+      
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      };
+
+      // Fetch statistics
+      const [usersRes, placesStatsRes, provincesStatsRes] = await Promise.all([
+        fetch('http://127.0.0.1:8000/api/auth/admin/users/', { headers }),
+        fetch('http://127.0.0.1:8000/api/tourism/admin/stats/places/', { headers }),
+        fetch('http://127.0.0.1:8000/api/tourism/admin/stats/provinces/', { headers })
+      ]);
+
+      const usersData = await usersRes.json();
+      const placesStats = await placesStatsRes.json();
+      const provincesStats = await provincesStatsRes.json();
+
+      // Handle paginated response - extract results array
+      const users = usersData.results || usersData || [];
+      
+      // Calculate statistics from real data
       setStats({
-        totalUsers: 1247,
-        totalPlaces: 156,
-        pendingFeedbacks: 23,
-        monthlyVisits: 8934
+        totalUsers: usersData.count || users.length || 0,
+        totalPlaces: placesStats.total_places || 0,
+        pendingFeedbacks: placesStats.total_feedbacks || 0,
+        monthlyVisits: Math.floor(Math.random() * 10000) + 5000 // Simulated for now
       });
 
-      setUsers([
-        {
-          id: 1,
-          firstName: 'Ahmed',
-          lastName: 'Benali',
-          email: 'ahmed.benali@email.com',
-          role: 'user',
-          status: 'active',
-          joinDate: '2024-01-15',
-          lastLogin: '2024-01-20'
-        },
-        {
-          id: 2,
-          firstName: 'Fatima',
-          lastName: 'Khelifi',
-          email: 'fatima.khelifi@email.com',
-          role: 'user',
-          status: 'active',
-          joinDate: '2024-01-10',
-          lastLogin: '2024-01-19'
-        },
-        {
-          id: 3,
-          firstName: 'Youcef',
-          lastName: 'Mammeri',
-          email: 'youcef.mammeri@email.com',
-          role: 'user',
-          status: 'inactive',
-          joinDate: '2024-01-05',
-          lastLogin: '2024-01-12'
-        }
-      ]);
+      // Set real users data
+      const formattedUsers = users.map(user => ({
+        id: user.id,
+        firstName: user.first_name || 'Unknown',
+        lastName: user.last_name || 'User',
+        email: user.email,
+        role: user.is_staff ? 'admin' : 'user',
+        status: user.is_active ? 'active' : 'inactive',
+        joinDate: user.date_joined ? user.date_joined.split('T')[0] : '2024-01-01',
+        lastLogin: user.last_login ? user.last_login.split('T')[0] : '2024-01-01'
+      }));
+      setUsers(formattedUsers);
 
-      setPlaces([
-        {
-          id: 1,
-          name: 'Casbah of Algiers',
-          province: 'Algiers',
-          district: 'Algiers Center',
-          municipality: 'Casbah',
-          category: 'Historic Site',
-          status: 'approved',
-          rating: 4.8,
-          reviews: 234,
-          averageCost: 15,
-          addedBy: 'admin',
-          addedDate: '2024-01-01'
-        },
-        {
-          id: 2,
-          name: 'New Restaurant Proposal',
-          province: 'Oran',
-          district: 'Oran Center',
-          municipality: 'Oran',
-          category: 'Restaurant',
-          status: 'pending',
-          rating: 0,
-          reviews: 0,
-          averageCost: 30,
-          addedBy: 'user',
-          addedDate: '2024-01-18'
-        },
-        {
-          id: 3,
-          name: 'Timgad Archaeological Site',
-          province: 'Batna',
-          district: 'Batna',
-          municipality: 'Timgad',
-          category: 'Historic Site',
-          status: 'approved',
-          rating: 4.7,
-          reviews: 189,
-          averageCost: 12,
-          addedBy: 'admin',
-          addedDate: '2024-01-01'
-        }
-      ]);
+      // Fetch real places data
+      const placesRes = await fetch('http://127.0.0.1:8000/api/tourism/places/', { headers });
+      const placesData = await placesRes.json();
+      
+      const formattedPlaces = placesData.results ? placesData.results.map(place => ({
+        id: place.id,
+        name: place.name,
+        province: place.municipality?.district?.province?.name || 'Unknown',
+        district: place.municipality?.district?.name || 'Unknown',
+        municipality: place.municipality?.name || 'Unknown',
+        category: place.category?.name || 'Unknown',
+        status: place.is_approved ? 'approved' : 'pending',
+        rating: place.average_rating || 0,
+        reviews: place.feedback_count || 0,
+        averageCost: place.average_cost || 0,
+        addedBy: place.created_by?.is_staff ? 'admin' : 'user',
+        addedDate: place.created_at ? place.created_at.split('T')[0] : '2024-01-01'
+      })) : [];
+      setPlaces(formattedPlaces);
 
-      setFeedbacks([
-        {
-          id: 1,
-          placeId: 1,
-          placeName: 'Casbah of Algiers',
-          userId: 1,
-          userName: 'Ahmed Benali',
-          rating: 5,
-          comment: 'Amazing historical site! The architecture is breathtaking and the guided tour was very informative.',
-          status: 'pending',
-          date: '2024-01-19',
-          type: 'review'
-        },
-        {
-          id: 2,
-          placeId: 1,
-          placeName: 'Casbah of Algiers',
-          userId: 2,
-          userName: 'Fatima Khelifi',
-          rating: 1,
-          comment: 'Very disappointed. The place was dirty and poorly maintained. Not worth the entrance fee.',
-          status: 'flagged',
-          date: '2024-01-18',
-          type: 'complaint'
-        },
-        {
-          id: 3,
-          placeId: 3,
-          placeName: 'Timgad Archaeological Site',
-          userId: 3,
-          userName: 'Youcef Mammeri',
-          rating: 4,
-          comment: 'Great place to learn about Roman history in Algeria. Could use better signage in Arabic.',
-          status: 'approved',
-          date: '2024-01-17',
-          type: 'review'
-        }
-      ]);
+      // Fetch real feedbacks data from all places
+      let allFeedbacks = [];
+      if (formattedPlaces.length > 0) {
+        const feedbackPromises = formattedPlaces.slice(0, 5).map(async (place) => {
+          try {
+            const feedbackRes = await fetch(`http://127.0.0.1:8000/api/tourism/places/${place.id}/feedbacks/`, { headers });
+            const feedbackData = await feedbackRes.json();
+            return feedbackData.results ? feedbackData.results.map(feedback => ({
+              id: feedback.id,
+              placeId: place.id,
+              placeName: place.name,
+              userId: feedback.user?.id || 0,
+              userName: feedback.user ? `${feedback.user.first_name || ''} ${feedback.user.last_name || ''}`.trim() || feedback.user.username : 'Anonymous',
+              rating: feedback.rating,
+              comment: feedback.comment,
+              status: feedback.is_approved ? 'approved' : (feedback.is_flagged ? 'flagged' : 'pending'),
+              date: feedback.created_at ? feedback.created_at.split('T')[0] : '2024-01-01',
+              type: feedback.rating <= 2 ? 'complaint' : 'review'
+            })) : [];
+          } catch (error) {
+            console.error(`Error fetching feedbacks for place ${place.id}:`, error);
+            return [];
+          }
+        });
+        
+        const feedbackArrays = await Promise.all(feedbackPromises);
+        allFeedbacks = feedbackArrays.flat();
+      }
+      setFeedbacks(allFeedbacks);
 
-      setProvinces([
-        { id: 1, name: 'Algiers', districts: 13, municipalities: 57, places: 45 },
-        { id: 2, name: 'Oran', districts: 9, municipalities: 26, places: 32 },
-        { id: 3, name: 'Constantine', districts: 6, municipalities: 12, places: 28 },
-        { id: 4, name: 'Annaba', districts: 4, municipalities: 12, places: 22 }
-      ]);
+      // Set provinces data from the stats we already fetched
+      if (provincesStats.provinces) {
+        setProvinces(provincesStats.provinces.map(province => ({
+          id: province.id || Math.random(),
+          name: province.name || 'Unknown',
+          districts: province.districts_count || 0,
+          municipalities: province.municipalities_count || 0,
+          places: province.places_count || 0
+        })));
+      } else {
+        setProvinces([]);
+      }
 
       setLoading(false);
-    }, 1000);
-  }, []);
+    } catch (error) {
+      console.error('Error fetching admin data:', error);
+      setError(error.message || 'Failed to load admin data. Please try again.');
+      setLoading(false);
+      // Set empty data on error
+      setStats({ totalUsers: 0, totalPlaces: 0, pendingFeedbacks: 0, monthlyVisits: 0 });
+      setUsers([]);
+      setPlaces([]);
+      setFeedbacks([]);
+      setProvinces([]);
+    }
+  };
 
   const handleApprovePlace = (placeId) => {
     setPlaces(places.map(place => 
@@ -212,458 +228,758 @@ const AdminDashboard = () => {
   };
 
   const StatCard = ({ title, value, icon: Icon, color, change }) => (
-    <Card className="hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer">
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-muted-foreground mb-1">{title}</p>
-            <p className="text-3xl font-bold">{value.toLocaleString()}</p>
+    <Card sx={{
+      cursor: 'pointer',
+      transition: 'all 0.3s ease',
+      '&:hover': {
+        boxShadow: 6,
+        transform: 'scale(1.05)'
+      }
+    }}>
+      <CardContent sx={{ p: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Box>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, fontWeight: 500 }}>
+              {title}
+            </Typography>
+            <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+              {value.toLocaleString()}
+            </Typography>
             {change && (
-              <p className={`text-sm mt-1 flex items-center ${
-                change > 0 ? 'text-green-600' : 'text-red-600'
-              }`}>
-                <TrendingUp size={14} className="mr-1" />
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  mt: 0.5, 
+                  display: 'flex', 
+                  alignItems: 'center',
+                  color: change > 0 ? 'success.main' : 'error.main'
+                }}
+              >
+                <TrendingUp size={14} style={{ marginRight: 4 }} />
                 {change > 0 ? '+' : ''}{change}% from last month
-              </p>
+              </Typography>
             )}
-          </div>
-          <div className={`p-3 rounded-xl ${color} shadow-lg`}>
-            <Icon className="text-white" size={24} />
-          </div>
-        </div>
+          </Box>
+          <Box sx={{
+            p: 1.5,
+            borderRadius: 3,
+            background: color,
+            boxShadow: 2
+          }}>
+            <Icon style={{ color: 'white' }} size={24} />
+          </Box>
+        </Box>
       </CardContent>
     </Card>
   );
 
   const renderOverview = () => (
-    <div className="space-y-6">
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard 
-          title="Total Users" 
-          value={stats.totalUsers} 
-          icon={Users} 
-          color="bg-blue-500"
-          change={12}
-        />
-        <StatCard 
-          title="Total Places" 
-          value={stats.totalPlaces} 
-          icon={MapPin} 
-          color="bg-green-500"
-          change={8}
-        />
-        <StatCard 
-          title="Pending Feedbacks" 
-          value={stats.pendingFeedbacks} 
-          icon={MessageSquare} 
-          color="bg-yellow-500"
-          change={-5}
-        />
-        <StatCard 
-          title="Monthly Visits" 
-          value={stats.monthlyVisits} 
-          icon={TrendingUp} 
-          color="bg-purple-500"
-          change={23}
-        />
-      </div>
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={6} lg={3}>
+          <StatCard 
+            title="Total Users" 
+            value={stats.totalUsers} 
+            icon={Users} 
+            color="linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)"
+            change={12}
+          />
+        </Grid>
+        <Grid item xs={12} md={6} lg={3}>
+          <StatCard 
+            title="Total Places" 
+            value={stats.totalPlaces} 
+            icon={MapPin} 
+            color="linear-gradient(135deg, #10b981 0%, #059669 100%)"
+            change={8}
+          />
+        </Grid>
+        <Grid item xs={12} md={6} lg={3}>
+          <StatCard 
+            title="Pending Feedbacks" 
+            value={stats.pendingFeedbacks} 
+            icon={MessageSquare} 
+            color="linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"
+            change={-5}
+          />
+        </Grid>
+        <Grid item xs={12} md={6} lg={3}>
+          <StatCard 
+            title="Monthly Visits" 
+            value={stats.monthlyVisits} 
+            icon={TrendingUp} 
+            color="linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)"
+            change={23}
+          />
+        </Grid>
+      </Grid>
 
       {/* Recent Activity */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        <Card className="hover:shadow-lg transition-shadow duration-300">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Recent Places</CardTitle>
-              <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80 hover:bg-primary/10">
-                View all
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {places.slice(0, 5).map((place) => (
-                <div key={place.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors duration-200">
-                  <div>
-                    <h4 className="font-medium">{place.name}</h4>
-                    <p className="text-sm text-muted-foreground">{place.municipality}, {place.province}</p>
-                  </div>
-                  <Badge variant={
-                    place.status === 'approved' ? 'default' :
-                    place.status === 'pending' ? 'secondary' :
-                    'destructive'
-                  }>
-                    {place.status}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+      <Grid container spacing={3}>
+        <Grid item xs={12} lg={6}>
+          <Card sx={{
+            transition: 'box-shadow 0.3s ease',
+            '&:hover': { boxShadow: 4 }
+          }}>
+            <CardHeader 
+              title={
+                <Typography variant="h6">Recent Places</Typography>
+              }
+              action={
+                <Button 
+                  variant="text" 
+                  size="small"
+                  sx={{
+                    color: 'primary.main',
+                    '&:hover': {
+                      color: 'primary.dark',
+                      backgroundColor: 'primary.50'
+                    }
+                  }}
+                >
+                  View all
+                </Button>
+              }
+            />
+            <CardContent>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                {places.slice(0, 5).map((place) => (
+                  <Box 
+                    key={place.id} 
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      p: 1.5,
+                      backgroundColor: 'grey.50',
+                      borderRadius: 2,
+                      transition: 'background-color 0.2s ease',
+                      '&:hover': {
+                        backgroundColor: 'grey.100'
+                      }
+                    }}
+                  >
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 500 }}>
+                        {place.name}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {place.municipality}, {place.province}
+                      </Typography>
+                    </Box>
+                    <Chip 
+                      label={place.status}
+                      color={
+                        place.status === 'approved' ? 'success' :
+                        place.status === 'pending' ? 'warning' :
+                        'error'
+                      }
+                      size="small"
+                    />
+                  </Box>
+                ))}
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
 
-        <Card className="hover:shadow-lg transition-shadow duration-300">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Recent Feedbacks</CardTitle>
-              <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80 hover:bg-primary/10">
-                View all
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {feedbacks.slice(0, 5).map((feedback) => (
-                <div key={feedback.id} className="p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors duration-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-medium">{feedback.placeName}</h4>
-                    <div className="flex items-center">
-                      <Star className="text-yellow-400 fill-current" size={14} />
-                      <span className="text-sm text-muted-foreground ml-1">{feedback.rating}</span>
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-2">{feedback.comment.substring(0, 100)}...</p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">by {feedback.userName}</span>
-                    <Badge variant={
-                      feedback.status === 'approved' ? 'default' :
-                      feedback.status === 'pending' ? 'secondary' :
-                      feedback.status === 'flagged' ? 'destructive' :
-                      'outline'
-                    }>
-                      {feedback.status}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+        <Grid item xs={12} lg={6}>
+          <Card sx={{
+            transition: 'box-shadow 0.3s ease',
+            '&:hover': { boxShadow: 4 }
+          }}>
+            <CardHeader 
+              title={
+                <Typography variant="h6">Recent Feedbacks</Typography>
+              }
+              action={
+                <Button 
+                  variant="text" 
+                  size="small"
+                  sx={{
+                    color: 'primary.main',
+                    '&:hover': {
+                      color: 'primary.dark',
+                      backgroundColor: 'primary.50'
+                    }
+                  }}
+                >
+                  View all
+                </Button>
+              }
+            />
+            <CardContent>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                {feedbacks.slice(0, 5).map((feedback) => (
+                  <Box 
+                    key={feedback.id} 
+                    sx={{
+                      p: 1.5,
+                      backgroundColor: 'grey.50',
+                      borderRadius: 2,
+                      transition: 'background-color 0.2s ease',
+                      '&:hover': {
+                        backgroundColor: 'grey.100'
+                      }
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 500 }}>
+                        {feedback.placeName}
+                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Star style={{ color: '#facc15', fill: 'currentColor' }} size={14} />
+                        <Typography variant="body2" color="text.secondary" sx={{ ml: 0.5 }}>
+                          {feedback.rating}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      {feedback.comment.substring(0, 100)}...
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Typography variant="caption" color="text.secondary">
+                        by {feedback.userName}
+                      </Typography>
+                      <Chip 
+                        label={feedback.status}
+                        color={
+                          feedback.status === 'approved' ? 'success' :
+                          feedback.status === 'pending' ? 'warning' :
+                          feedback.status === 'flagged' ? 'error' :
+                          'default'
+                        }
+                        size="small"
+                      />
+                    </Box>
+                  </Box>
+                ))}
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+    </Box>
   );
 
   const renderUsers = () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">User Management</h2>
-        <div className="flex space-x-3">
-          <Button variant="outline" className="hover:scale-105 transition-all duration-300">
-            <Download size={16} className="mr-2" />
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+          User Management
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 1.5 }}>
+          <Button 
+            variant="outlined"
+            startIcon={<Download size={16} />}
+            sx={{
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'scale(1.05)'
+              }
+            }}
+          >
             Export
           </Button>
-          <Button className="hover:scale-105 transition-all duration-300 hover:shadow-lg">
-            <Plus size={16} className="mr-2" />
+          <Button 
+            variant="contained"
+            startIcon={<Plus size={16} />}
+            sx={{
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'scale(1.05)',
+                boxShadow: 4
+              }
+            }}
+          >
             Add User
           </Button>
-        </div>
-      </div>
+        </Box>
+      </Box>
 
       {/* Search and Filters */}
-      <div className="flex flex-col md:flex-row gap-4">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={20} />
-          <Input
-            type="text"
-            placeholder="Search users..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 hover:border-primary/50 transition-colors duration-200"
-          />
-        </div>
-        <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-          <SelectTrigger className="w-48 hover:border-primary/50 transition-colors duration-200">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <Box sx={{ 
+        display: 'flex', 
+        flexDirection: { xs: 'column', md: 'row' }, 
+        gap: 2 
+      }}>
+        <TextField
+          fullWidth
+          placeholder="Search users..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <Search size={20} color="#6b7280" />
+              </InputAdornment>
+            ),
+          }}
+          sx={{
+            '& .MuiOutlinedInput-root': {
+              transition: 'border-color 0.2s ease',
+              '&:hover .MuiOutlinedInput-notchedOutline': {
+                borderColor: 'primary.main'
+              }
+            }
+          }}
+        />
+        <FormControl sx={{ minWidth: 200 }}>
+          <InputLabel>Filter by status</InputLabel>
+          <Select
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(e.target.value)}
+            label="Filter by status"
+            sx={{
+              '&:hover .MuiOutlinedInput-notchedOutline': {
+                borderColor: 'primary.main'
+              }
+            }}
+          >
+            <MenuItem value="all">All Status</MenuItem>
+            <MenuItem value="active">Active</MenuItem>
+            <MenuItem value="inactive">Inactive</MenuItem>
+          </Select>
+        </FormControl>
+      </Box>
 
       {/* Users Table */}
-      <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  User
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Role
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Join Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Last Login
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {users.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        {user.firstName} {user.lastName}
-                      </div>
-                      <div className="text-sm text-gray-500">{user.email}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <Badge variant={user.role === 'admin' ? 'secondary' : 'outline'}>
-                      {user.role}
-                    </Badge>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <Badge variant={user.status === 'active' ? 'default' : 'destructive'}>
-                      {user.status}
-                    </Badge>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+      <TableContainer 
+        component={Paper} 
+        sx={{
+          transition: 'box-shadow 0.3s ease',
+          '&:hover': { boxShadow: 4 }
+        }}
+      >
+        <Table>
+          <TableHead sx={{ backgroundColor: 'grey.50' }}>
+            <TableRow>
+              <TableCell sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.75rem', color: 'text.secondary' }}>
+                User
+              </TableCell>
+              <TableCell sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.75rem', color: 'text.secondary' }}>
+                Role
+              </TableCell>
+              <TableCell sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.75rem', color: 'text.secondary' }}>
+                Status
+              </TableCell>
+              <TableCell sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.75rem', color: 'text.secondary' }}>
+                Join Date
+              </TableCell>
+              <TableCell sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.75rem', color: 'text.secondary' }}>
+                Last Login
+              </TableCell>
+              <TableCell sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.75rem', color: 'text.secondary' }}>
+                Actions
+              </TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {users.map((user) => (
+              <TableRow 
+                key={user.id} 
+                sx={{
+                  '&:hover': { backgroundColor: 'grey.50' },
+                  '&:last-child td, &:last-child th': { border: 0 }
+                }}
+              >
+                <TableCell>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary' }}>
+                      {user.firstName} {user.lastName}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {user.email}
+                    </Typography>
+                  </Box>
+                </TableCell>
+                <TableCell>
+                  <Chip 
+                    label={user.role}
+                    color={user.role === 'admin' ? 'secondary' : 'default'}
+                    variant={user.role === 'admin' ? 'filled' : 'outlined'}
+                    size="small"
+                  />
+                </TableCell>
+                <TableCell>
+                  <Chip 
+                    label={user.status}
+                    color={user.status === 'active' ? 'success' : 'error'}
+                    size="small"
+                  />
+                </TableCell>
+                <TableCell>
+                  <Typography variant="body2" color="text.secondary">
                     {new Date(user.joinDate).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="body2" color="text.secondary">
                     {new Date(user.lastLogin).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary">
-                        <Eye size={16} />
-                      </Button>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-muted hover:text-foreground">
-                        <Edit size={16} />
-                      </Button>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive">
-                        <Trash2 size={16} />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-    </div>
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Box sx={{ display: 'flex', gap: 0.5 }}>
+                    <IconButton 
+                      size="small"
+                      sx={{
+                        '&:hover': {
+                          backgroundColor: 'primary.50',
+                          color: 'primary.main'
+                        }
+                      }}
+                    >
+                      <Eye size={16} />
+                    </IconButton>
+                    <IconButton 
+                      size="small"
+                      sx={{
+                        '&:hover': {
+                          backgroundColor: 'grey.100'
+                        }
+                      }}
+                    >
+                      <Edit size={16} />
+                    </IconButton>
+                    <IconButton 
+                      size="small"
+                      sx={{
+                        '&:hover': {
+                          backgroundColor: 'error.50',
+                          color: 'error.main'
+                        }
+                      }}
+                    >
+                      <Trash2 size={16} />
+                    </IconButton>
+                  </Box>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Box>
   );
 
   const renderPlaces = () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Places Management</h2>
-        <div className="flex space-x-3">
-          <Button variant="outline" className="hover:scale-105 transition-all duration-300">
-            <Upload size={16} className="mr-2" />
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Typography variant="h4" sx={{ fontWeight: 'bold' }}>Places Management</Typography>
+        <Box sx={{ display: 'flex', gap: 1.5 }}>
+          <Button 
+            variant="outlined" 
+            startIcon={<Upload size={16} />}
+            sx={{
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'scale(1.05)'
+              }
+            }}
+          >
             Import
           </Button>
-          <Button className="hover:scale-105 transition-all duration-300 hover:shadow-lg">
-            <Plus size={16} className="mr-2" />
+          <Button 
+            variant="contained" 
+            startIcon={<Plus size={16} />}
+            sx={{
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'scale(1.05)',
+                boxShadow: 4
+              }
+            }}
+          >
             Add Place
           </Button>
-        </div>
-      </div>
+        </Box>
+      </Box>
 
       {/* Places Table */}
-      <div className="card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Place
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Location
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Category
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Rating
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {places.map((place) => (
-                <tr key={place.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium">{place.name}</div>
-                    <div className="text-sm text-muted-foreground">Added by {place.addedBy}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm">{place.municipality}</div>
-                    <div className="text-sm text-muted-foreground">{place.province}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <Badge variant="secondary">
-                      {place.category}
-                    </Badge>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <Badge variant={
-                      place.status === 'approved' ? 'default' :
-                      place.status === 'pending' ? 'secondary' :
-                      'destructive'
-                    }>
-                      {place.status}
-                    </Badge>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <Star className="text-yellow-400 fill-current" size={14} />
-                      <span className="text-sm text-muted-foreground ml-1">
-                        {place.rating} ({place.reviews})
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
-                      {place.status === 'pending' && (
-                        <>
-                          <Button 
-                            onClick={() => handleApprovePlace(place.id)}
-                            variant="ghost"
-                            size="sm"
-                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                            title="Approve"
-                          >
-                            <CheckCircle size={16} />
-                          </Button>
-                          <Button 
-                            onClick={() => handleRejectPlace(place.id)}
-                            variant="ghost"
-                            size="sm"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            title="Reject"
-                          >
-                            <XCircle size={16} />
-                          </Button>
-                        </>
-                      )}
-                      <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
-                        <Eye size={16} />
-                      </Button>
-                      <Button variant="ghost" size="sm" className="hover:bg-muted">
-                        <Edit size={16} />
-                      </Button>
-                      <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50">
-                        <Trash2 size={16} />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead sx={{ backgroundColor: 'grey.50' }}>
+            <TableRow>
+              <TableCell sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.75rem', color: 'text.secondary' }}>
+                Place
+              </TableCell>
+              <TableCell sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.75rem', color: 'text.secondary' }}>
+                Location
+              </TableCell>
+              <TableCell sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.75rem', color: 'text.secondary' }}>
+                Category
+              </TableCell>
+              <TableCell sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.75rem', color: 'text.secondary' }}>
+                Status
+              </TableCell>
+              <TableCell sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.75rem', color: 'text.secondary' }}>
+                Rating
+              </TableCell>
+              <TableCell sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.75rem', color: 'text.secondary' }}>
+                Actions
+              </TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {places.map((place) => (
+              <TableRow 
+                key={place.id} 
+                sx={{
+                  '&:hover': { backgroundColor: 'grey.50' },
+                  '&:last-child td, &:last-child th': { border: 0 }
+                }}
+              >
+                <TableCell>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>{place.name}</Typography>
+                    <Typography variant="body2" color="text.secondary">Added by {place.addedBy}</Typography>
+                  </Box>
+                </TableCell>
+                <TableCell>
+                  <Box>
+                    <Typography variant="body2">{place.municipality}</Typography>
+                    <Typography variant="body2" color="text.secondary">{place.province}</Typography>
+                  </Box>
+                </TableCell>
+                <TableCell>
+                  <Chip 
+                    label={place.category}
+                    color="secondary"
+                    size="small"
+                  />
+                </TableCell>
+                <TableCell>
+                  <Chip 
+                    label={place.status}
+                    color={
+                      place.status === 'approved' ? 'success' :
+                      place.status === 'pending' ? 'warning' :
+                      'error'
+                    }
+                    size="small"
+                  />
+                </TableCell>
+                <TableCell>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Star sx={{ color: 'warning.main', fontSize: 14 }} />
+                    <Typography variant="body2" color="text.secondary" sx={{ ml: 0.5 }}>
+                      {place.rating} ({place.reviews})
+                    </Typography>
+                  </Box>
+                </TableCell>
+                <TableCell>
+                  <Box sx={{ display: 'flex', gap: 0.5 }}>
+                    {place.status === 'pending' && (
+                      <>
+                        <IconButton 
+                          onClick={() => handleApprovePlace(place.id)}
+                          size="small"
+                          title="Approve"
+                          sx={{
+                            color: 'success.main',
+                            '&:hover': {
+                              backgroundColor: 'success.50',
+                              color: 'success.dark'
+                            }
+                          }}
+                        >
+                          <CheckCircle size={16} />
+                        </IconButton>
+                        <IconButton 
+                          onClick={() => handleRejectPlace(place.id)}
+                          size="small"
+                          title="Reject"
+                          sx={{
+                            color: 'error.main',
+                            '&:hover': {
+                              backgroundColor: 'error.50',
+                              color: 'error.dark'
+                            }
+                          }}
+                        >
+                          <XCircle size={16} />
+                        </IconButton>
+                      </>
+                    )}
+                    <IconButton 
+                      size="small"
+                      sx={{
+                        color: 'info.main',
+                        '&:hover': {
+                          backgroundColor: 'info.50',
+                          color: 'info.dark'
+                        }
+                      }}
+                    >
+                      <Eye size={16} />
+                    </IconButton>
+                    <IconButton 
+                      size="small"
+                      sx={{
+                        '&:hover': {
+                          backgroundColor: 'grey.100'
+                        }
+                      }}
+                    >
+                      <Edit size={16} />
+                    </IconButton>
+                    <IconButton 
+                      size="small"
+                      sx={{
+                        color: 'error.main',
+                        '&:hover': {
+                          backgroundColor: 'error.50',
+                          color: 'error.dark'
+                        }
+                      }}
+                    >
+                      <Trash2 size={16} />
+                    </IconButton>
+                  </Box>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Box>
   );
 
   const renderFeedbacks = () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Feedback Management</h2>
-        <div className="flex space-x-3">
-          <Button variant="outline" className="hover:scale-105 transition-all duration-300">
-            <Filter size={16} className="mr-2" />
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Typography variant="h4" sx={{ fontWeight: 'bold' }}>Feedback Management</Typography>
+        <Box sx={{ display: 'flex', gap: 1.5 }}>
+          <Button 
+            variant="outlined" 
+            startIcon={<Filter size={16} />}
+            sx={{
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'scale(1.05)'
+              }
+            }}
+          >
             Filter
           </Button>
-          <Button variant="outline" className="hover:scale-105 transition-all duration-300">
-            <Download size={16} className="mr-2" />
+          <Button 
+            variant="outlined" 
+            startIcon={<Download size={16} />}
+            sx={{
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'scale(1.05)'
+              }
+            }}
+          >
             Export
           </Button>
-        </div>
-      </div>
+        </Box>
+      </Box>
 
       {/* Feedbacks List */}
-      <div className="space-y-4">
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         {feedbacks.map((feedback) => (
-          <Card key={feedback.id} className="hover:shadow-lg transition-all duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-3 mb-2">
-                    <h3 className="text-lg font-semibold">{feedback.placeName}</h3>
-                    <div className="flex items-center">
+          <Card 
+            key={feedback.id} 
+            sx={{
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                boxShadow: 4
+              }
+            }}
+          >
+            <CardContent sx={{ p: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 2 }}>
+                <Box sx={{ flex: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>{feedback.placeName}</Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
                       {[...Array(5)].map((_, i) => (
                         <Star 
                           key={i} 
                           size={16} 
-                          className={i < feedback.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'} 
+                          style={{
+                            color: i < feedback.rating ? '#facc15' : '#d1d5db',
+                            fill: i < feedback.rating ? '#facc15' : '#d1d5db'
+                          }}
                         />
                       ))}
-                    </div>
-                    <Badge variant={feedback.type === 'complaint' ? 'destructive' : 'secondary'}>
-                      {feedback.type}
-                    </Badge>
-                  </div>
-                  <p className="text-muted-foreground mb-3">{feedback.comment}</p>
-                  <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                    <span>by {feedback.userName}</span>
-                    <span>{new Date(feedback.date).toLocaleDateString()}</span>
-                    <Badge variant={
-                      feedback.status === 'approved' ? 'default' :
-                      feedback.status === 'pending' ? 'secondary' :
-                      feedback.status === 'flagged' ? 'destructive' :
-                      'outline'
-                    }>
-                      {feedback.status}
-                    </Badge>
-                  </div>
-                </div>
+                    </Box>
+                    <Chip 
+                      label={feedback.type}
+                      color={feedback.type === 'complaint' ? 'error' : 'secondary'}
+                      size="small"
+                    />
+                  </Box>
+                  <Typography color="text.secondary" sx={{ mb: 1.5 }}>{feedback.comment}</Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, fontSize: '0.875rem' }}>
+                    <Typography variant="body2" color="text.secondary">by {feedback.userName}</Typography>
+                    <Typography variant="body2" color="text.secondary">{new Date(feedback.date).toLocaleDateString()}</Typography>
+                    <Chip 
+                      label={feedback.status}
+                      color={
+                        feedback.status === 'approved' ? 'success' :
+                        feedback.status === 'pending' ? 'warning' :
+                        feedback.status === 'flagged' ? 'error' :
+                        'default'
+                      }
+                      variant={feedback.status === 'approved' ? 'filled' : 'outlined'}
+                      size="small"
+                    />
+                  </Box>
+                </Box>
                 
                 {feedback.status === 'pending' && (
-                  <div className="flex space-x-2 ml-4">
+                  <Box sx={{ display: 'flex', gap: 1, ml: 2 }}>
                     <Button 
                       onClick={() => handleApproveFeedback(feedback.id)}
-                      variant="outline"
-                      size="sm"
-                      className="text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
+                      variant="outlined"
+                      size="small"
+                      startIcon={<CheckCircle size={16} />}
+                      sx={{
+                        color: 'success.main',
+                        borderColor: 'success.light',
+                        '&:hover': {
+                          backgroundColor: 'success.50',
+                          borderColor: 'success.main'
+                        }
+                      }}
                     >
-                      <CheckCircle size={16} className="mr-1" />
                       Approve
                     </Button>
                     <Button 
                       onClick={() => handleRejectFeedback(feedback.id)}
-                      variant="outline"
-                      size="sm"
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                      variant="outlined"
+                      size="small"
+                      startIcon={<XCircle size={16} />}
+                      sx={{
+                        color: 'error.main',
+                        borderColor: 'error.light',
+                        '&:hover': {
+                          backgroundColor: 'error.50',
+                          borderColor: 'error.main'
+                        }
+                      }}
                     >
-                      <XCircle size={16} className="mr-1" />
                       Reject
                     </Button>
-                  </div>
+                  </Box>
                 )}
                 
                 {feedback.status === 'flagged' && (
-                  <div className="flex items-center space-x-2 ml-4">
-                    <AlertTriangle className="text-red-500" size={16} />
-                    <span className="text-sm text-red-600 font-medium">Flagged for Review</span>
-                  </div>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 2 }}>
+                    <AlertTriangle style={{ color: '#ef4444' }} size={16} />
+                    <Typography variant="body2" sx={{ color: 'error.main', fontWeight: 500 }}>Flagged for Review</Typography>
+                  </Box>
                 )}
-              </div>
+              </Box>
             </CardContent>
           </Card>
         ))}
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 
   const tabs = [
@@ -675,75 +991,200 @@ const AdminDashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-        <div className="w-full">
-          <div className="container-content py-8">
-            <div className="flex flex-col items-center justify-center h-64 space-y-4">
-              <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200 border-t-blue-600"></div>
-              <p className="text-muted-foreground animate-pulse">Loading admin dashboard...</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <Box sx={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #eff6ff 0%, #ffffff 50%, #faf5ff 100%)'
+      }}>
+        <Box sx={{ width: '100%' }}>
+          <Container maxWidth="xl" sx={{ py: 4 }}>
+            <Box sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '16rem',
+              gap: 2
+            }}>
+              <Box sx={{
+                width: 48,
+                height: 48,
+                border: '4px solid #dbeafe',
+                borderTop: '4px solid #2563eb',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite',
+                '@keyframes spin': {
+                  '0%': { transform: 'rotate(0deg)' },
+                  '100%': { transform: 'rotate(360deg)' }
+                }
+              }} />
+              <Typography 
+                variant="body1" 
+                color="text.secondary"
+                sx={{
+                  animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                  '@keyframes pulse': {
+                    '0%, 100%': { opacity: 1 },
+                    '50%': { opacity: 0.5 }
+                  }
+                }}
+              >
+                Loading admin dashboard...
+              </Typography>
+            </Box>
+          </Container>
+        </Box>
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #eff6ff 0%, #ffffff 50%, #faf5ff 100%)'
+      }}>
+        <Box sx={{ width: '100%' }}>
+          <Container maxWidth="xl" sx={{ py: 4 }}>
+            <Box sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '16rem',
+              gap: 2
+            }}>
+              <Box sx={{
+                width: 48,
+                height: 48,
+                backgroundColor: '#fee2e2',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <Typography sx={{ color: '#dc2626', fontSize: '24px' }}>⚠</Typography>
+              </Box>
+              <Typography 
+                variant="h6" 
+                color="error"
+                sx={{ textAlign: 'center', mb: 1 }}
+              >
+                Error Loading Dashboard
+              </Typography>
+              <Typography 
+                variant="body1" 
+                color="text.secondary"
+                sx={{ textAlign: 'center', mb: 2 }}
+              >
+                {error}
+              </Typography>
+              <Button 
+                variant="contained" 
+                onClick={fetchAdminData}
+                sx={{
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #9333ea 100%)',
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)'
+                  }
+                }}
+              >
+                Retry
+              </Button>
+            </Box>
+          </Container>
+        </Box>
+      </Box>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <div className="w-full">
-        <div className="container-content py-8">
+    <Box sx={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #eff6ff 0%, #ffffff 50%, #faf5ff 100%)'
+    }}>
+      <Box sx={{ width: '100%' }}>
+        <Container maxWidth="xl" sx={{ py: 4 }}>
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center space-x-3 mb-4">
-            <div className="p-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl">
-              <BarChart3 className="text-white" size={28} />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-1">
+        <Box sx={{ mb: 4 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 2 }}>
+            <Box sx={{
+              p: 1.5,
+              background: 'linear-gradient(135deg, #3b82f6 0%, #9333ea 100%)',
+              borderRadius: 3
+            }}>
+              <BarChart3 style={{ color: 'white' }} size={28} />
+            </Box>
+            <Box>
+              <Typography variant="h3" sx={{
+                fontWeight: 'bold',
+                background: 'linear-gradient(135deg, #2563eb 0%, #9333ea 100%)',
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                color: 'transparent',
+                mb: 0.5
+              }}>
                 Admin Dashboard
-              </h1>
-              <p className="text-muted-foreground">
+              </Typography>
+              <Typography variant="body1" color="text.secondary">
                 Manage users, places, and feedbacks for the myGuide platform
-              </p>
-            </div>
-          </div>
-        </div>
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-8 bg-white/80 backdrop-blur-sm">
+        <Box sx={{ width: '100%' }}>
+          <Tabs 
+            value={activeTab} 
+            onChange={(event, newValue) => setActiveTab(newValue)}
+            sx={{ 
+              mb: 4,
+              '& .MuiTabs-flexContainer': {
+                display: 'grid',
+                gridTemplateColumns: 'repeat(4, 1fr)',
+                backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                backdropFilter: 'blur(8px)',
+                borderRadius: 2
+              }
+            }}
+          >
             {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
-                <TabsTrigger 
+                <Tab 
                   key={tab.id} 
                   value={tab.id}
-                  className="flex items-center space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white hover:bg-muted/50 transition-all duration-300"
-                >
-                  <Icon size={16} />
-                  <span>{tab.name}</span>
-                </TabsTrigger>
+                  label={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Icon size={16} />
+                      <span>{tab.name}</span>
+                    </Box>
+                  }
+                  sx={{
+                    transition: 'all 0.3s ease',
+                    '&.Mui-selected': {
+                      background: 'linear-gradient(135deg, #3b82f6 0%, #9333ea 100%)',
+                      color: 'white',
+                      borderRadius: 1
+                    },
+                    '&:hover': {
+                      backgroundColor: 'rgba(0, 0, 0, 0.04)'
+                    }
+                  }}
+                />
               );
             })}
-          </TabsList>
+          </Tabs>
 
           {/* Tab Content */}
-          <TabsContent value="overview">
-            {renderOverview()}
-          </TabsContent>
-          <TabsContent value="users">
-            {renderUsers()}
-          </TabsContent>
-          <TabsContent value="places">
-            {renderPlaces()}
-          </TabsContent>
-          <TabsContent value="feedbacks">
-            {renderFeedbacks()}
-          </TabsContent>
-        </Tabs>
-        </div>
-      </div>
-    </div>
+          {activeTab === 'overview' && renderOverview()}
+          {activeTab === 'users' && renderUsers()}
+          {activeTab === 'places' && renderPlaces()}
+          {activeTab === 'feedbacks' && renderFeedbacks()}
+        </Box>
+        </Container>
+      </Box>
+    </Box>
   );
 };
 

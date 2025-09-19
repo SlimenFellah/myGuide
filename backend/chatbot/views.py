@@ -376,18 +376,15 @@ def chat_statistics(request):
             message_count=Count('id')
         ).aggregate(avg_length=Avg('message_count'))['avg_length'] or 0,
         'average_response_time': ChatMessage.objects.filter(
-            response_time__isnull=False
-        ).aggregate(avg_time=Avg('response_time'))['avg_time'] or 0,
-        'user_satisfaction': ChatFeedback.objects.aggregate(
-            avg_rating=Avg('rating')
-        )['avg_rating'] or 0,
-        'popular_topics': dict(
-            ChatAnalytics.objects.filter(
-                created_at__date__gte=week_ago
-            ).values('user_message').annotate(
-                count=Count('user_message')
-            ).order_by('-count')[:10].values_list('user_message', 'count')
-        ),
+            processing_time_ms__isnull=False
+        ).aggregate(avg_time=Avg('processing_time_ms'))['avg_time'] or 0,
+        'user_satisfaction': ChatFeedback.objects.filter(
+            feedback_type__in=['helpful', 'excellent']
+        ).count() / max(ChatFeedback.objects.count(), 1) * 100,
+        'popular_topics': {
+            'places': ChatAnalytics.objects.filter(date__gte=week_ago).first().top_places_mentioned if ChatAnalytics.objects.filter(date__gte=week_ago).exists() else {},
+            'provinces': ChatAnalytics.objects.filter(date__gte=week_ago).first().top_provinces_mentioned if ChatAnalytics.objects.filter(date__gte=week_ago).exists() else {}
+        },
         'daily_message_count': dict(
             ChatMessage.objects.filter(
                 created_at__date__gte=week_ago

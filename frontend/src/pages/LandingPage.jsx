@@ -3,12 +3,11 @@
  */
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../store/hooks';
 import { 
   ArrowRight, 
   MapPin, 
   MessageCircle, 
-  Calendar, 
   Star,
   Menu,
   X,
@@ -24,21 +23,18 @@ import {
   Twitter,
   Instagram
 } from 'lucide-react';
-import { Button } from '../components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Button, Card, CardContent, Typography, Box } from '@mui/material';
+import { CalendarToday as Calendar } from '@mui/icons-material';
 import myGuideLogo from '../assets/myGuide-logo.png';
 import heroImage from '../assets/427318025.png';
 
 const LandingPage = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { isAuthenticated } = useAuth();
+  const auth = useAuth();
+  const isAuthenticated = auth.isAuthenticated;
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/dashboard');
-    }
-  }, [isAuthenticated, navigate]);
+  // Removed automatic redirect to allow authenticated users to visit landing page
 
   const features = [
     {
@@ -81,181 +77,517 @@ const LandingPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
+    <Box sx={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.05) 100%)'
+    }}>
       {/* Navigation */}
-      <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center space-x-2">
+      <Box component="nav" sx={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 50,
+        width: '100%',
+        borderBottom: 1,
+        borderColor: 'divider',
+        backgroundColor: 'rgba(255,255,255,0.95)',
+        backdropFilter: 'blur(10px)'
+      }}>
+        <Box sx={{
+          maxWidth: '1200px',
+          mx: 'auto',
+          px: 2,
+          display: 'flex',
+          height: 64,
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <img 
               src={myGuideLogo} 
               alt="MyGuide" 
-              className="h-8 w-auto"
+              style={{ height: 32, width: 'auto' }}
             />
-            <span className="text-xl font-bold text-gradient">MyGuide</span>
-          </div>
+            <Typography variant="h5" sx={{ 
+              fontWeight: 'bold',
+              background: 'linear-gradient(45deg, #1976d2, #42a5f5)',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              color: 'transparent'
+            }}>
+              MyGuide
+            </Typography>
+          </Box>
           
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-6">
-            <a href="#features" className="text-sm font-medium text-muted-foreground hover:text-foreground hover:scale-105 transition-all duration-300 hover:bg-muted/50 px-3 py-2 rounded-md">
+          <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 3 }}>
+            <Typography component="a" href="#features" sx={{
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              color: 'text.secondary',
+              textDecoration: 'none',
+              px: 1.5,
+              py: 1,
+              borderRadius: 1,
+              transition: 'all 0.3s',
+              '&:hover': {
+                color: 'text.primary',
+                transform: 'scale(1.05)',
+                backgroundColor: 'rgba(0,0,0,0.05)'
+              }
+            }}>
               Features
-            </a>
-            <a href="#about" className="text-sm font-medium text-muted-foreground hover:text-foreground hover:scale-105 transition-all duration-300 hover:bg-muted/50 px-3 py-2 rounded-md">
+            </Typography>
+            <Typography component="a" href="#about" sx={{
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              color: 'text.secondary',
+              textDecoration: 'none',
+              px: 1.5,
+              py: 1,
+              borderRadius: 1,
+              transition: 'all 0.3s',
+              '&:hover': {
+                color: 'text.primary',
+                transform: 'scale(1.05)',
+                backgroundColor: 'rgba(0,0,0,0.05)'
+              }
+            }}>
               About
-            </a>
-            <a href="#contact" className="text-sm font-medium text-muted-foreground hover:text-foreground hover:scale-105 transition-all duration-300 hover:bg-muted/50 px-3 py-2 rounded-md">
+            </Typography>
+            <Typography component="a" href="#contact" sx={{
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              color: 'text.secondary',
+              textDecoration: 'none',
+              px: 1.5,
+              py: 1,
+              borderRadius: 1,
+              transition: 'all 0.3s',
+              '&:hover': {
+                color: 'text.primary',
+                transform: 'scale(1.05)',
+                backgroundColor: 'rgba(0,0,0,0.05)'
+              }
+            }}>
               Contact
-            </a>
-            <div className="flex items-center space-x-2">
-              <Button variant="ghost" asChild className="border border-border hover:bg-foreground hover:text-background transition-all duration-300">
-                <Link to="/login">Sign In</Link>
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Button 
+                variant="outlined" 
+                component={Link} 
+                to="/login"
+                sx={{
+                  borderColor: 'divider',
+                  color: 'text.primary',
+                  '&:hover': {
+                    backgroundColor: 'text.primary',
+                    color: 'background.paper'
+                  },
+                  transition: 'all 0.3s'
+                }}
+              >
+                Sign In
               </Button>
-              <Button asChild className="border border-primary hover:bg-background hover:text-foreground transition-all duration-300">
-                <Link to="/register">Get Started</Link>
+              <Button 
+                variant="contained" 
+                component={Link} 
+                to="/register"
+                sx={{
+                  '&:hover': {
+                    backgroundColor: 'background.paper',
+                    color: 'primary.main'
+                  },
+                  transition: 'all 0.3s'
+                }}
+              >
+                Get Started
               </Button>
-            </div>
-          </div>
+            </Box>
+          </Box>
 
           {/* Mobile menu button */}
           <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden"
+            variant="outlined"
+            size="small"
+            sx={{
+              display: { md: 'none' },
+              borderColor: 'divider',
+              minWidth: 'auto',
+              width: 40,
+              height: 40,
+              '&:hover': {
+                backgroundColor: 'text.primary',
+                color: 'background.paper'
+              },
+              transition: 'all 0.3s'
+            }}
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
             {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
-        </div>
+        </Box>
 
         {/* Mobile Navigation */}
         {isMenuOpen && (
-          <div className="md:hidden border-t bg-background/95 backdrop-blur">
-            <div className="container py-4 space-y-4">
-              <a href="#features" className="block text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:scale-105 transition-all duration-300 px-3 py-2 rounded-md">
+          <Box sx={{
+            display: { md: 'none' },
+            borderTop: 1,
+            borderColor: 'divider',
+            backgroundColor: 'rgba(255,255,255,0.95)',
+            backdropFilter: 'blur(10px)'
+          }}>
+            <Box sx={{
+              maxWidth: '1200px',
+              mx: 'auto',
+              px: 2,
+              py: 2,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 2
+            }}>
+              <Typography component="a" href="#features" sx={{
+                display: 'block',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                color: 'text.secondary',
+                textDecoration: 'none',
+                px: 1.5,
+                py: 1,
+                borderRadius: 1,
+                transition: 'all 0.3s',
+                '&:hover': {
+                  color: 'text.primary',
+                  backgroundColor: 'rgba(0,0,0,0.05)',
+                  transform: 'scale(1.05)'
+                }
+              }}>
                 Features
-              </a>
-              <a href="#about" className="block text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:scale-105 transition-all duration-300 px-3 py-2 rounded-md">
+              </Typography>
+              <Typography component="a" href="#about" sx={{
+                display: 'block',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                color: 'text.secondary',
+                textDecoration: 'none',
+                px: 1.5,
+                py: 1,
+                borderRadius: 1,
+                transition: 'all 0.3s',
+                '&:hover': {
+                  color: 'text.primary',
+                  backgroundColor: 'rgba(0,0,0,0.05)',
+                  transform: 'scale(1.05)'
+                }
+              }}>
                 About
-              </a>
-              <a href="#contact" className="block text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:scale-105 transition-all duration-300 px-3 py-2 rounded-md">
+              </Typography>
+              <Typography component="a" href="#contact" sx={{
+                display: 'block',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                color: 'text.secondary',
+                textDecoration: 'none',
+                px: 1.5,
+                py: 1,
+                borderRadius: 1,
+                transition: 'all 0.3s',
+                '&:hover': {
+                  color: 'text.primary',
+                  backgroundColor: 'rgba(0,0,0,0.05)',
+                  transform: 'scale(1.05)'
+                }
+              }}>
                 Contact
-              </a>
-              <div className="flex flex-col space-y-2 pt-4 border-t">
-                <Button variant="ghost" asChild className="justify-start border border-border hover:bg-foreground hover:text-background transition-all duration-300">
-                  <Link to="/login">Sign In</Link>
+              </Typography>
+              <Box sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 1,
+                pt: 2,
+                borderTop: 1,
+                borderColor: 'divider'
+              }}>
+                <Button 
+                  variant="outlined" 
+                  component={Link} 
+                  to="/login"
+                  sx={{
+                    justifyContent: 'flex-start',
+                    borderColor: 'divider',
+                    color: 'text.primary',
+                    '&:hover': {
+                      backgroundColor: 'text.primary',
+                      color: 'background.paper'
+                    },
+                    transition: 'all 0.3s'
+                  }}
+                >
+                  Sign In
                 </Button>
-                <Button asChild className="justify-start border border-primary hover:bg-background hover:text-foreground transition-all duration-300">
-                  <Link to="/register">Get Started</Link>
+                <Button 
+                  variant="contained" 
+                  component={Link} 
+                  to="/register"
+                  sx={{
+                    justifyContent: 'flex-start',
+                    '&:hover': {
+                      backgroundColor: 'background.paper',
+                      color: 'primary.main'
+                    },
+                    transition: 'all 0.3s'
+                  }}
+                >
+                  Get Started
                 </Button>
-              </div>
-            </div>
-          </div>
+              </Box>
+            </Box>
+          </Box>
         )}
-      </nav>
+      </Box>
 
       {/* Hero Section */}
-      <section className="relative py-12 lg:py-20 overflow-hidden">
-        <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:50px_50px]" />
-        <div className="container relative">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-8">
-              <div className="space-y-6">
-                <div className="inline-flex items-center rounded-full border px-3 py-1 text-sm font-medium">
-                  <Sparkles className="mr-2 h-4 w-4" />
+      <Box component="section" sx={{ position: 'relative', py: { xs: 6, lg: 10 }, overflow: 'hidden' }}>
+        <Box sx={{ 
+          position: 'absolute', 
+          inset: 0, 
+          backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.02) 1px, transparent 1px)',
+          backgroundSize: '50px 50px'
+        }} />
+        <Box sx={{ maxWidth: '1200px', mx: 'auto', px: 2, position: 'relative' }}>
+          <Box sx={{ 
+            display: 'grid', 
+            gridTemplateColumns: { lg: '1fr 1fr' },
+            gap: { xs: 6, lg: 12 },
+            alignItems: 'center'
+          }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <Box sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  border: 1,
+                  borderColor: 'divider',
+                  borderRadius: '50px',
+                  px: 1.5,
+                  py: 0.5,
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  width: 'fit-content'
+                }}>
+                  <Sparkles style={{ marginRight: 8, width: 16, height: 16 }} />
                   AI-Powered Travel Assistant
-                </div>
-                <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
-                  Discover Algeria with 
-                  <span className="text-gradient"> Intelligent </span> 
+                </Box>
+                <Typography variant="h1" sx={{
+                  fontSize: { xs: '2.25rem', sm: '3rem', xl: '3.75rem' },
+                  fontWeight: 'bold',
+                  letterSpacing: '-0.025em',
+                  lineHeight: 1.1
+                }}>
+                  Discover Algeria with{' '}
+                  <Box component="span" sx={{
+                    background: 'linear-gradient(45deg, #1976d2, #42a5f5)',
+                    backgroundClip: 'text',
+                    WebkitBackgroundClip: 'text',
+                    color: 'transparent'
+                  }}>
+                    Intelligent
+                  </Box>{' '}
                   Travel Guidance
-                </h1>
-                <p className="max-w-[600px] text-muted-foreground md:text-xl">
+                </Typography>
+                <Typography sx={{
+                  maxWidth: '600px',
+                  color: 'text.secondary',
+                  fontSize: { md: '1.25rem' }
+                }}>
                   Your smart companion for exploring Algeria's rich culture, stunning landscapes, 
                   and hidden treasures. Get personalized recommendations and plan unforgettable journeys.
-                </p>
-              </div>
+                </Typography>
+              </Box>
               
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button size="lg" asChild className="text-base border border-primary hover:bg-background hover:text-foreground transition-all duration-300">
-                  <Link to="/register">
-                    <Navigation className="mr-2 h-5 w-5" />
-                    Start Your Journey
-                  </Link>
+              <Box sx={{ 
+                display: 'flex', 
+                flexDirection: { xs: 'column', sm: 'row' }, 
+                gap: 2 
+              }}>
+                <Button 
+                  size="large" 
+                  variant="contained"
+                  component={Link} 
+                  to="/register"
+                  sx={{
+                    fontSize: '1rem',
+                    '&:hover': {
+                      backgroundColor: 'background.paper',
+                      color: 'primary.main'
+                    },
+                    transition: 'all 0.3s'
+                  }}
+                >
+                  <Navigation style={{ marginRight: 8, width: 20, height: 20 }} />
+                  Start Your Journey
                 </Button>
-                <Button size="lg" variant="outline" asChild className="text-base border border-border hover:bg-foreground hover:text-background transition-all duration-300">
-                  <Link to="/explore">
-                    <Globe className="mr-2 h-5 w-5" />
-                    Explore Destinations
-                  </Link>
+                <Button 
+                  size="large" 
+                  variant="outlined" 
+                  component={Link} 
+                  to="/explore"
+                  sx={{
+                    fontSize: '1rem',
+                    borderColor: 'divider',
+                    color: 'text.primary',
+                    '&:hover': {
+                      backgroundColor: 'text.primary',
+                      color: 'background.paper'
+                    },
+                    transition: 'all 0.3s'
+                  }}
+                >
+                  <Globe style={{ marginRight: 8, width: 20, height: 20 }} />
+                  Explore Destinations
                 </Button>
-              </div>
+              </Box>
               
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-8">
+              <Box sx={{ 
+                display: 'grid', 
+                gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(4, 1fr)' },
+                gap: 2,
+                pt: 4
+              }}>
                 {stats.map((stat, index) => (
-                  <div key={index} className="text-center">
-                    <div className="text-2xl font-bold">{stat.number}</div>
-                    <div className="text-sm text-muted-foreground">{stat.label}</div>
-                  </div>
+                  <Box key={index} sx={{ textAlign: 'center' }}>
+                    <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                      {stat.number}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                      {stat.label}
+                    </Typography>
+                  </Box>
                 ))}
-              </div>
-            </div>
+              </Box>
+            </Box>
             
-            <div className="relative lg:ml-8">
-              <div className="relative">
-                <img 
-                  src={heroImage} 
-                  alt="Algeria Travel" 
-                  className="rounded-2xl w-full h-auto"
+            <Box sx={{ position: 'relative', ml: { lg: 4 } }}>
+              <Box sx={{ position: 'relative' }}>
+                <Box
+                  component="img"
+                  src={heroImage}
+                  alt="Algeria Travel"
+                  sx={{
+                    borderRadius: 4,
+                    width: '100%',
+                    height: 'auto'
+                  }}
                 />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+              </Box>
+            </Box>
+          </Box>
+        </Box>
+      </Box>
 
       {/* Features Section */}
-      <section id="features" className="py-12 lg:py-20">
-        <div className="container">
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center rounded-full border px-3 py-1 text-sm font-medium mb-4">
-              <Heart className="mr-2 h-4 w-4" />
+      <Box component="section" id="features" sx={{ 
+        py: { xs: 6, lg: 10 }, 
+        backgroundColor: 'rgba(0,0,0,0.02)' 
+      }}>
+        <Box sx={{ maxWidth: '1200px', mx: 'auto', px: 2 }}>
+          <Box sx={{ textAlign: 'center', mb: 8 }}>
+            <Box sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              border: 1,
+              borderColor: 'divider',
+              borderRadius: '50px',
+              px: 1.5,
+              py: 0.5,
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              mb: 2
+            }}>
+              <Heart style={{ marginRight: 8, width: 16, height: 16 }} />
               Why Choose MyGuide
-            </div>
-            <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
+            </Box>
+            <Typography variant="h2" sx={{
+              fontSize: { xs: '1.875rem', sm: '2.25rem', md: '3rem' },
+              fontWeight: 'bold',
+              letterSpacing: '-0.025em'
+            }}>
               Everything you need for the perfect trip
-            </h2>
-            <p className="mx-auto mt-4 max-w-[700px] text-muted-foreground md:text-xl">
+            </Typography>
+            <Typography sx={{
+              mx: 'auto',
+              mt: 2,
+              maxWidth: '700px',
+              color: 'text.secondary',
+              fontSize: { md: '1.25rem' }
+            }}>
               Discover what makes MyGuide the ultimate companion for exploring Algeria's wonders
-            </p>
-          </div>
+            </Typography>
+          </Box>
           
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <Box sx={{ 
+            display: 'grid', 
+            gap: 3, 
+            gridTemplateColumns: { sm: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }
+          }}>
             {features.map((feature, index) => {
               const IconComponent = feature.icon;
               return (
-                <Card key={index} className="group relative overflow-hidden border-0 bg-gradient-to-br from-background to-muted/50 hover:shadow-lg transition-all duration-300">
-                  <CardContent className="p-6">
-                    <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                      <IconComponent className="h-6 w-6 text-primary" />
-                    </div>
-                    <h3 className="mb-2 text-xl font-semibold">
+                <Card key={index} sx={{
+                position: 'relative',
+                overflow: 'hidden',
+                border: 0,
+                background: 'linear-gradient(135deg, #ffffff 0%, rgba(0,0,0,0.05) 100%)',
+                transition: 'all 0.3s',
+                '&:hover': {
+                  boxShadow: 3
+                }
+              }}>
+                <CardContent sx={{ p: 3 }}>
+                    <Box sx={{
+                      mb: 2,
+                      display: 'inline-flex',
+                      height: 48,
+                      width: 48,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: 2,
+                      backgroundColor: 'rgba(25, 118, 210, 0.1)',
+                      transition: 'background-color 0.3s',
+                      '&:hover': {
+                        backgroundColor: 'rgba(25, 118, 210, 0.2)'
+                      }
+                    }}>
+                      <IconComponent style={{ width: 24, height: 24, color: '#1976d2' }} />
+                    </Box>
+                    <Typography variant="h6" sx={{
+                      mb: 1,
+                      fontSize: '1.25rem',
+                      fontWeight: 600
+                    }}>
                       {feature.title}
-                    </h3>
-                    <p className="text-muted-foreground">
+                    </Typography>
+                    <Typography sx={{ color: 'text.secondary' }}>
                       {feature.description}
-                    </p>
+                    </Typography>
                   </CardContent>
                 </Card>
               );
             })}
-          </div>
-        </div>
-      </section>
+          </Box>
+        </Box>
+      </Box>
 
       {/* CTA Section */}
       <section className="py-12 lg:py-20">
         <div className="container">
-          <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-primary to-primary/80">
-            <CardContent className="p-12 text-center text-primary-foreground">
+          <Card sx={{
+              position: 'relative',
+              overflow: 'hidden',
+              border: 0,
+              background: 'linear-gradient(135deg, #1976d2 0%, rgba(25, 118, 210, 0.8) 100%)',
+              color: 'primary.contrastText'
+            }}>
+              <CardContent sx={{ p: 6, textAlign: 'center', color: 'primary.contrastText' }}>
               <div className="mx-auto max-w-2xl">
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl mb-4">
                   Ready to Explore Algeria?
@@ -265,15 +597,41 @@ const LandingPage = () => {
                   with MyGuide's intelligent travel assistance.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button size="lg" variant="secondary" asChild className="text-base border border-secondary hover:bg-primary-foreground hover:text-primary transition-all duration-300">
-                    <Link to="/register">
-                      Get Started Free
-                    </Link>
+                  <Button 
+                    size="large" 
+                    variant="contained" 
+                    component={Link} 
+                    to="/register"
+                    sx={{
+                      fontSize: '1rem',
+                      backgroundColor: 'background.paper',
+                      color: 'primary.main',
+                      '&:hover': {
+                        backgroundColor: 'primary.contrastText',
+                        color: 'primary.main'
+                      },
+                      transition: 'all 0.3s'
+                    }}
+                  >
+                    Get Started Free
                   </Button>
-                  <Button size="lg" variant="outline" asChild className="text-base border border-primary-foreground/40 text-primary-foreground hover:bg-primary-foreground hover:text-primary transition-all duration-300">
-                    <Link to="/explore">
-                      Explore Now
-                    </Link>
+                  <Button 
+                    size="large" 
+                    variant="outlined" 
+                    component={Link} 
+                    to="/explore"
+                    sx={{
+                      fontSize: '1rem',
+                      borderColor: 'rgba(255, 255, 255, 0.4)',
+                      color: 'primary.contrastText',
+                      '&:hover': {
+                        backgroundColor: 'primary.contrastText',
+                        color: 'primary.main'
+                      },
+                      transition: 'all 0.3s'
+                    }}
+                  >
+                    Explore Now
                   </Button>
                 </div>
               </div>
@@ -283,63 +641,248 @@ const LandingPage = () => {
       </section>
 
       {/* Footer */}
-      <footer id="contact" className="border-t bg-muted/50">
-        <div className="container py-12">
-          <div className="grid gap-8 md:grid-cols-4">
-            <div className="md:col-span-2">
-              <div className="flex items-center space-x-2 mb-4">
+      <Box component="footer" id="contact" sx={{ 
+        borderTop: 1, 
+        borderColor: 'divider',
+        backgroundColor: 'rgba(0,0,0,0.02)' 
+      }}>
+        <Box sx={{ maxWidth: '1200px', mx: 'auto', px: 2, py: 6 }}>
+          <Box sx={{ 
+            display: 'grid', 
+            gap: 4, 
+            gridTemplateColumns: { md: 'repeat(4, 1fr)' }
+          }}>
+            <Box sx={{ gridColumn: { md: 'span 2' } }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                 <img 
                   src={myGuideLogo} 
                   alt="MyGuide" 
-                  className="h-8 w-auto"
+                  style={{ height: 32, width: 'auto' }}
                 />
-                <span className="text-xl font-bold">MyGuide</span>
-              </div>
-              <p className="text-muted-foreground mb-6 max-w-md">
+                <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+                  MyGuide
+                </Typography>
+              </Box>
+              <Typography sx={{ 
+                color: 'text.secondary', 
+                mb: 3, 
+                maxWidth: '28rem' 
+              }}>
                 Your AI-powered companion for discovering the beauty and culture of Algeria. 
                 Plan smarter, travel better, experience more.
-              </p>
-              <div className="flex space-x-4">
-                <Button variant="ghost" size="icon" className="h-9 w-9 hover:scale-110 hover:bg-blue-500/20 hover:text-blue-500 transition-all duration-300">
-                  <Facebook className="h-4 w-4" />
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <Button 
+                  variant="text" 
+                  sx={{
+                    minWidth: 36,
+                    width: 36,
+                    height: 36,
+                    '&:hover': {
+                      transform: 'scale(1.1)',
+                      backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                      color: '#3b82f6'
+                    },
+                    transition: 'all 0.3s'
+                  }}
+                >
+                  <Facebook style={{ width: 16, height: 16 }} />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-9 w-9 hover:scale-110 hover:bg-sky-500/20 hover:text-sky-500 transition-all duration-300">
-                  <Twitter className="h-4 w-4" />
+                <Button 
+                  variant="text" 
+                  sx={{
+                    minWidth: 36,
+                    width: 36,
+                    height: 36,
+                    '&:hover': {
+                      transform: 'scale(1.1)',
+                      backgroundColor: 'rgba(14, 165, 233, 0.2)',
+                      color: '#0ea5e9'
+                    },
+                    transition: 'all 0.3s'
+                  }}
+                >
+                  <Twitter style={{ width: 16, height: 16 }} />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-9 w-9 hover:scale-110 hover:bg-pink-500/20 hover:text-pink-500 transition-all duration-300">
-                  <Instagram className="h-4 w-4" />
+                <Button 
+                  variant="text" 
+                  sx={{
+                    minWidth: 36,
+                    width: 36,
+                    height: 36,
+                    '&:hover': {
+                      transform: 'scale(1.1)',
+                      backgroundColor: 'rgba(236, 72, 153, 0.2)',
+                      color: '#ec4899'
+                    },
+                    transition: 'all 0.3s'
+                  }}
+                >
+                  <Instagram style={{ width: 16, height: 16 }} />
                 </Button>
-              </div>
-            </div>
+              </Box>
+            </Box>
             
-            <div>
-              <h4 className="font-semibold mb-4">Quick Links</h4>
-              <ul className="space-y-3 text-sm">
-                <li><Link to="/explore" className="text-muted-foreground hover:text-foreground hover:translate-x-2 transition-all duration-300">Explore</Link></li>
-                <li><Link to="/trip-planner" className="text-muted-foreground hover:text-foreground hover:translate-x-2 transition-all duration-300">Trip Planner</Link></li>
-                <li><Link to="/chatbot" className="text-muted-foreground hover:text-foreground hover:translate-x-2 transition-all duration-300">AI Assistant</Link></li>
-                <li><a href="#about" className="text-muted-foreground hover:text-foreground hover:translate-x-2 transition-all duration-300">About Us</a></li>
-              </ul>
-            </div>
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+                Quick Links
+              </Typography>
+              <Box component="ul" sx={{ listStyle: 'none', p: 0, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <Box component="li">
+                  <Typography component={Link} to="/explore" sx={{
+                    fontSize: '0.875rem',
+                    color: 'text.secondary',
+                    textDecoration: 'none',
+                    transition: 'all 0.3s',
+                    '&:hover': {
+                      color: 'text.primary',
+                      transform: 'translateX(8px)'
+                    }
+                  }}>
+                    Explore
+                  </Typography>
+                </Box>
+                <Box component="li">
+                  <Typography component={Link} to="/trip-planner" sx={{
+                    fontSize: '0.875rem',
+                    color: 'text.secondary',
+                    textDecoration: 'none',
+                    transition: 'all 0.3s',
+                    '&:hover': {
+                      color: 'text.primary',
+                      transform: 'translateX(8px)'
+                    }
+                  }}>
+                    Trip Planner
+                  </Typography>
+                </Box>
+                <Box component="li">
+                  <Typography component={Link} to="/chatbot" sx={{
+                    fontSize: '0.875rem',
+                    color: 'text.secondary',
+                    textDecoration: 'none',
+                    transition: 'all 0.3s',
+                    '&:hover': {
+                      color: 'text.primary',
+                      transform: 'translateX(8px)'
+                    }
+                  }}>
+                    AI Assistant
+                  </Typography>
+                </Box>
+                <Box component="li">
+                  <Typography component="a" href="#about" sx={{
+                    fontSize: '0.875rem',
+                    color: 'text.secondary',
+                    textDecoration: 'none',
+                    transition: 'all 0.3s',
+                    '&:hover': {
+                      color: 'text.primary',
+                      transform: 'translateX(8px)'
+                    }
+                  }}>
+                    About Us
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
             
-            <div>
-              <h4 className="font-semibold mb-4">Support</h4>
-              <ul className="space-y-3 text-sm">
-                <li><a href="#" className="text-muted-foreground hover:text-foreground hover:translate-x-2 transition-all duration-300">Help Center</a></li>
-                <li><a href="#contact" className="text-muted-foreground hover:text-foreground hover:translate-x-2 transition-all duration-300">Contact Us</a></li>
-                <li><a href="#" className="text-muted-foreground hover:text-foreground hover:translate-x-2 transition-all duration-300">Privacy Policy</a></li>
-                <li><a href="#" className="text-muted-foreground hover:text-foreground hover:translate-x-2 transition-all duration-300">Terms of Service</a></li>
-              </ul>
-            </div>
-          </div>
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+                Support
+              </Typography>
+              <Box component="ul" sx={{ listStyle: 'none', p: 0, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <Box component="li">
+                  <Typography component="a" href="#" sx={{
+                    fontSize: '0.875rem',
+                    color: 'text.secondary',
+                    textDecoration: 'none',
+                    transition: 'all 0.3s',
+                    '&:hover': {
+                      color: 'text.primary',
+                      transform: 'translateX(8px)'
+                    }
+                  }}>
+                    Help Center
+                  </Typography>
+                </Box>
+                <Box component="li">
+                  <Typography component="a" href="#contact" sx={{
+                    fontSize: '0.875rem',
+                    color: 'text.secondary',
+                    textDecoration: 'none',
+                    transition: 'all 0.3s',
+                    '&:hover': {
+                      color: 'text.primary',
+                      transform: 'translateX(8px)'
+                    }
+                  }}>
+                    Contact Us
+                  </Typography>
+                </Box>
+                <Box component="li">
+                  <Typography component="a" href="#" sx={{
+                    fontSize: '0.875rem',
+                    color: 'text.secondary',
+                    textDecoration: 'none',
+                    transition: 'all 0.3s',
+                    '&:hover': {
+                      color: 'text.primary',
+                      transform: 'translateX(8px)'
+                    }
+                  }}>
+                    Privacy Policy
+                  </Typography>
+                </Box>
+                <Box component="li">
+                  <Typography component="a" href="#" sx={{
+                    fontSize: '0.875rem',
+                    color: 'text.secondary',
+                    textDecoration: 'none',
+                    transition: 'all 0.3s',
+                    '&:hover': {
+                      color: 'text.primary',
+                      transform: 'translateX(8px)'
+                    }
+                  }}>
+                    Terms of Service
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
+          </Box>
           
-          <div className="mt-8 border-t pt-8 text-center text-sm text-muted-foreground">
-            {/* <p>&copy; 2024 MyGuide. All rights reserved. Built with ❤️ for Algeria.</p> */}
-            <p className="mt-2">Developed & maintained by Slimene Fellah — Available for freelance work at <a href="https://slimenefellah.dev" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">slimenefellah.dev</a></p>
-          </div>
-        </div>
-      </footer>
-    </div>
+          <Box sx={{ 
+            mt: 4, 
+            borderTop: 1, 
+            borderColor: 'divider',
+            pt: 4, 
+            textAlign: 'center' 
+          }}>
+            <Typography variant="body2" sx={{ 
+              color: 'text.secondary',
+              mt: 1
+            }}>
+              Developed & maintained by Slimene Fellah — Available for freelance work at{' '}
+              <Typography component="a" 
+                href="https://slimenefellah.dev" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                sx={{
+                  color: 'primary.main',
+                  textDecoration: 'none',
+                  '&:hover': {
+                    textDecoration: 'underline'
+                  }
+                }}
+              >
+                slimenefellah.dev
+              </Typography>
+            </Typography>
+          </Box>
+        </Box>
+      </Box>
+    </Box>
   );
 };
 

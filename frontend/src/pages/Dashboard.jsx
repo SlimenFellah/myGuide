@@ -3,31 +3,55 @@
  */
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { useAppContext } from '../contexts/AppContext';
+import { useCurrentUser } from '../store/hooks';
 import { apiService } from '../services';
-import { 
-  MapPin, 
-  MessageCircle, 
-  Calendar, 
-  Star, 
+import {
+  Box,
+  Container,
+  Typography,
+  Grid,
+  Card,
+  CardContent,
+  CardActions,
+  Button,
+  Chip,
+  Avatar,
+  IconButton,
+  List,
+  ListItem,
+  ListItemAvatar,
+  ListItemText,
+  ListItemSecondaryAction,
+  Paper,
+  Divider,
+  Rating,
+  LinearProgress
+} from '@mui/material';
+import { CalendarToday as Calendar } from '@mui/icons-material';
+import {
+  MapPin,
+  MessageCircle,
+  Star,
   TrendingUp,
   Users,
-  Clock,
   ArrowRight,
   Heart,
   Navigation,
   Sparkles,
-  Activity
+  Activity as Timeline,
+  Plus as Add,
+  Compass as Explore,
+  MessageSquare as Chat
 } from 'lucide-react';
-import { Button } from '../components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Clock } from 'lucide-react';
 import TripDetailsModal from '../components/TripDetailsModal';
 
 const Dashboard = () => {
-  const { user } = useAuth();
-  const { state, dispatch, fetchSavedPlans } = useAppContext();
-  const { savedPlans = [], favorites = [], places = [] } = state || {};
+  const user = useCurrentUser();
+  // TODO: Replace with Redux state management for trips, favorites, and places
+  const savedPlans = [];
+  const favorites = [];
+  const places = [];
   const [stats, setStats] = useState({
     totalTrips: 0,
     placesVisited: 0,
@@ -43,35 +67,18 @@ const Dashboard = () => {
     // Load dashboard data
     const loadDashboardData = async () => {
       try {
-        // Fetch saved plans from backend
-        if (fetchSavedPlans) {
-          await fetchSavedPlans();
-        }
-        
-        // Load popular places
-        if (Array.isArray(places) && places.length === 0) {
-          if (dispatch) {
-            dispatch({ type: 'SET_LOADING', payload: { places: true } });
-          }
-          try {
-            await apiService.tourism.getPlaces({ limit: 6 });
-          } catch (error) {
-            console.error('Failed to load places:', error);
-          }
-        }
-        setPopularPlaces(Array.isArray(places) ? places.slice(0, 6) : []);
+        // TODO: Implement Redux actions for fetching saved plans and places
+        // For now, set empty popular places
+        setPopularPlaces([]);
       } catch (error) {
-        dispatch({ type: 'SET_NOTIFICATION', payload: {
-          type: 'error',
-          message: 'Failed to load dashboard data'
-        }});
+        console.error('Failed to load dashboard data:', error);
       }
     };
 
     loadDashboardData();
-  }, [dispatch]); // Removed fetchSavedPlans from dependencies to prevent infinite loop
+  }, []);
 
-  // Update stats and recent activity when savedPlans change
+  // Initialize stats and recent activity once since data is currently static
   useEffect(() => {
     // Calculate stats from context state with safe defaults
     setStats({
@@ -106,7 +113,7 @@ const Dashboard = () => {
     ];
     
     setRecentActivity(activity.length > 0 ? activity : defaultActivity);
-  }, [savedPlans, favorites]);
+  }, []); // Empty dependency array since savedPlans and favorites are static
 
 
 
@@ -117,26 +124,23 @@ const Dashboard = () => {
     {
       title: 'Plan New Trip',
       description: 'Create a personalized itinerary',
-      icon: Calendar,
+      icon: Add,
       link: '/trip-planner',
-      color: 'bg-blue-500',
-      hoverColor: 'hover:bg-blue-600'
+      color: 'primary'
     },
     {
       title: 'Explore Places',
       description: 'Discover amazing destinations',
-      icon: MapPin,
+      icon: Explore,
       link: '/explore',
-      color: 'bg-green-500',
-      hoverColor: 'hover:bg-green-600'
+      color: 'success'
     },
     {
       title: 'Ask AI Guide',
       description: 'Get instant travel advice',
-      icon: MessageCircle,
+      icon: Chat,
       link: '/chatbot',
-      color: 'bg-purple-500',
-      hoverColor: 'hover:bg-purple-600'
+      color: 'secondary'
     }
   ];
 
@@ -145,296 +149,379 @@ const Dashboard = () => {
       title: 'Total Trips',
       value: stats.totalTrips,
       icon: Navigation,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50'
+      color: 'primary'
     },
     {
       title: 'Places Visited',
       value: stats.placesVisited,
       icon: MapPin,
-      color: 'text-green-600',
-      bgColor: 'bg-green-50'
+      color: 'success'
     },
     {
       title: 'Reviews Given',
       value: stats.reviewsGiven,
       icon: Star,
-      color: 'text-yellow-600',
-      bgColor: 'bg-yellow-50'
+      color: 'warning'
     },
     {
       title: 'Favorite Spots',
       value: stats.favoriteSpots,
       icon: Heart,
-      color: 'text-red-600',
-      bgColor: 'bg-red-50'
+      color: 'error'
     }
   ];
 
   return (
-    <div className="w-full">
-      <div className="container-content py-8">
-        {/* Welcome Section */}
-        <div className="mb-8">
-        <div className="flex items-center space-x-2 mb-4">
-          <div className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-primary text-primary-foreground hover:bg-primary/80">
-            <Sparkles className="w-3 h-3 mr-1" />
-            AI-Powered Travel Assistant
-          </div>
-        </div>
-        <h1 className="text-4xl font-bold tracking-tight mb-2">
+    <Container maxWidth="xl" sx={{ py: 4 }}>
+      {/* Welcome Section */}
+      <Box sx={{ mb: 4, width: '100%' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, width: '100%' }}>
+          <Chip 
+            icon={<Sparkles />} 
+            label="AI-Powered Travel Assistant" 
+            color="primary" 
+            size="small"
+            sx={{ fontWeight: 600 }}
+          />
+        </Box>
+        <Typography variant="h3" component="h1" sx={{ fontWeight: 'bold', mb: 1, fontSize: { xs: '1.8rem', sm: '2.5rem', md: '3rem' } }}>
           Welcome back, {user?.firstName || user?.name || 'Explorer'}! 👋
-        </h1>
-        <p className="text-xl text-muted-foreground">
+        </Typography>
+        <Typography variant="h6" color="text.secondary" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
           Ready to discover more amazing places in Algeria?
-        </p>
-      </div>
+        </Typography>
+      </Box>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: 4, width: '100%' }}>
         {statCards.map((stat, index) => {
-          const Icon = stat.icon;
+          const IconComponent = stat.icon;
           return (
-            <Card key={index} className="hover:shadow-lg transition-all duration-300 hover:scale-105">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground mb-1">{stat.title}</p>
-                    <p className="text-3xl font-bold">{stat.value}</p>
-                  </div>
-                  <div className={`p-3 rounded-lg ${stat.bgColor}`}>
-                    <Icon className={stat.color} size={24} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <Grid item xs={12} sm={6} md={6} lg={6} xl={3} key={index}>
+              <Card sx={{ height: '100%', transition: 'all 0.3s', '&:hover': { transform: 'translateY(-4px)', boxShadow: 4 } }}>
+                <CardContent sx={{ p: 3 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                        {stat.title}
+                      </Typography>
+                      <Typography variant="h4" sx={{ fontWeight: 'bold', mt: 0.5 }}>
+                        {stat.value}
+                      </Typography>
+                    </Box>
+                    <Avatar sx={{ bgcolor: `${stat.color}.light`, color: `${stat.color}.main` }}>
+                      <IconComponent />
+                    </Avatar>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
           );
         })}
-      </div>
+      </Grid>
 
       {/* Quick Actions */}
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold mb-6">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <Box sx={{ mb: 4, width: '100%' }}>
+        <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 3, fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' } }}>Quick Actions</Typography>
+        <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ width: '100%' }}>
           {quickActions.map((action, index) => {
-            const Icon = action.icon;
+            const IconComponent = action.icon;
             return (
-              <Card key={index} className="group hover:shadow-lg transition-all duration-300 hover:scale-105 overflow-hidden">
-                <Link to={action.link} className="block">
-                  <CardContent className={`p-6 ${action.color} ${action.hoverColor} text-white transition-all duration-300`}>
-                    <div className="flex items-center space-x-4">
-                      <div className="p-3 bg-white bg-opacity-20 rounded-lg group-hover:bg-opacity-30 transition-all duration-300">
-                        <Icon size={24} />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold mb-1">{action.title}</h3>
-                        <p className="text-sm opacity-90">{action.description}</p>
-                      </div>
-                      <ArrowRight size={20} className="opacity-70 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300" />
-                    </div>
+              <Grid item xs={12} sm={12} md={6} lg={4} key={index}>
+                <Card 
+                  component={Link} 
+                  to={action.link} 
+                  sx={{ 
+                    height: '100%', 
+                    textDecoration: 'none', 
+                    transition: 'all 0.3s', 
+                    '&:hover': { 
+                      transform: 'translateY(-4px)', 
+                      boxShadow: 4 
+                    } 
+                  }}
+                >
+                  <CardContent sx={{ p: 4, textAlign: 'center' }}>
+                    <Avatar 
+                      sx={{ 
+                        bgcolor: `${action.color}.main`, 
+                        width: 56, 
+                        height: 56, 
+                        mx: 'auto', 
+                        mb: 2 
+                      }}
+                    >
+                      <IconComponent sx={{ fontSize: 28 }} />
+                    </Avatar>
+                    <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
+                      {action.title}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {action.description}
+                    </Typography>
                   </CardContent>
-                </Link>
-              </Card>
+                </Card>
+              </Grid>
             );
           })}
-        </div>
-      </div>
+        </Grid>
+      </Box>
 
-      <div className="grid lg:grid-cols-2 gap-8">
-        {/* Recent Activity */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xl font-bold flex items-center space-x-2">
-                <Activity className="h-5 w-5" />
-                <span>Recent Activity</span>
-              </CardTitle>
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/profile">
-                  View all
-                </Link>
+      {/* Recent Activity */}
+      <Box sx={{ mb: 4, width: '100%' }}>
+        <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 3, fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' } }}>Recent Activity</Typography>
+          <Card>
+            <CardContent sx={{ p: 0 }}>
+              {recentActivity.length > 0 ? (
+                <List>
+                  {recentActivity.map((activity) => {
+                    const Icon = activity.icon;
+                    return (
+                      <ListItem key={activity.id} sx={{ py: 2 }}>
+                        <ListItemAvatar>
+                          <Avatar sx={{ bgcolor: 'primary.light', color: 'primary.main' }}>
+                            <Icon />
+                          </Avatar>
+                        </ListItemAvatar>
+                        <ListItemText
+                          primary={activity.title}
+                          secondary={
+                            <>
+                              <Typography variant="body2" color="text.secondary" component="span" display="block">
+                                {activity.description}
+                              </Typography>
+                              <Box component="span" sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
+                                <Clock sx={{ fontSize: 12, mr: 0.5, color: 'text.secondary' }} />
+                                <Typography variant="caption" color="text.secondary">
+                                  {activity.time}
+                                </Typography>
+                              </Box>
+                            </>
+                          }
+                          primaryTypographyProps={{ fontWeight: 500 }}
+                        />
+                      </ListItem>
+                    );
+                  })}
+                </List>
+              ) : (
+                <Box sx={{ textAlign: 'center', py: 8 }}>
+                  <Timeline sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+                  <Typography color="text.secondary">No recent activity</Typography>
+                </Box>
+              )}
+            </CardContent>
+            <CardActions sx={{ justifyContent: 'flex-end', px: 2, pb: 2 }}>
+              <Button size="small" component={Link} to="/profile">
+                View all
               </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {recentActivity.map((activity) => {
-                const Icon = activity.icon;
-                return (
-                  <div key={activity.id} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors duration-200">
-                    <div className="p-2 bg-primary/10 rounded-lg">
-                      <Icon className="text-primary" size={16} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium">{activity.title}</p>
-                      <p className="text-sm text-muted-foreground">{activity.description}</p>
-                      <div className="flex items-center mt-1">
-                        <Clock size={12} className="text-muted-foreground mr-1" />
-                        <p className="text-xs text-muted-foreground">{activity.time}</p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+            </CardActions>
+          </Card>
+        </Box>
 
         {/* Popular Places */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xl font-bold flex items-center space-x-2">
-                <TrendingUp className="h-5 w-5" />
-                <span>Popular Places</span>
-              </CardTitle>
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/explore">
-                  Explore all
-                </Link>
+        <Box sx={{ mb: 4, width: '100%' }}>
+          <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 3, fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' } }}>Popular Places</Typography>
+          <Card>
+            <CardContent sx={{ p: 0 }}>
+              {popularPlaces.length > 0 ? (
+                <List>
+                  {popularPlaces.slice(0, 3).map((place, index) => (
+                    <ListItem key={place.id || index} sx={{ py: 2, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}>
+                      <ListItemAvatar>
+                        <Avatar 
+                          src={place.main_image || '/api/placeholder/400/300'} 
+                          alt={place.name}
+                          sx={{ width: 60, height: 60, borderRadius: 2 }}
+                          variant="rounded"
+                        />
+                      </ListItemAvatar>
+                      <ListItemText
+                        primary={place.name}
+                        secondary={
+                          <Box>
+                            <Typography variant="body2" color="text.secondary">
+                              {place.location}
+                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
+                              <Rating value={place.rating} readOnly size="small" sx={{ mr: 1 }} />
+                              <Typography variant="caption" color="text.secondary">
+                                {place.rating} ({place.reviews} reviews)
+                              </Typography>
+                            </Box>
+                          </Box>
+                        }
+                        primaryTypographyProps={{ fontWeight: 600 }}
+                        sx={{ ml: 2 }}
+                      />
+                      <ListItemSecondaryAction>
+                        <Chip 
+                          label={place.category} 
+                          size="small" 
+                          variant="outlined"
+                        />
+                      </ListItemSecondaryAction>
+                    </ListItem>
+                  ))}
+                </List>
+              ) : (
+                <Box sx={{ textAlign: 'center', py: 8 }}>
+                  <MapPin sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+                  <Typography color="text.secondary">No popular places available</Typography>
+                </Box>
+              )}
+            </CardContent>
+            <CardActions sx={{ justifyContent: 'flex-end', px: 2, pb: 2 }}>
+              <Button size="small" component={Link} to="/explore">
+                Explore more
               </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {popularPlaces.map((place) => (
-                <div key={place.id} className="flex items-center space-x-4 p-3 rounded-lg hover:bg-muted/50 transition-colors duration-200 cursor-pointer group">
-                  <div className="relative overflow-hidden rounded-lg">
-                    <img 
-                      src={place.main_image || '/api/placeholder/400/300'} 
-                      alt={place.name}
-                      className="w-16 h-16 object-cover group-hover:scale-105 transition-transform duration-200"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-semibold truncate">{place.name}</h3>
-                    <p className="text-sm text-muted-foreground">{place.location}</p>
-                    <div className="flex items-center mt-1">
-                      <Star className="text-yellow-400 fill-current" size={14} />
-                      <span className="text-sm text-muted-foreground ml-1">
-                        {place.rating} ({place.reviews} reviews)
-                      </span>
-                    </div>
-                  </div>
-                  <div className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-foreground">
-                    {place.category}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardActions>
+          </Card>
+        </Box>
 
       {/* Saved Trips Section */}
       {savedPlans && savedPlans.length > 0 && (
-        <Card className="mt-8">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xl font-bold flex items-center space-x-2">
-                <Calendar className="h-5 w-5" />
-                <span>Your Saved Trips</span>
-              </CardTitle>
-              <Button variant="ghost" size="sm">
-                View all ({savedPlans.length})
+        <Box sx={{ mb: 4, width: '100%' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3, width: '100%' }}>
+            <Typography variant="h4" sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' } }}>
+              <Calendar sx={{ mr: 1 }} />
+              Your Saved Trips
+            </Typography>
+            <Button variant="text" size="small">
+              View all ({savedPlans.length})
+            </Button>
+          </Box>
+          <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ width: '100%' }}>
+            {savedPlans.slice(0, 6).map((tripPlan) => {
+              return (
+                <Grid item xs={12} sm={12} md={6} lg={4} key={tripPlan.id}>
+                  <Card 
+                    sx={{ 
+                      height: '100%', 
+                      cursor: 'pointer', 
+                      transition: 'all 0.3s', 
+                      '&:hover': { 
+                        transform: 'translateY(-4px)', 
+                        boxShadow: 4 
+                      } 
+                    }}
+                    onClick={() => {
+                      setSelectedTrip(tripPlan);
+                      setIsTripModalOpen(true);
+                    }}
+                  >
+                    <CardContent sx={{ p: 3 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 2 }}>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5 }} noWrap>
+                            {tripPlan.title || `Trip to ${tripPlan.province}`}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                            {tripPlan.province} • {tripPlan.duration_days || 'Multi'} days
+                          </Typography>
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">
+                          {tripPlan.created_at ? new Date(tripPlan.created_at).toLocaleDateString() : 'Recently'}
+                        </Typography>
+                      </Box>
+                      
+                      <Box sx={{ mb: 2 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                          <MapPin sx={{ fontSize: 12, mr: 0.5, color: 'text.secondary' }} />
+                          <Typography variant="caption" color="text.secondary">
+                            {tripPlan.trip_type || 'Adventure'}
+                          </Typography>
+                        </Box>
+                        
+                        {tripPlan.estimated_cost && (
+                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                            <Typography variant="caption" sx={{ mr: 0.5 }}>💰</Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              ${tripPlan.estimated_cost}
+                            </Typography>
+                          </Box>
+                        )}
+                        
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Typography variant="caption" sx={{ mr: 0.5 }}>👥</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {tripPlan.group_size || 1} {tripPlan.group_size === 1 ? 'person' : 'people'}
+                          </Typography>
+                        </Box>
+                      </Box>
+                      
+                      <Divider sx={{ mb: 2 }} />
+                      <Button 
+                        size="small" 
+                        variant="outlined" 
+                        fullWidth
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedTrip(tripPlan);
+                          setIsTripModalOpen(true);
+                        }}
+                      >
+                        View Details
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              );
+            })}
+          </Grid>
+          
+          {savedPlans.length === 0 && (
+            <Paper sx={{ textAlign: 'center', py: 8 }}>
+              <Calendar sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
+                No saved trips yet
+              </Typography>
+              <Typography color="text.secondary" sx={{ mb: 3 }}>
+                Start planning your first trip to see it here!
+              </Typography>
+              <Button variant="contained" component={Link} to="/trip-planner" startIcon={<Add />}>
+                Plan Your First Trip
               </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {savedPlans.slice(0, 6).map((tripPlan) => {
-                return (
-                  <div key={tripPlan.id} className="group cursor-pointer" onClick={() => {
-                    setSelectedTrip(tripPlan);
-                    setIsTripModalOpen(true);
-                  }}>
-                    <Card className="hover:shadow-lg transition-all duration-300 hover:scale-105">
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-sm mb-1 truncate">
-                              {tripPlan.title || `Trip to ${tripPlan.province}`}
-                            </h3>
-                            <p className="text-xs text-muted-foreground mb-2">
-                              {tripPlan.province} • {tripPlan.duration_days || 'Multi'} days
-                            </p>
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {tripPlan.created_at ? new Date(tripPlan.created_at).toLocaleDateString() : 'Recently'}
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <div className="flex items-center text-xs text-muted-foreground">
-                            <MapPin size={12} className="mr-1" />
-                            <span>{tripPlan.trip_type || 'Adventure'}</span>
-                          </div>
-                          
-                          {tripPlan.estimated_cost && (
-                            <div className="flex items-center text-xs text-muted-foreground">
-                              <span className="mr-1">💰</span>
-                              <span>${tripPlan.estimated_cost}</span>
-                            </div>
-                          )}
-                          
-                          <div className="flex items-center text-xs text-muted-foreground">
-                            <span className="mr-1">👥</span>
-                            <span>{tripPlan.group_size || 1} {tripPlan.group_size === 1 ? 'person' : 'people'}</span>
-                          </div>
-                        </div>
-                        
-                        <div className="mt-3 pt-3 border-t">
-                          <Button size="sm" variant="outline" className="w-full text-xs" onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedTrip(savedPlan);
-                            setIsTripModalOpen(true);
-                          }}>
-                            View Details
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                );
-              })}
-            </div>
-            
-            {savedPlans.length === 0 && (
-              <div className="text-center py-8">
-                <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No saved trips yet</h3>
-                <p className="text-muted-foreground mb-4">
-                  Start planning your first trip to see it here!
-                </p>
-                <Button asChild>
-                  <Link to="/trip-planner">
-                    Plan Your First Trip
-                  </Link>
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            </Paper>
+          )}
+        </Box>
       )}
 
       {/* CTA Section */}
-      <Card className="mt-8 border-0 bg-gradient-to-r from-primary to-primary/90">
-        <CardContent className="p-8 text-center text-primary-foreground">
-          <div className="flex items-center justify-center space-x-2 mb-4">
-            <Sparkles className="h-6 w-6" />
-            <h2 className="text-2xl font-bold">Ready for Your Next Adventure?</h2>
-          </div>
-          <p className="text-primary-foreground/90 mb-6 max-w-2xl mx-auto text-lg">
-            Let our AI-powered trip planner create the perfect itinerary for your next journey through Algeria.
-          </p>
-          <Button size="lg" variant="secondary" asChild className="font-semibold">
-            <Link to="/trip-planner" className="inline-flex items-center">
-              Plan Your Trip
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Link>
-          </Button>
-        </CardContent>
-      </Card>
+      <Paper 
+        sx={{ 
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+          color: 'white', 
+          textAlign: 'center', 
+          p: 6, 
+          mb: 4 
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
+          <Sparkles sx={{ mr: 1 }} />
+          <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+            Ready for Your Next Adventure?
+          </Typography>
+        </Box>
+        <Typography variant="h6" sx={{ mb: 4, opacity: 0.9, maxWidth: '600px', mx: 'auto' }}>
+          Let our AI-powered trip planner create the perfect itinerary for your next journey through Algeria.
+        </Typography>
+        <Button 
+          size="large" 
+          variant="contained" 
+          sx={{ 
+            bgcolor: 'white', 
+            color: 'primary.main', 
+            fontWeight: 'bold',
+            '&:hover': { bgcolor: 'grey.100' } 
+          }}
+          component={Link} 
+          to="/trip-planner"
+          endIcon={<ArrowRight />}
+        >
+          Plan Your Trip
+        </Button>
+      </Paper>
       
       {/* Trip Details Modal */}
       <TripDetailsModal 
@@ -447,13 +534,21 @@ const Dashboard = () => {
       />
 
       {/* Footer */}
-      <footer className="mt-12 border-t pt-8">
-        <div className="text-center text-sm text-muted-foreground">
-          <p>Developed & maintained by Slimene Fellah — Available for freelance work at <a href="https://slimenefellah.dev" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">slimenefellah.dev</a></p>
-        </div>
-      </footer>
-      </div>
-    </div>
+      <Box sx={{ mt: 6, pt: 4, borderTop: 1, borderColor: 'divider', textAlign: 'center' }}>
+        <Typography variant="body2" color="text.secondary">
+          Developed & maintained by Slimene Fellah — Available for freelance work at{' '}
+          <Box 
+            component="a" 
+            href="https://slimenefellah.dev" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            sx={{ color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+          >
+            slimenefellah.dev
+          </Box>
+        </Typography>
+      </Box>
+    </Container>
   );
 };
 

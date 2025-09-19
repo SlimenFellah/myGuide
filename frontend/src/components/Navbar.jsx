@@ -4,32 +4,35 @@
  */
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAppDispatch, useCurrentUser, useIsAdmin } from '../store/hooks';
+import { logoutUser } from '../store/slices/authSlice';
 import { 
   Menu, 
   X, 
   Home, 
   Map, 
   MessageCircle, 
-  Calendar, 
   Settings, 
   LogOut,
   User,
   ChevronDown
 } from 'lucide-react';
-import { Button } from '../components/ui/button';
-// Note: Using simpler alternatives until dropdown-menu and badge components are available
+import { Button, AppBar, Toolbar, Typography, Box, IconButton, Menu as MuiMenu, MenuItem, Avatar, Chip, Container } from '@mui/material';
+import { CalendarToday as Calendar } from '@mui/icons-material';
+// Material-UI components for navigation
 import myGuideLogo from '../assets/myGuide-logo.png';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { user, logout, isAdmin } = useAuth();
+  const dispatch = useAppDispatch();
+  const user = useCurrentUser();
+  const isAdmin = useIsAdmin();
   const location = useLocation();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
+  const handleLogout = async () => {
+    await dispatch(logoutUser());
+    navigate('/');
   };
 
   const navItems = [
@@ -39,193 +42,423 @@ const Navbar = () => {
     { name: 'Chatbot', path: '/chatbot', icon: MessageCircle },
   ];
 
-  if (isAdmin()) {
+  if (isAdmin) {
     navItems.push({ name: 'Admin', path: '/admin', icon: Settings });
   }
 
   return (
-    <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b border-gray-200">
-      <div className="container mx-auto px-4">
-        <div className="flex justify-between items-center h-16">
+    <AppBar position="sticky" sx={{
+      zIndex: 50,
+      backgroundColor: 'rgba(255,255,255,0.95)',
+      backdropFilter: 'blur(10px)',
+      borderBottom: 1,
+      borderColor: 'rgba(229,231,235,1)',
+      boxShadow: 'none'
+    }}>
+      <Container maxWidth="xl" sx={{ px: 2 }}>
+        <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 64 }}>
           {/* Logo */}
-          <div className="flex items-center">
-            <Link to="/dashboard" className="flex items-center space-x-3 group">
-              <div className="relative">
-                <img 
-                  src={myGuideLogo} 
-                  alt="MyGuide" 
-                  className="h-9 w-auto transition-transform group-hover:scale-105"
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Box component={Link} to="/dashboard" sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+              textDecoration: 'none',
+              '&:hover img': {
+                transform: 'scale(1.05)'
+              }
+            }}>
+              <Box sx={{ position: 'relative' }}>
+                <Box
+                  component="img"
+                  src={myGuideLogo}
+                  alt="MyGuide"
+                  sx={{
+                    height: 36,
+                    width: 'auto',
+                    transition: 'transform 0.2s'
+                  }}
                 />
-                <div className="absolute -inset-1 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full opacity-0 group-hover:opacity-20 transition-opacity blur"></div>
-              </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent">MyGuide</span>
-              {isAdmin() && (
-                <span className="text-xs px-2 py-0.5 bg-secondary-100 text-secondary-700 rounded-full font-medium">
-                  Admin
-                </span>
+                <Box sx={{
+                  position: 'absolute',
+                  inset: -1,
+                  background: 'linear-gradient(45deg, #1976d2, #9c27b0)',
+                  borderRadius: '50%',
+                  opacity: 0,
+                  transition: 'opacity 0.2s',
+                  filter: 'blur(4px)',
+                  '&:hover': { opacity: 0.2 }
+                }} />
+              </Box>
+              <Typography variant="h6" sx={{
+                fontWeight: 'bold',
+                background: 'linear-gradient(45deg, #1976d2, #9c27b0)',
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent'
+              }}>
+                MyGuide
+              </Typography>
+              {isAdmin && (
+                <Chip
+                  label="Admin"
+                  size="small"
+                  sx={{
+                    fontSize: '0.75rem',
+                    height: 20,
+                    backgroundColor: 'rgba(156, 39, 176, 0.1)',
+                    color: '#9c27b0',
+                    fontWeight: 500
+                  }}
+                />
               )}
-            </Link>
-          </div>
+            </Box>
+          </Box>
 
           {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center space-x-1">
+          <Box sx={{ display: { xs: 'none', lg: 'flex' }, alignItems: 'center', gap: 0.5 }}>
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
               
               return (
-                <Link
+                <Box
                   key={item.name}
+                  component={Link}
                   to={item.path}
-                  className={`group relative flex items-center space-x-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
-                    isActive
-                      ? 'bg-gradient-to-r from-primary-50 to-secondary-50 text-primary-700 shadow-sm'
-                      : 'text-gray-600 hover:text-primary-600 hover:bg-gray-50/80'
-                  }`}
+                  sx={{
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    px: 2,
+                    py: 1.25,
+                    borderRadius: 3,
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                    textDecoration: 'none',
+                    transition: 'all 0.2s',
+                    ...(isActive ? {
+                      background: 'linear-gradient(45deg, rgba(25, 118, 210, 0.1), rgba(156, 39, 176, 0.1))',
+                      color: '#1976d2',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                    } : {
+                      color: '#666',
+                      '&:hover': {
+                        color: '#1976d2',
+                        bgcolor: 'rgba(0,0,0,0.04)'
+                      }
+                    }),
+                    '&:hover .nav-icon': {
+                      transform: 'scale(1.1)'
+                    }
+                  }}
                 >
-                  <Icon size={18} className={`transition-transform group-hover:scale-110 ${
-                    isActive ? 'text-primary-600' : ''
-                  }`} />
+                  <Icon 
+                    size={18} 
+                    className="nav-icon"
+                    style={{
+                      transition: 'transform 0.2s',
+                      color: isActive ? '#1976d2' : 'inherit'
+                    }}
+                  />
                   <span>{item.name}</span>
                   {isActive && (
-                    <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-primary-600 rounded-full"></div>
+                    <Box sx={{
+                      position: 'absolute',
+                      bottom: 0,
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      width: 4,
+                      height: 4,
+                      bgcolor: '#1976d2',
+                      borderRadius: '50%'
+                    }} />
                   )}
-                </Link>
+                </Box>
               );
             })}
-          </div>
+          </Box>
 
           {/* User Menu */}
-          <div className="hidden lg:flex items-center space-x-3">
-            <div className="flex items-center space-x-2 px-3 py-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full flex items-center justify-center">
-                <User size={16} className="text-white" />
-              </div>
-              <div className="text-left">
-                <div className="text-sm font-medium text-gray-900">
+          <Box sx={{ display: { xs: 'none', lg: 'flex' }, alignItems: 'center', gap: 1.5 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.5, py: 1 }}>
+              <Avatar sx={{
+                width: 32,
+                height: 32,
+                background: 'linear-gradient(45deg, #1976d2, #9c27b0)'
+              }}>
+                <User size={16} style={{ color: 'white' }} />
+              </Avatar>
+              <Box sx={{ textAlign: 'left' }}>
+                <Typography variant="body2" sx={{
+                  fontWeight: 500,
+                  color: 'text.primary',
+                  lineHeight: 1.2
+                }}>
                   {user?.firstName || user?.name}
-                </div>
-                <div className="text-xs text-gray-500">
+                </Typography>
+                <Typography variant="caption" sx={{
+                  color: 'text.secondary',
+                  lineHeight: 1.2
+                }}>
                   {user?.email}
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/profile" className="flex items-center space-x-1">
-                  <User size={16} />
-                  <span className="hidden xl:block">Profile</span>
-                </Link>
+                </Typography>
+              </Box>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Button 
+                variant="text" 
+                size="small" 
+                component={Link} 
+                to="/profile"
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  minWidth: 'auto',
+                  color: 'text.secondary',
+                  '&:hover': {
+                    color: 'primary.main'
+                  }
+                }}
+              >
+                <User size={16} />
+                <Typography variant="body2" sx={{ display: { xs: 'none', xl: 'block' } }}>
+                  Profile
+                </Typography>
               </Button>
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/settings" className="flex items-center space-x-1">
-                  <Settings size={16} />
-                  <span className="hidden xl:block">Settings</span>
-                </Link>
+              <Button 
+                variant="text" 
+                size="small" 
+                component={Link} 
+                to="/settings"
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  minWidth: 'auto',
+                  color: 'text.secondary',
+                  '&:hover': {
+                    color: 'primary.main'
+                  }
+                }}
+              >
+                <Settings size={16} />
+                <Typography variant="body2" sx={{ display: { xs: 'none', xl: 'block' } }}>
+                  Settings
+                </Typography>
               </Button>
               <Button
-                variant="ghost"
-                size="sm"
+                variant="text"
+                size="small"
                 onClick={handleLogout}
-                className="flex items-center space-x-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  minWidth: 'auto',
+                  color: '#d32f2f',
+                  '&:hover': {
+                    color: '#b71c1c',
+                    backgroundColor: 'rgba(211, 47, 47, 0.1)'
+                  }
+                }}
               >
                 <LogOut size={16} />
-                <span className="hidden xl:block">Logout</span>
+                <Typography variant="body2" sx={{ display: { xs: 'none', xl: 'block' } }}>
+                  Logout
+                </Typography>
               </Button>
-            </div>
-          </div>
+            </Box>
+          </Box>
 
           {/* Mobile menu button */}
-          <div className="lg:hidden flex items-center space-x-2">
-            <div className="flex items-center space-x-2 mr-2">
-              <div className="w-7 h-7 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full flex items-center justify-center">
-                <User size={14} className="text-white" />
-              </div>
-              <span className="text-sm font-medium text-gray-700 hidden sm:block">
+          <Box sx={{ display: { lg: 'none' }, alignItems: 'center', gap: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mr: 1 }}>
+              <Avatar sx={{
+                width: 28,
+                height: 28,
+                background: 'linear-gradient(45deg, #1976d2, #9c27b0)'
+              }}>
+                <User size={14} style={{ color: 'white' }} />
+              </Avatar>
+              <Typography variant="body2" sx={{
+                fontWeight: 500,
+                color: 'text.primary',
+                display: { xs: 'none', sm: 'block' }
+              }}>
                 {user?.firstName || user?.name}
-              </span>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
+              </Typography>
+            </Box>
+            <IconButton
               onClick={() => setIsOpen(!isOpen)}
-              className="p-2 h-auto"
+              sx={{
+                p: 0.5,
+                color: 'text.secondary'
+              }}
             >
               {isOpen ? <X size={22} /> : <Menu size={22} />}
-            </Button>
-          </div>
-        </div>
+            </IconButton>
+          </Box>
+        </Toolbar>
 
         {/* Mobile Navigation */}
         {isOpen && (
-          <div className="lg:hidden border-t border-gray-200/60 bg-white/95 backdrop-blur">
-            <div className="px-4 py-6 space-y-1">
+          <Box sx={{
+            display: { lg: 'none' },
+            borderTop: 1,
+            borderColor: 'rgba(229,231,235,0.6)',
+            backgroundColor: 'rgba(255,255,255,0.95)',
+            backdropFilter: 'blur(10px)'
+          }}>
+            <Box sx={{ px: 2, py: 3, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.path;
                 
                 return (
-                  <Link
+                  <Box
                     key={item.name}
+                    component={Link}
                     to={item.path}
                     onClick={() => setIsOpen(false)}
-                    className={`group flex items-center space-x-3 px-4 py-3.5 rounded-xl text-sm font-medium transition-all duration-200 ${
-                      isActive
-                        ? 'bg-gradient-to-r from-primary-50 to-secondary-50 text-primary-700 shadow-sm border border-primary-100'
-                        : 'text-gray-600 hover:text-primary-600 hover:bg-gray-50/80 active:bg-gray-100'
-                    }`}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 2,
+                      px: 2,
+                      py: 1.5,
+                      borderRadius: 3,
+                      fontSize: '0.875rem',
+                      fontWeight: 500,
+                      textDecoration: 'none',
+                      transition: 'all 0.2s',
+                      ...(isActive ? {
+                        background: 'linear-gradient(45deg, rgba(25, 118, 210, 0.1), rgba(156, 39, 176, 0.1))',
+                        color: '#1976d2',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                        border: '1px solid rgba(25, 118, 210, 0.2)'
+                      } : {
+                        color: '#666',
+                        '&:hover': {
+                          color: '#1976d2',
+                          bgcolor: 'rgba(0,0,0,0.04)'
+                        }
+                      })
+                    }}
                   >
-                    <div className={`p-1.5 rounded-lg ${
-                      isActive 
-                        ? 'bg-primary-100 text-primary-600' 
-                        : 'bg-gray-100 group-hover:bg-primary-50 group-hover:text-primary-600'
-                    } transition-colors`}>
+                    <Box sx={{
+                      p: 0.75,
+                      borderRadius: 2,
+                      transition: 'colors 0.2s',
+                      ...(isActive ? {
+                        bgcolor: 'rgba(25, 118, 210, 0.2)',
+                        color: '#1976d2'
+                      } : {
+                        bgcolor: '#f5f5f5'
+                      })
+                    }}>
                       <Icon size={18} />
-                    </div>
-                    <span className="flex-1">{item.name}</span>
+                    </Box>
+                    <Box sx={{ flex: 1 }}>{item.name}</Box>
                     {isActive && (
-                      <div className="w-2 h-2 bg-primary-600 rounded-full"></div>
+                      <Box sx={{ width: 8, height: 8, bgcolor: '#1976d2', borderRadius: '50%' }} />
                     )}
-                  </Link>
+                  </Box>
                 );
               })}
               
-              <div className="border-t border-gray-200/60 pt-6 mt-6 space-y-1">
-                <Link
+              <Box sx={{ borderTop: 1, borderColor: 'rgba(0,0,0,0.1)', pt: 3, mt: 3 }}>
+                <Box
+                  component={Link}
                   to="/profile"
                   onClick={() => setIsOpen(false)}
-                  className="flex items-center space-x-3 px-4 py-3.5 rounded-xl text-sm font-medium text-gray-600 hover:text-primary-600 hover:bg-gray-50/80 transition-all duration-200"
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 2,
+                    px: 2,
+                    py: 1.5,
+                    borderRadius: 3,
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                    color: '#666',
+                    textDecoration: 'none',
+                    transition: 'all 0.2s',
+                    '&:hover': {
+                      color: '#1976d2',
+                      bgcolor: 'rgba(0,0,0,0.04)'
+                    }
+                  }}
                 >
-                  <div className="p-1.5 rounded-lg bg-gray-100 hover:bg-primary-50 hover:text-primary-600 transition-colors">
+                  <Box sx={{ p: 0.75, borderRadius: 2, bgcolor: '#f5f5f5', transition: 'colors 0.2s' }}>
                     <User size={18} />
-                  </div>
+                  </Box>
                   <span>Profile</span>
-                </Link>
-                <Link
+                </Box>
+                <Box
+                  component={Link}
                   to="/settings"
                   onClick={() => setIsOpen(false)}
-                  className="flex items-center space-x-3 px-4 py-3.5 rounded-xl text-sm font-medium text-gray-600 hover:text-primary-600 hover:bg-gray-50/80 transition-all duration-200"
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 2,
+                    px: 2,
+                    py: 1.5,
+                    borderRadius: 3,
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                    color: '#666',
+                    textDecoration: 'none',
+                    transition: 'all 0.2s',
+                    '&:hover': {
+                      color: '#1976d2',
+                      bgcolor: 'rgba(0,0,0,0.04)'
+                    }
+                  }}
                 >
-                  <div className="p-1.5 rounded-lg bg-gray-100 hover:bg-primary-50 hover:text-primary-600 transition-colors">
+                  <Box sx={{ p: 0.75, borderRadius: 2, bgcolor: '#f5f5f5', transition: 'colors 0.2s' }}>
                     <Settings size={18} />
-                  </div>
+                  </Box>
                   <span>Settings</span>
-                </Link>
-                <button
+                </Box>
+                <Box
+                  component="button"
                   onClick={handleLogout}
-                  className="flex items-center space-x-3 px-4 py-3.5 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 active:bg-red-100 transition-all duration-200 w-full text-left"
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 2,
+                    px: 2,
+                    py: 1.5,
+                    borderRadius: 3,
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                    color: '#d32f2f',
+                    bgcolor: 'transparent',
+                    border: 'none',
+                    width: '100%',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    '&:hover': {
+                      bgcolor: 'rgba(211, 47, 47, 0.1)'
+                    }
+                  }}
                 >
-                  <div className="p-1.5 rounded-lg bg-red-50 text-red-600">
+                  <Box sx={{ p: 0.75, borderRadius: 2, bgcolor: 'rgba(211, 47, 47, 0.1)', color: '#d32f2f' }}>
                     <LogOut size={18} />
-                  </div>
+                  </Box>
                   <span>Logout</span>
-                </button>
-              </div>
-            </div>
-          </div>
+                </Box>
+              </Box>
+            </Box>
+          </Box>
         )}
-      </div>
-    </nav>
+      </Container>
+    </AppBar>
   );
 };
 

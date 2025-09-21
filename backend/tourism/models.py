@@ -123,7 +123,7 @@ class Place(models.Model):
     name = models.CharField(max_length=200)
     name_ar = models.CharField(max_length=200, blank=True, null=True)
     municipality = models.ForeignKey(Municipality, on_delete=models.CASCADE, related_name='places')
-    category = models.ForeignKey(PlaceCategory, on_delete=models.SET_NULL, null=True, blank=True)
+    category = models.ForeignKey(PlaceCategory, on_delete=models.SET_NULL, null=True, blank=True, related_name='places')
     place_type = models.CharField(max_length=20, choices=PLACE_TYPES)
     description = models.TextField()
     description_ar = models.TextField(blank=True, null=True)

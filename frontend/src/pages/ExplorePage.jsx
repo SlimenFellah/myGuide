@@ -9,6 +9,7 @@ import { fetchProvinces, fetchPlaces, searchPlaces } from '../store/slices/touri
 import { addNotification } from '../store/slices/appSlice';
 import { addToFavorites, removeFromFavorites } from '../store/slices/tripPlannerSlice';
 import { apiService } from '../services';
+import PlaceDetailModal from '../components/PlaceDetailModal';
 import { 
   Search, 
   Filter, 
@@ -42,6 +43,8 @@ const ExplorePage = () => {
   const [selectedProvince, setSelectedProvince] = useState('all');
   const [viewMode, setViewMode] = useState('grid');
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedPlaceId, setSelectedPlaceId] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
   
   // Use search results if available, otherwise use places
   const displayPlaces = Array.isArray(searchResults) && searchResults.length > 0 ? searchResults : Array.isArray(places) ? places : [];
@@ -160,6 +163,16 @@ const ExplorePage = () => {
     }
   }, [selectedCategory, selectedProvince, handleFilterChange]);
 
+  const handlePlaceClick = (placeId) => {
+    setSelectedPlaceId(placeId);
+    setModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setModalOpen(false);
+    setSelectedPlaceId(null);
+  };
+
   const PlaceCard = ({ place }) => (
     <Card sx={{
       cursor: 'pointer',
@@ -254,7 +267,7 @@ const ExplorePage = () => {
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
           <MapPin size={14} style={{ marginRight: 4, color: '#6b7280' }} />
           <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-            {place.municipality}, {place.province}
+            {typeof place.municipality === 'object' ? place.municipality?.name : place.municipality || 'Unknown'}, {typeof place.province === 'object' ? place.province?.name : place.province || 'Unknown'}
           </Typography>
         </Box>
         
@@ -351,7 +364,7 @@ const ExplorePage = () => {
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <MapPin size={14} style={{ marginRight: 4, color: '#6b7280' }} />
               <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                {place.municipality}, {place.province}
+                {typeof place.municipality === 'object' ? place.municipality?.name : place.municipality || 'Unknown'}, {typeof place.province === 'object' ? place.province?.name : place.province || 'Unknown'}
               </Typography>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -763,7 +776,7 @@ const ExplorePage = () => {
           })
         }}>
           {filteredPlaces.map((place) => (
-            <Box key={place.id} onClick={() => console.log('Navigate to place:', place.id)} sx={{ cursor: 'pointer' }}>
+            <Box key={place.id} onClick={() => handlePlaceClick(place.id)} sx={{ cursor: 'pointer' }}>
               {viewMode === 'grid' 
                 ? <PlaceCard place={place} />
                 : <PlaceListItem place={place} />
@@ -773,6 +786,13 @@ const ExplorePage = () => {
         </Box>
          )}
       </Container>
+      
+      {/* Place Detail Modal */}
+      <PlaceDetailModal
+        open={modalOpen}
+        onClose={handleModalClose}
+        placeId={selectedPlaceId}
+      />
      </Box>
    );
 };

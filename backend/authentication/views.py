@@ -25,6 +25,7 @@ from .serializers import (
     PasswordResetConfirmSerializer,
     UserListSerializer
 )
+from .token_validation import TokenValidator, token_validation_response
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     """Custom JWT token obtain view"""
@@ -265,3 +266,45 @@ def log_user_activity(request):
     )
     
     return Response({'message': 'Activity logged successfully'}, status=status.HTTP_201_CREATED)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def validate_token(request):
+    """Validate JWT token and check expiration status"""
+    token = request.data.get('token')
+    
+    if not token:
+        return Response(
+            {'error': 'Token is required'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    # Validate the token
+    validation_result = TokenValidator.validate_token(token)
+    
+    return token_validation_response(validation_result)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def check_token_status(request):
+    """Check current user's token status"""
+    # Get token from request headers
+    auth_header = request.META.get('HTTP_AUTHORIZATION', '')
+    
+    if not auth_header.startswith('Bearer '):
+        return Response(
+            {'error': 'Invalid authorization header'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    token = auth_header.split(' ')[1]
+    validation_result = TokenValidator.validate_token(token)
+    
+    # Add user information to response
+    if validation_result['valid']:
+        validation_result['user_id'] = request.user.id
+        validation_result['username'] = request.user.username
+    
+    return token_validation_response(validation_result)

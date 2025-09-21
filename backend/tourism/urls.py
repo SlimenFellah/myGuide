@@ -34,6 +34,7 @@ urlpatterns = [
     
     # Feedback URLs
     path('places/<int:place_id>/feedbacks/', views.FeedbackListView.as_view(), name='feedback-list'),
+    path('feedbacks/', views.FeedbackListAllView.as_view(), name='feedback-list-all'),
     path('feedbacks/create/', views.FeedbackCreateView.as_view(), name='feedback-create'),
     path('feedbacks/<int:pk>/', views.FeedbackDetailView.as_view(), name='feedback-detail'),
     path('feedbacks/<int:feedback_id>/helpful/', views.FeedbackHelpfulToggleView.as_view(), name='feedback-helpful-toggle'),

@@ -202,6 +202,28 @@ export const authService = {
     }
   },
 
+  // Check token status
+  checkTokenStatus: async () => {
+    try {
+      const response = await api.get('/auth/token/status/');
+      return response.data;
+    } catch (error) {
+      console.error('Token status check failed:', error);
+      throw error;
+    }
+  },
+
+  // Validate specific token
+  validateToken: async (token) => {
+    try {
+      const response = await api.post('/auth/token/validate/', { token });
+      return response.data;
+    } catch (error) {
+      console.error('Token validation failed:', error);
+      throw error;
+    }
+  },
+
   isAuthenticated() {
     return !!localStorage.getItem('access_token');
   },

@@ -25,6 +25,7 @@ import {
   Star,
   Flag
 } from 'lucide-react';
+import { adminService } from '../services/adminService';
 import { 
   Button, 
   Card, 
@@ -51,7 +52,14 @@ import {
   Paper,
   InputAdornment,
   IconButton,
-  Badge
+  Badge,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  FormHelperText,
+  Avatar,
+  CircularProgress
 } from '@mui/material';
 import { CalendarToday as Calendar } from '@mui/icons-material';
 
@@ -71,6 +79,29 @@ const AdminDashboard = () => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
+  const [showAddPlaceModal, setShowAddPlaceModal] = useState(false);
+  const [showEditPlaceModal, setShowEditPlaceModal] = useState(false);
+  const [showViewPlaceModal, setShowViewPlaceModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [showViewUserModal, setShowViewUserModal] = useState(false);
+  const [showEditUserModal, setShowEditUserModal] = useState(false);
+  const [selectedPlace, setSelectedPlace] = useState(null);
+  const [newPlace, setNewPlace] = useState({
+    name: '',
+    description: '',
+    province: '',
+    district: '',
+    municipality: '',
+    category: '',
+    address: '',
+    latitude: '',
+    longitude: '',
+    average_cost: '',
+    opening_hours: '',
+    contact_info: '',
+    website: '',
+    image: null
+  });
 
   useEffect(() => {
     fetchAdminData();
@@ -102,8 +133,15 @@ const AdminDashboard = () => {
       const placesStats = await placesStatsRes.json();
       const provincesStats = await provincesStatsRes.json();
 
-      // Handle paginated response - extract results array
-      const users = usersData.results || usersData || [];
+      // Handle paginated response - extract results array with better error handling
+      let users = [];
+      if (usersData && typeof usersData === 'object') {
+        if (Array.isArray(usersData.results)) {
+          users = usersData.results;
+        } else if (Array.isArray(usersData)) {
+          users = usersData;
+        }
+      }
       
       // Calculate statistics from real data
       setStats({
@@ -113,8 +151,8 @@ const AdminDashboard = () => {
         monthlyVisits: Math.floor(Math.random() * 10000) + 5000 // Simulated for now
       });
 
-      // Set real users data
-      const formattedUsers = users.map(user => ({
+      // Set real users data with null check
+      const formattedUsers = Array.isArray(users) ? users.map(user => ({
         id: user.id,
         firstName: user.first_name || 'Unknown',
         lastName: user.last_name || 'User',
@@ -123,7 +161,7 @@ const AdminDashboard = () => {
         status: user.is_active ? 'active' : 'inactive',
         joinDate: user.date_joined ? user.date_joined.split('T')[0] : '2024-01-01',
         lastLogin: user.last_login ? user.last_login.split('T')[0] : '2024-01-01'
-      }));
+      })) : [];
       setUsers(formattedUsers);
 
       // Fetch real places data
@@ -133,11 +171,11 @@ const AdminDashboard = () => {
       const formattedPlaces = placesData.results ? placesData.results.map(place => ({
         id: place.id,
         name: place.name,
-        province: place.municipality?.district?.province?.name || 'Unknown',
-        district: place.municipality?.district?.name || 'Unknown',
-        municipality: place.municipality?.name || 'Unknown',
-        category: place.category?.name || 'Unknown',
-        status: place.is_approved ? 'approved' : 'pending',
+        province: typeof place.province === 'object' ? place.province?.name : place.province || 'Unknown',
+        district: typeof place.district === 'object' ? place.district?.name : place.district || 'Unknown',
+        municipality: typeof place.municipality === 'object' ? place.municipality?.name : place.municipality || 'Unknown',
+        category: typeof place.category === 'object' ? place.category?.name : place.category || 'Unknown',
+        status: place.is_active ? 'active' : 'inactive',
         rating: place.average_rating || 0,
         reviews: place.feedback_count || 0,
         averageCost: place.average_cost || 0,
@@ -148,32 +186,50 @@ const AdminDashboard = () => {
 
       // Fetch real feedbacks data from all places
       let allFeedbacks = [];
-      if (formattedPlaces.length > 0) {
-        const feedbackPromises = formattedPlaces.slice(0, 5).map(async (place) => {
-          try {
-            const feedbackRes = await fetch(`http://127.0.0.1:8000/api/tourism/places/${place.id}/feedbacks/`, { headers });
-            const feedbackData = await feedbackRes.json();
-            return feedbackData.results ? feedbackData.results.map(feedback => ({
+      try {
+        console.log('🔍 Starting to fetch feedbacks...');
+        // Fetch all feedbacks at once
+        const feedbackRes = await fetch('http://127.0.0.1:8000/api/tourism/feedbacks/', { 
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        console.log('📡 Feedback API response status:', feedbackRes.status);
+        
+        if (!feedbackRes.ok) {
+          throw new Error(`HTTP error! Status: ${feedbackRes.status}`);
+        }
+        
+        const feedbackData = await feedbackRes.json();
+        console.log('📊 Raw feedback data:', feedbackData);
+        
+        if (feedbackData.results) {
+          console.log('✅ Found feedbacks in results:', feedbackData.results.length);
+          allFeedbacks = feedbackData.results.map(feedback => {
+            const place = formattedPlaces.find(p => p.id === feedback.place) || { name: 'Unknown Place' };
+            return {
               id: feedback.id,
-              placeId: place.id,
+              placeId: feedback.place,
               placeName: place.name,
               userId: feedback.user?.id || 0,
               userName: feedback.user ? `${feedback.user.first_name || ''} ${feedback.user.last_name || ''}`.trim() || feedback.user.username : 'Anonymous',
               rating: feedback.rating,
               comment: feedback.comment,
-              status: feedback.is_approved ? 'approved' : (feedback.is_flagged ? 'flagged' : 'pending'),
+              status: feedback.status || 'pending',
               date: feedback.created_at ? feedback.created_at.split('T')[0] : '2024-01-01',
               type: feedback.rating <= 2 ? 'complaint' : 'review'
-            })) : [];
-          } catch (error) {
-            console.error(`Error fetching feedbacks for place ${place.id}:`, error);
-            return [];
-          }
-        });
-        
-        const feedbackArrays = await Promise.all(feedbackPromises);
-        allFeedbacks = feedbackArrays.flat();
+            };
+          });
+          console.log('🎯 Processed feedbacks:', allFeedbacks);
+        } else {
+          console.log('❌ No results key in feedback data');
+        }
+      } catch (error) {
+        console.error('❌ Error fetching feedbacks:', error);
       }
+      console.log('💾 Setting feedbacks state:', allFeedbacks);
       setFeedbacks(allFeedbacks);
 
       // Set provinces data from the stats we already fetched
@@ -226,6 +282,316 @@ const AdminDashboard = () => {
       feedback.id === feedbackId ? { ...feedback, status: 'rejected' } : feedback
     ));
   };
+
+  // Place management functions
+  const handleAddPlace = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const formData = new FormData();
+      
+      // Add all form fields to FormData
+      Object.keys(newPlace).forEach(key => {
+        if (newPlace[key] !== null && newPlace[key] !== '') {
+          formData.append(key, newPlace[key]);
+        }
+      });
+
+      const response = await fetch('http://127.0.0.1:8000/api/tourism/places/', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (response.ok) {
+        const newPlaceData = await response.json();
+        setPlaces([...places, {
+          id: newPlaceData.id,
+          name: newPlaceData.name,
+          province: newPlaceData.municipality?.district?.province?.name || 'Unknown',
+          district: newPlaceData.municipality?.district?.name || 'Unknown',
+          municipality: newPlaceData.municipality?.name || 'Unknown',
+          category: newPlaceData.category?.name || 'Unknown',
+          status: newPlaceData.is_approved ? 'approved' : 'pending',
+          rating: newPlaceData.average_rating || 0,
+          reviews: newPlaceData.feedback_count || 0,
+          averageCost: newPlaceData.average_cost || 0,
+          addedBy: 'admin',
+          addedDate: new Date().toISOString().split('T')[0]
+        }]);
+        setShowAddPlaceModal(false);
+        setNewPlace({
+          name: '',
+          description: '',
+          province: '',
+          district: '',
+          municipality: '',
+          category: '',
+          address: '',
+          latitude: '',
+          longitude: '',
+          average_cost: '',
+          opening_hours: '',
+          contact_info: '',
+          website: '',
+          image: null
+        });
+      } else {
+        console.error('Failed to add place');
+      }
+    } catch (error) {
+      console.error('Error adding place:', error);
+    }
+  };
+
+  const handleEditPlace = async (place) => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`http://127.0.0.1:8000/api/tourism/places/${place.id}/`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const detailedPlace = await response.json();
+        setSelectedPlace(detailedPlace);
+        setNewPlace({
+          name: detailedPlace.name || '',
+          description: detailedPlace.description || '',
+          province: detailedPlace.municipality?.district?.province?.id || '',
+          district: detailedPlace.municipality?.district?.id || '',
+          municipality: detailedPlace.municipality?.id || '',
+          category: detailedPlace.category?.id || '',
+          address: detailedPlace.address || '',
+          latitude: detailedPlace.latitude || '',
+          longitude: detailedPlace.longitude || '',
+          entry_fee: detailedPlace.entry_fee || '',
+          opening_hours: detailedPlace.opening_hours ? JSON.stringify(detailedPlace.opening_hours) : '',
+          phone: detailedPlace.phone || '',
+          website: detailedPlace.website || '',
+          place_type: detailedPlace.place_type || '',
+          email: detailedPlace.email || '',
+          tags: detailedPlace.tags ? JSON.stringify(detailedPlace.tags) : '',
+          amenities: detailedPlace.amenities ? JSON.stringify(detailedPlace.amenities) : '',
+          image: null
+        });
+      } else {
+        setSelectedPlace(place);
+        setNewPlace({
+          name: place.name || '',
+          description: place.description || '',
+          province: place.province || '',
+          district: place.district || '',
+          municipality: place.municipality || '',
+          category: place.category || '',
+          address: place.address || '',
+          latitude: place.latitude || '',
+          longitude: place.longitude || '',
+          average_cost: place.averageCost || '',
+          opening_hours: place.opening_hours || '',
+          contact_info: place.contact_info || '',
+          website: place.website || '',
+          image: null
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching place details:', error);
+      setSelectedPlace(place);
+      setNewPlace({
+        name: place.name || '',
+        description: place.description || '',
+        province: place.province || '',
+        district: place.district || '',
+        municipality: place.municipality || '',
+        category: place.category || '',
+        address: place.address || '',
+        latitude: place.latitude || '',
+        longitude: place.longitude || '',
+        average_cost: place.averageCost || '',
+        opening_hours: place.opening_hours || '',
+        contact_info: place.contact_info || '',
+        website: place.website || '',
+        image: null
+      });
+    }
+    setShowEditPlaceModal(true);
+  };
+
+  const handleUpdatePlace = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const formData = new FormData();
+      
+      // Add all fields to formData
+      Object.keys(newPlace).forEach(key => {
+        if (key === 'image' && newPlace[key] instanceof File) {
+          formData.append('image', newPlace[key]);
+        } else if (newPlace[key] !== null && newPlace[key] !== undefined && key !== 'image') {
+          formData.append(key, newPlace[key]);
+        }
+      });
+
+      const response = await fetch(`http://127.0.0.1:8000/api/tourism/places/${selectedPlace.id}/`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (response.ok) {
+        const updatedPlaceData = await response.json();
+        setPlaces(places.map(place => 
+          place.id === selectedPlace.id ? {
+            ...place,
+            id: updatedPlaceData.id,
+            name: updatedPlaceData.name,
+            description: updatedPlaceData.description,
+            province: updatedPlaceData.province,
+            district: updatedPlaceData.district,
+            municipality: updatedPlaceData.municipality,
+            category: updatedPlaceData.category?.name || 'Unknown',
+            latitude: updatedPlaceData.latitude,
+            longitude: updatedPlaceData.longitude,
+            address: updatedPlaceData.address,
+            averageCost: updatedPlaceData.average_cost || 0,
+            opening_hours: updatedPlaceData.opening_hours,
+            contact_info: updatedPlaceData.contact_info,
+            website: updatedPlaceData.website,
+            image_url: updatedPlaceData.image_url
+          } : place
+        ));
+        setShowEditPlaceModal(false);
+        setSelectedPlace(null);
+      } else {
+        const errorData = await response.json();
+        console.error('Error updating place:', errorData);
+        alert('Failed to update place. Please check the form and try again.');
+      }
+    } catch (error) {
+      console.error('Error updating place:', error);
+      alert('An error occurred while updating the place.');
+    }
+  };
+
+  const handleDeletePlace = async (placeId) => {
+    if (window.confirm('Are you sure you want to delete this place?')) {
+      try {
+        const token = localStorage.getItem('access_token');
+        const response = await fetch(`http://127.0.0.1:8000/api/tourism/places/${placeId}/`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          setPlaces(places.filter(place => place.id !== placeId));
+        }
+      } catch (error) {
+        console.error('Error deleting place:', error);
+      }
+    }
+  };
+
+  const handleViewPlace = async (place) => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`http://127.0.0.1:8000/api/tourism/places/${place.id}/`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const detailedPlace = await response.json();
+        setSelectedPlace(detailedPlace);
+      } else {
+        setSelectedPlace(place);
+      }
+    } catch (error) {
+      console.error('Error fetching place details:', error);
+      setSelectedPlace(place);
+    }
+    setShowViewPlaceModal(true);
+  };
+
+  // User management functions
+  const handleDeleteUser = async (userId) => {
+    if (window.confirm('Are you sure you want to delete this user?')) {
+      try {
+        await adminService.users.delete(userId);
+        setUsers(users.filter(user => user.id !== userId));
+        console.log('User deleted successfully');
+      } catch (error) {
+        console.error('Error deleting user:', error);
+        alert('Failed to delete user. Please try again.');
+      }
+    }
+  };
+
+  const handleToggleUserStatus = async (userId, currentStatus) => {
+    try {
+      const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+      await adminService.users.updateStatus(userId, newStatus);
+      setUsers(users.map(user => 
+        user.id === userId ? { ...user, status: newStatus } : user
+      ));
+      console.log('User status updated successfully');
+    } catch (error) {
+      console.error('Error updating user status:', error);
+      alert('Failed to update user status. Please try again.');
+    }
+  };
+
+  const handleEditUser = (user) => {
+    setSelectedUser(user);
+    setShowEditUserModal(true);
+  };
+
+  const handleUpdateUserRole = async (userId, newRole) => {
+    try {
+      await adminService.users.updateRole(userId, newRole);
+      setUsers(users.map(user => 
+        user.id === userId ? { ...user, role: newRole } : user
+      ));
+      setShowEditUserModal(false);
+      console.log('User role updated successfully');
+    } catch (error) {
+      console.error('Error updating user role:', error);
+      alert('Failed to update user role. Please try again.');
+    }
+  };
+
+  const handleViewUser = (user) => {
+    setSelectedUser(user);
+    setShowViewUserModal(true);
+  };
+
+  const handleDeleteFeedback = async (feedbackId) => {
+     if (window.confirm('Are you sure you want to delete this feedback?')) {
+       try {
+         const token = localStorage.getItem('access_token');
+         const feedback = feedbacks.find(f => f.id === feedbackId);
+         const response = await fetch(`http://127.0.0.1:8000/api/tourism/places/${feedback.placeId}/feedbacks/${feedbackId}/`, {
+           method: 'DELETE',
+           headers: {
+             'Authorization': `Bearer ${token}`
+           }
+         });
+ 
+         if (response.ok) {
+           setFeedbacks(feedbacks.filter(feedback => feedback.id !== feedbackId));
+         }
+       } catch (error) {
+         console.error('Error deleting feedback:', error);
+       }
+     }
+   };
 
   const StatCard = ({ title, value, icon: Icon, color, change }) => (
     <Card sx={{
@@ -469,33 +835,6 @@ const AdminDashboard = () => {
         <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
           User Management
         </Typography>
-        <Box sx={{ display: 'flex', gap: 1.5 }}>
-          <Button 
-            variant="outlined"
-            startIcon={<Download size={16} />}
-            sx={{
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                transform: 'scale(1.05)'
-              }
-            }}
-          >
-            Export
-          </Button>
-          <Button 
-            variant="contained"
-            startIcon={<Plus size={16} />}
-            sx={{
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                transform: 'scale(1.05)',
-                boxShadow: 4
-              }
-            }}
-          >
-            Add User
-          </Button>
-        </Box>
       </Box>
 
       {/* Search and Filters */}
@@ -576,7 +915,7 @@ const AdminDashboard = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {users.map((user) => (
+            {Array.isArray(users) && users.map((user) => (
               <TableRow 
                 key={user.id} 
                 sx={{
@@ -623,6 +962,7 @@ const AdminDashboard = () => {
                   <Box sx={{ display: 'flex', gap: 0.5 }}>
                     <IconButton 
                       size="small"
+                      onClick={() => handleViewUser(user)}
                       sx={{
                         '&:hover': {
                           backgroundColor: 'primary.50',
@@ -634,6 +974,7 @@ const AdminDashboard = () => {
                     </IconButton>
                     <IconButton 
                       size="small"
+                      onClick={() => handleEditUser(user)}
                       sx={{
                         '&:hover': {
                           backgroundColor: 'grey.100'
@@ -644,6 +985,7 @@ const AdminDashboard = () => {
                     </IconButton>
                     <IconButton 
                       size="small"
+                      onClick={() => handleDeleteUser(user.id)}
                       sx={{
                         '&:hover': {
                           backgroundColor: 'error.50',
@@ -669,20 +1011,9 @@ const AdminDashboard = () => {
         <Typography variant="h4" sx={{ fontWeight: 'bold' }}>Places Management</Typography>
         <Box sx={{ display: 'flex', gap: 1.5 }}>
           <Button 
-            variant="outlined" 
-            startIcon={<Upload size={16} />}
-            sx={{
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                transform: 'scale(1.05)'
-              }
-            }}
-          >
-            Import
-          </Button>
-          <Button 
             variant="contained" 
             startIcon={<Plus size={16} />}
+            onClick={() => setShowAddPlaceModal(true)}
             sx={{
               transition: 'all 0.3s ease',
               '&:hover': {
@@ -770,40 +1101,10 @@ const AdminDashboard = () => {
                 </TableCell>
                 <TableCell>
                   <Box sx={{ display: 'flex', gap: 0.5 }}>
-                    {place.status === 'pending' && (
-                      <>
-                        <IconButton 
-                          onClick={() => handleApprovePlace(place.id)}
-                          size="small"
-                          title="Approve"
-                          sx={{
-                            color: 'success.main',
-                            '&:hover': {
-                              backgroundColor: 'success.50',
-                              color: 'success.dark'
-                            }
-                          }}
-                        >
-                          <CheckCircle size={16} />
-                        </IconButton>
-                        <IconButton 
-                          onClick={() => handleRejectPlace(place.id)}
-                          size="small"
-                          title="Reject"
-                          sx={{
-                            color: 'error.main',
-                            '&:hover': {
-                              backgroundColor: 'error.50',
-                              color: 'error.dark'
-                            }
-                          }}
-                        >
-                          <XCircle size={16} />
-                        </IconButton>
-                      </>
-                    )}
                     <IconButton 
+                      onClick={() => handleViewPlace(place)}
                       size="small"
+                      title="View Details"
                       sx={{
                         color: 'info.main',
                         '&:hover': {
@@ -815,7 +1116,9 @@ const AdminDashboard = () => {
                       <Eye size={16} />
                     </IconButton>
                     <IconButton 
+                      onClick={() => handleEditPlace(place)}
                       size="small"
+                      title="Edit Place"
                       sx={{
                         '&:hover': {
                           backgroundColor: 'grey.100'
@@ -825,7 +1128,9 @@ const AdminDashboard = () => {
                       <Edit size={16} />
                     </IconButton>
                     <IconButton 
+                      onClick={() => handleDeletePlace(place.id)}
                       size="small"
+                      title="Delete Place"
                       sx={{
                         color: 'error.main',
                         '&:hover': {
@@ -846,41 +1151,24 @@ const AdminDashboard = () => {
     </Box>
   );
 
-  const renderFeedbacks = () => (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Typography variant="h4" sx={{ fontWeight: 'bold' }}>Feedback Management</Typography>
-        <Box sx={{ display: 'flex', gap: 1.5 }}>
-          <Button 
-            variant="outlined" 
-            startIcon={<Filter size={16} />}
-            sx={{
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                transform: 'scale(1.05)'
-              }
-            }}
-          >
-            Filter
-          </Button>
-          <Button 
-            variant="outlined" 
-            startIcon={<Download size={16} />}
-            sx={{
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                transform: 'scale(1.05)'
-              }
-            }}
-          >
-            Export
-          </Button>
+  const renderFeedbacks = () => {
+    console.log('🎨 Rendering feedbacks, current feedbacks state:', feedbacks);
+    console.log('📊 Feedbacks array length:', feedbacks.length);
+    
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Typography variant="h4" sx={{ fontWeight: 'bold' }}>Feedback Management</Typography>
         </Box>
-      </Box>
 
-      {/* Feedbacks List */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        {feedbacks.map((feedback) => (
+        {/* Debug info */}
+        {feedbacks.length === 0 && (
+          <Typography color="text.secondary">No feedbacks found. Total feedbacks in state: {feedbacks.length}</Typography>
+        )}
+
+        {/* Feedbacks List */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {feedbacks.map((feedback) => (
           <Card 
             key={feedback.id} 
             sx={{
@@ -931,56 +1219,32 @@ const AdminDashboard = () => {
                   </Box>
                 </Box>
                 
-                {feedback.status === 'pending' && (
-                  <Box sx={{ display: 'flex', gap: 1, ml: 2 }}>
-                    <Button 
-                      onClick={() => handleApproveFeedback(feedback.id)}
-                      variant="outlined"
-                      size="small"
-                      startIcon={<CheckCircle size={16} />}
-                      sx={{
-                        color: 'success.main',
-                        borderColor: 'success.light',
-                        '&:hover': {
-                          backgroundColor: 'success.50',
-                          borderColor: 'success.main'
-                        }
-                      }}
-                    >
-                      Approve
-                    </Button>
-                    <Button 
-                      onClick={() => handleRejectFeedback(feedback.id)}
-                      variant="outlined"
-                      size="small"
-                      startIcon={<XCircle size={16} />}
-                      sx={{
-                        color: 'error.main',
-                        borderColor: 'error.light',
-                        '&:hover': {
-                          backgroundColor: 'error.50',
-                          borderColor: 'error.main'
-                        }
-                      }}
-                    >
-                      Reject
-                    </Button>
-                  </Box>
-                )}
-                
-                {feedback.status === 'flagged' && (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 2 }}>
-                    <AlertTriangle style={{ color: '#ef4444' }} size={16} />
-                    <Typography variant="body2" sx={{ color: 'error.main', fontWeight: 500 }}>Flagged for Review</Typography>
-                  </Box>
-                )}
+                <Box sx={{ display: 'flex', gap: 1, ml: 2 }}>
+                  <Button 
+                    onClick={() => handleDeleteFeedback(feedback.id)}
+                    variant="outlined"
+                    size="small"
+                    startIcon={<Trash2 size={16} />}
+                    sx={{
+                      color: 'error.main',
+                      borderColor: 'error.light',
+                      '&:hover': {
+                        backgroundColor: 'error.50',
+                        borderColor: 'error.main'
+                      }
+                    }}
+                  >
+                    Delete
+                  </Button>
+                </Box>
               </Box>
             </CardContent>
           </Card>
         ))}
       </Box>
     </Box>
-  );
+    );
+  };
 
   const tabs = [
     { id: 'overview', name: 'Overview', icon: BarChart3 },
@@ -1184,7 +1448,1315 @@ const AdminDashboard = () => {
         </Box>
         </Container>
       </Box>
+      
+      {/* Modals */}
+      <AddPlaceModal 
+        open={showAddPlaceModal}
+        onClose={() => setShowAddPlaceModal(false)}
+        newPlace={newPlace}
+        setNewPlace={setNewPlace}
+        onSubmit={handleAddPlace}
+      />
+      
+      <EditPlaceModal 
+        open={showEditPlaceModal}
+        onClose={() => setShowEditPlaceModal(false)}
+        place={selectedPlace}
+        setPlace={setSelectedPlace}
+        onSubmit={handleUpdatePlace}
+      />
+      
+      <ViewPlaceModal 
+        open={showViewPlaceModal}
+        onClose={() => setShowViewPlaceModal(false)}
+        place={selectedPlace}
+      />
+      
+      <ViewUserModal
+        open={showViewUserModal}
+        onClose={() => setShowViewUserModal(false)}
+        user={selectedUser}
+      />
+      
+      <EditUserModal
+        open={showEditUserModal}
+        onClose={() => setShowEditUserModal(false)}
+        user={selectedUser}
+        onUpdateRole={handleUpdateUserRole}
+      />
     </Box>
+  );
+};
+
+// Add Place Modal
+const AddPlaceModal = ({ open, onClose, newPlace, setNewPlace, onSubmit }) => {
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState('');
+  const [availableProvinces, setAvailableProvinces] = useState([]);
+  const [availableDistricts, setAvailableDistricts] = useState([]);
+  const [availableMunicipalities, setAvailableMunicipalities] = useState([]);
+  const [availableCategories, setAvailableCategories] = useState([]);
+
+  // Fetch provinces and categories on modal open
+  useEffect(() => {
+    if (open) {
+      fetchProvincesData();
+      fetchCategoriesData();
+    }
+  }, [open]);
+
+  const fetchProvincesData = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch('http://127.0.0.1:8000/api/tourism/provinces/', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await response.json();
+      setAvailableProvinces(data.results || []);
+    } catch (error) {
+      console.error('Error fetching provinces:', error);
+    }
+  };
+
+  const fetchDistrictsData = async (provinceId) => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`http://127.0.0.1:8000/api/tourism/districts/?province=${provinceId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await response.json();
+      setAvailableDistricts(data.results || []);
+    } catch (error) {
+      console.error('Error fetching districts:', error);
+    }
+  };
+
+  const fetchMunicipalitiesData = async (districtId) => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`http://127.0.0.1:8000/api/tourism/municipalities/?district=${districtId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await response.json();
+      setAvailableMunicipalities(data.results || []);
+    } catch (error) {
+      console.error('Error fetching municipalities:', error);
+    }
+  };
+
+  const fetchCategoriesData = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch('http://127.0.0.1:8000/api/tourism/categories/', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await response.json();
+      setAvailableCategories(data.results || []);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
+
+  const handleProvinceChange = (provinceId) => {
+    const selectedProvince = availableProvinces.find(p => p.id === provinceId);
+    setNewPlace({ 
+      ...newPlace, 
+      province: provinceId,
+      province_name: selectedProvince?.name || '',
+      district: '',
+      district_name: '',
+      municipality: '',
+      municipality_name: ''
+    });
+    setAvailableDistricts([]);
+    setAvailableMunicipalities([]);
+    if (provinceId) {
+      fetchDistrictsData(provinceId);
+    }
+  };
+
+  const handleDistrictChange = (districtId) => {
+    const selectedDistrict = availableDistricts.find(d => d.id === districtId);
+    setNewPlace({ 
+      ...newPlace, 
+      district: districtId,
+      district_name: selectedDistrict?.name || '',
+      municipality: '',
+      municipality_name: ''
+    });
+    setAvailableMunicipalities([]);
+    if (districtId) {
+      fetchMunicipalitiesData(districtId);
+    }
+  };
+
+  const handleMunicipalityChange = (municipalityId) => {
+    const selectedMunicipality = availableMunicipalities.find(m => m.id === municipalityId);
+    setNewPlace({ 
+      ...newPlace, 
+      municipality: municipalityId,
+      municipality_name: selectedMunicipality?.name || ''
+    });
+  };
+
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setSelectedFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target.result);
+        setNewPlace({ ...newPlace, image: file });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle>Add New Place</DialogTitle>
+      <DialogContent>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+          <TextField
+            label="Place Name"
+            value={newPlace.name || ''}
+            onChange={(e) => setNewPlace({ ...newPlace, name: e.target.value })}
+            fullWidth
+            required
+          />
+          <TextField
+            label="Description"
+            value={newPlace.description || ''}
+            onChange={(e) => setNewPlace({ ...newPlace, description: e.target.value })}
+            fullWidth
+            multiline
+            rows={3}
+            required
+          />
+          
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={4}>
+              <FormControl fullWidth required>
+                <InputLabel>Province</InputLabel>
+                <Select
+                  value={newPlace.province || ''}
+                  label="Province"
+                  onChange={(e) => handleProvinceChange(e.target.value)}
+                >
+                  {availableProvinces.map((province) => (
+                    <MenuItem key={province.id} value={province.id}>{province.name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <FormControl fullWidth required disabled={!newPlace.province}>
+                <InputLabel>District</InputLabel>
+                <Select
+                  value={newPlace.district || ''}
+                  label="District"
+                  onChange={(e) => handleDistrictChange(e.target.value)}
+                >
+                  {availableDistricts.map((district) => (
+                    <MenuItem key={district.id} value={district.id}>{district.name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <FormControl fullWidth required disabled={!newPlace.district}>
+                <InputLabel>Municipality</InputLabel>
+                <Select
+                  value={newPlace.municipality || ''}
+                  label="Municipality"
+                  onChange={(e) => handleMunicipalityChange(e.target.value)}
+                >
+                  {availableMunicipalities.map((municipality) => (
+                    <MenuItem key={municipality.id} value={municipality.id}>{municipality.name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
+
+          <FormControl fullWidth required>
+            <InputLabel>Category</InputLabel>
+            <Select
+              value={newPlace.category || ''}
+              label="Category"
+              onChange={(e) => setNewPlace({ ...newPlace, category: e.target.value })}
+            >
+              {availableCategories.map((category) => (
+                <MenuItem key={category.id} value={category.id}>{category.name}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <TextField
+            label="Address"
+            value={newPlace.address || ''}
+            onChange={(e) => setNewPlace({ ...newPlace, address: e.target.value })}
+            fullWidth
+          />
+
+          <Grid container spacing={2}>
+            <Grid item xs={6}>
+              <TextField
+                label="Average Cost"
+                type="number"
+                value={newPlace.average_cost || ''}
+                onChange={(e) => setNewPlace({ ...newPlace, average_cost: parseFloat(e.target.value) })}
+                fullWidth
+                InputProps={{
+                  startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                }}
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                label="Opening Hours"
+                value={newPlace.opening_hours || ''}
+                onChange={(e) => setNewPlace({ ...newPlace, opening_hours: e.target.value })}
+                fullWidth
+                placeholder="e.g. 9:00 AM - 5:00 PM"
+              />
+            </Grid>
+          </Grid>
+
+          <Grid container spacing={2}>
+            <Grid item xs={6}>
+              <TextField
+                label="Contact Info"
+                value={newPlace.contact_info || ''}
+                onChange={(e) => setNewPlace({ ...newPlace, contact_info: e.target.value })}
+                fullWidth
+                placeholder="e.g. +1 234 567 8900"
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                label="Website"
+                value={newPlace.website || ''}
+                onChange={(e) => setNewPlace({ ...newPlace, website: e.target.value })}
+                fullWidth
+                placeholder="e.g. https://example.com"
+              />
+            </Grid>
+          </Grid>
+
+          <Box>
+            <Typography variant="subtitle2" gutterBottom>
+              Place Image
+            </Typography>
+            <input
+              accept="image/*"
+              style={{ display: 'none' }}
+              id="add-image-upload"
+              type="file"
+              onChange={handleFileChange}
+            />
+            <label htmlFor="add-image-upload">
+              <Button variant="outlined" component="span" startIcon={<Upload />}>
+                Upload Image
+              </Button>
+            </label>
+            {imagePreview && (
+              <Box sx={{ mt: 2, textAlign: 'center' }}>
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '8px' }}
+                />
+              </Box>
+            )}
+          </Box>
+
+          <Grid container spacing={2}>
+            <Grid item xs={6}>
+              <TextField
+                label="Latitude"
+                type="number"
+                value={newPlace.latitude || ''}
+                onChange={(e) => setNewPlace({ ...newPlace, latitude: parseFloat(e.target.value) })}
+                fullWidth
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                label="Longitude"
+                type="number"
+                value={newPlace.longitude || ''}
+                onChange={(e) => setNewPlace({ ...newPlace, longitude: parseFloat(e.target.value) })}
+                fullWidth
+              />
+            </Grid>
+          </Grid>
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={onSubmit} variant="contained">Add Place</Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
+// Edit Place Modal
+const EditPlaceModal = ({ open, onClose, place, setPlace, onSubmit }) => {
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState('');
+  const [availableProvinces, setAvailableProvinces] = useState([]);
+  const [availableDistricts, setAvailableDistricts] = useState([]);
+  const [availableMunicipalities, setAvailableMunicipalities] = useState([]);
+  const [availableCategories, setAvailableCategories] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Fetch location and category data on component mount
+  useEffect(() => {
+    if (open && place && !isInitialized) {
+      initializeFormData();
+      
+      // Set image preview if available
+      if (place?.image_url) {
+        setImagePreview(place.image_url);
+      }
+    }
+    
+    // Reset initialization state when modal closes
+    if (!open) {
+      setIsInitialized(false);
+    }
+  }, [open, isInitialized]);
+
+  const initializeFormData = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Fetch all required data
+      await Promise.all([
+        fetchProvincesData(),
+        fetchCategoriesData()
+      ]);
+      
+      // If place has location data, find and set the corresponding IDs
+      if (place?.province) {
+        await initializeLocationData();
+      }
+      
+      setIsLoading(false);
+      setIsInitialized(true); // Mark as initialized to prevent re-initialization
+    } catch (error) {
+      console.error('Error initializing form data:', error);
+      setIsLoading(false);
+      setIsInitialized(true); // Still mark as initialized even on error
+    }
+  };
+
+  const initializeLocationData = async () => {
+    try {
+      // First fetch provinces to find province ID
+      const provincesResponse = await fetch('http://127.0.0.1:8000/api/tourism/provinces/', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const provincesData = await provincesResponse.json();
+      const provinces = provincesData.results || [];
+      
+      // Handle province - it might be an object or a string
+      const provinceName = typeof place.province === 'object' ? place.province?.name : place.province;
+      const selectedProvince = provinces.find(p => p.name === provinceName);
+      if (selectedProvince) {
+        // Update place with province ID
+        setPlace(prev => ({ ...prev, province: selectedProvince.id, province_name: selectedProvince.name }));
+        
+        // Fetch districts for this province
+        const districtsResponse = await fetch(`http://127.0.0.1:8000/api/tourism/districts/?province=${selectedProvince.id}`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        const districtsData = await districtsResponse.json();
+        const districts = districtsData.results || [];
+        setAvailableDistricts(districts);
+        
+        // Handle district - it might be an object or a string
+        const districtName = typeof place.district === 'object' ? place.district?.name : place.district;
+        const selectedDistrict = districts.find(d => d.name === districtName);
+        if (selectedDistrict) {
+          // Update place with district ID
+          setPlace(prev => ({ ...prev, district: selectedDistrict.id, district_name: selectedDistrict.name }));
+          
+          // Fetch municipalities for this district
+          const municipalitiesResponse = await fetch(`http://127.0.0.1:8000/api/tourism/municipalities/?district=${selectedDistrict.id}`, {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          const municipalitiesData = await municipalitiesResponse.json();
+          const municipalities = municipalitiesData.results || [];
+          setAvailableMunicipalities(municipalities);
+          
+          // Handle municipality - it might be an object or a string
+          const municipalityName = typeof place.municipality === 'object' ? place.municipality?.name : place.municipality;
+          const selectedMunicipality = municipalities.find(m => m.name === municipalityName);
+          if (selectedMunicipality) {
+            // Update place with municipality ID
+            setPlace(prev => ({ ...prev, municipality: selectedMunicipality.id, municipality_name: selectedMunicipality.name }));
+          }
+        }
+      }
+      
+      // Initialize category ID
+      const categoriesResponse = await fetch('http://127.0.0.1:8000/api/tourism/categories/', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const categoriesData = await categoriesResponse.json();
+      const categories = categoriesData.results || [];
+      setAvailableCategories(categories);
+      
+      // Handle category - it might be an object or a string
+      const categoryName = typeof place.category === 'object' ? place.category?.name : place.category;
+      const selectedCategory = categories.find(c => c.name === categoryName);
+      if (selectedCategory) {
+        setPlace(prev => ({ ...prev, category: selectedCategory.id, category_name: selectedCategory.name }));
+      }
+      
+      // Handle place_type - normalize the value to match available options
+      if (place.place_type) {
+        let normalizedPlaceType = place.place_type;
+        
+        // Map common variations to correct values
+        const placeTypeMapping = {
+          'historical': 'historical_site',
+          'Historic Site': 'historical_site',
+          'Historical Sites': 'historical_site',
+          'Historical Site': 'historical_site',
+          'Tourist Attraction': 'tourist_attraction',
+          'Restaurant': 'restaurant',
+          'Hotel': 'hotel',
+          'Museum': 'museum',
+          'Park': 'park',
+          'Beach': 'beach',
+          'Mountain': 'mountain',
+          'Shopping': 'shopping',
+          'Entertainment': 'entertainment',
+          'Other': 'other'
+        };
+        
+        // Check if we need to map the value
+        if (placeTypeMapping[normalizedPlaceType]) {
+          normalizedPlaceType = placeTypeMapping[normalizedPlaceType];
+        }
+        
+        // Validate against available options
+        const validPlaceTypes = ['tourist_attraction', 'restaurant', 'hotel', 'museum', 'park', 'beach', 'mountain', 'historical_site', 'shopping', 'entertainment', 'other'];
+        if (validPlaceTypes.includes(normalizedPlaceType)) {
+          setPlace(prev => ({ ...prev, place_type: normalizedPlaceType }));
+        } else {
+          // Default to 'other' if no valid mapping found
+          setPlace(prev => ({ ...prev, place_type: 'other' }));
+        }
+      }
+      
+    } catch (error) {
+      console.error('Error initializing location data:', error);
+    }
+  };
+
+  const fetchProvincesData = async () => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem('access_token');
+      const response = await fetch('http://127.0.0.1:8000/api/tourism/provinces/', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await response.json();
+      setAvailableProvinces(data.results || []);
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Error fetching provinces:', error);
+      setIsLoading(false);
+    }
+  };
+
+  const fetchDistrictsData = async (provinceId) => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`http://127.0.0.1:8000/api/tourism/districts/?province=${provinceId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await response.json();
+      setAvailableDistricts(data.results || []);
+    } catch (error) {
+      console.error('Error fetching districts:', error);
+    }
+  };
+
+  const fetchMunicipalitiesData = async (districtId) => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`http://127.0.0.1:8000/api/tourism/municipalities/?district=${districtId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await response.json();
+      setAvailableMunicipalities(data.results || []);
+    } catch (error) {
+      console.error('Error fetching municipalities:', error);
+    }
+  };
+
+  const fetchCategoriesData = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch('http://127.0.0.1:8000/api/tourism/categories/', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await response.json();
+      setAvailableCategories(data.results || []);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
+
+  const handleProvinceChange = (provinceId) => {
+    const selectedProvince = availableProvinces.find(p => p.id === provinceId);
+    setPlace({ 
+      ...place, 
+      province: provinceId,
+      province_name: selectedProvince?.name || '',
+      district: '',
+      district_name: '',
+      municipality: '',
+      municipality_name: ''
+    });
+    setAvailableDistricts([]);
+    setAvailableMunicipalities([]);
+    if (provinceId) {
+      fetchDistrictsData(provinceId);
+    }
+  };
+
+  const handleDistrictChange = (districtId) => {
+    const selectedDistrict = availableDistricts.find(d => d.id === districtId);
+    setPlace({ 
+      ...place, 
+      district: districtId,
+      district_name: selectedDistrict?.name || '',
+      municipality: '',
+      municipality_name: ''
+    });
+    setAvailableMunicipalities([]);
+    if (districtId) {
+      fetchMunicipalitiesData(districtId);
+    }
+  };
+
+  const handleMunicipalityChange = (municipalityId) => {
+    const selectedMunicipality = availableMunicipalities.find(m => m.id === municipalityId);
+    setPlace({ 
+      ...place, 
+      municipality: municipalityId,
+      municipality_name: selectedMunicipality?.name || ''
+    });
+  };
+
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setSelectedFile(file);
+      setPlace({ ...place, image: file });
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle>Edit Place</DialogTitle>
+      <DialogContent>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+          {isLoading ? (
+            <CircularProgress />
+          ) : (
+            <>
+              <TextField
+                label="Place Name"
+                value={place?.name || ''}
+                onChange={(e) => setPlace({ ...place, name: e.target.value })}
+                fullWidth
+                required
+              />
+              <TextField
+                label="Description"
+                value={place?.description || ''}
+                onChange={(e) => setPlace({ ...place, description: e.target.value })}
+                fullWidth
+                multiline
+                rows={3}
+                required
+              />
+              
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={4}>
+                  <FormControl fullWidth required sx={{ minHeight: '56px' }}>
+                    <InputLabel>Province</InputLabel>
+                    <Select
+                      value={place?.province || ''}
+                      label="Province"
+                      onChange={(e) => handleProvinceChange(e.target.value)}
+                      displayEmpty
+                      sx={{ minHeight: '56px' }}
+                    >
+                      {availableProvinces.map((province) => (
+                        <MenuItem key={province.id} value={province.id}>{province.name}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <FormControl fullWidth required disabled={!place?.province} sx={{ minHeight: '56px' }}>
+                <InputLabel>District</InputLabel>
+                <Select
+                  value={place?.district || ''}
+                  label="District"
+                  onChange={(e) => handleDistrictChange(e.target.value)}
+                  displayEmpty
+                  sx={{ minHeight: '56px' }}
+                >
+                  {availableDistricts.map((district) => (
+                    <MenuItem key={district.id} value={district.id}>{district.name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <FormControl fullWidth required disabled={!place?.district} sx={{ minHeight: '56px' }}>
+                <InputLabel>Municipality</InputLabel>
+                <Select
+                  value={place?.municipality || ''}
+                  label="Municipality"
+                  onChange={(e) => handleMunicipalityChange(e.target.value)}
+                  displayEmpty
+                  sx={{ minHeight: '56px' }}
+                >
+                  {availableMunicipalities.map((municipality) => (
+                    <MenuItem key={municipality.id} value={municipality.id}>{municipality.name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
+
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth required sx={{ minHeight: '56px' }}>
+                <InputLabel>Category</InputLabel>
+                <Select
+                  value={place?.category || ''}
+                  label="Category"
+                  onChange={(e) => {
+                    const selectedCategory = availableCategories.find(c => c.id === e.target.value);
+                    setPlace({ 
+                      ...place, 
+                      category: e.target.value,
+                      category_name: selectedCategory?.name || ''
+                    });
+                  }}
+                  displayEmpty
+                  sx={{ minHeight: '56px' }}
+                >
+                  {availableCategories.map((category) => (
+                    <MenuItem key={category.id} value={category.id}>{category.name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth sx={{ minHeight: '56px' }}>
+                <InputLabel>Place Type</InputLabel>
+                <Select
+                  value={place?.place_type || ''}
+                  label="Place Type"
+                  onChange={(e) => setPlace({ ...place, place_type: e.target.value })}
+                  displayEmpty
+                  sx={{ minHeight: '56px' }}
+                >
+                  <MenuItem value="tourist_attraction">Tourist Attraction</MenuItem>
+                  <MenuItem value="restaurant">Restaurant</MenuItem>
+                  <MenuItem value="hotel">Hotel</MenuItem>
+                  <MenuItem value="museum">Museum</MenuItem>
+                  <MenuItem value="park">Park</MenuItem>
+                  <MenuItem value="beach">Beach</MenuItem>
+                  <MenuItem value="mountain">Mountain</MenuItem>
+                  <MenuItem value="historical_site">Historical Site</MenuItem>
+                  <MenuItem value="shopping">Shopping</MenuItem>
+                  <MenuItem value="entertainment">Entertainment</MenuItem>
+                  <MenuItem value="other">Other</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
+
+          <TextField
+            label="Address"
+            value={place?.address || ''}
+            onChange={(e) => setPlace({ ...place, address: e.target.value })}
+            fullWidth
+          />
+
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={4}>
+              <TextField
+                label="Phone"
+                value={place?.phone || ''}
+                onChange={(e) => setPlace({ ...place, phone: e.target.value })}
+                fullWidth
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField
+                label="Email"
+                type="email"
+                value={place?.email || ''}
+                onChange={(e) => setPlace({ ...place, email: e.target.value })}
+                fullWidth
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField
+                label="Website"
+                type="url"
+                value={place?.website || ''}
+                onChange={(e) => setPlace({ ...place, website: e.target.value })}
+                fullWidth
+              />
+            </Grid>
+          </Grid>
+
+          <TextField
+            label="Entry Fee ($)"
+            type="number"
+            value={place?.entry_fee || ''}
+            onChange={(e) => setPlace({ ...place, entry_fee: parseFloat(e.target.value) || 0 })}
+            fullWidth
+            inputProps={{ step: "0.01", min: "0" }}
+          />
+
+          <Box>
+            <Typography variant="subtitle2" gutterBottom>
+              Place Image
+            </Typography>
+            <input
+              accept="image/*"
+              style={{ display: 'none' }}
+              id="image-upload"
+              type="file"
+              onChange={handleFileChange}
+            />
+            <label htmlFor="image-upload">
+              <Button variant="outlined" component="span" startIcon={<Upload />}>
+                Upload Image
+              </Button>
+            </label>
+            {imagePreview && (
+              <Box sx={{ mt: 2, textAlign: 'center' }}>
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '8px' }}
+                />
+              </Box>
+            )}
+          </Box>
+
+          <Grid container spacing={2}>
+            <Grid item xs={6}>
+              <TextField
+                label="Latitude"
+                type="number"
+                value={place?.latitude || ''}
+                onChange={(e) => setPlace({ ...place, latitude: parseFloat(e.target.value) })}
+                fullWidth
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                label="Longitude"
+                type="number"
+                value={place?.longitude || ''}
+                onChange={(e) => setPlace({ ...place, longitude: parseFloat(e.target.value) })}
+                fullWidth
+              />
+            </Grid>
+          </Grid>
+
+          <Box>
+            <Typography variant="subtitle2" gutterBottom>
+              Opening Hours
+            </Typography>
+            <Grid container spacing={2}>
+              {[
+                { key: 'monday', label: 'Monday' },
+                { key: 'tuesday', label: 'Tuesday' },
+                { key: 'wednesday', label: 'Wednesday' },
+                { key: 'thursday', label: 'Thursday' },
+                { key: 'friday', label: 'Friday' },
+                { key: 'saturday', label: 'Saturday' },
+                { key: 'sunday', label: 'Sunday' }
+              ].map((day) => (
+                <Grid item xs={12} md={6} lg={4} key={day.key}>
+                  <TextField
+                    label={day.label}
+                    value={place?.opening_hours?.[day.key] || ''}
+                    onChange={(e) => setPlace({ 
+                      ...place, 
+                      opening_hours: {
+                        ...place?.opening_hours,
+                        [day.key]: e.target.value
+                      }
+                    })}
+                    fullWidth
+                    placeholder="e.g., 9:00 AM - 6:00 PM or Closed"
+                    size="small"
+                  />
+                </Grid>
+              ))}
+            </Grid>
+          </Box>
+
+          <Box>
+            <Typography variant="subtitle2" gutterBottom>
+              Status Settings
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <FormControl component="fieldset">
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <input
+                      type="checkbox"
+                      id="is_active"
+                      checked={place?.is_active ?? true}
+                      onChange={(e) => setPlace({ ...place, is_active: e.target.checked })}
+                    />
+                    <label htmlFor="is_active">Active</label>
+                  </Box>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <FormControl component="fieldset">
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <input
+                      type="checkbox"
+                      id="is_featured"
+                      checked={place?.is_featured ?? false}
+                      onChange={(e) => setPlace({ ...place, is_featured: e.target.checked })}
+                    />
+                    <label htmlFor="is_featured">Featured</label>
+                  </Box>
+                </FormControl>
+              </Grid>
+            </Grid>
+          </Box>
+          </>)}
+        </Box> 
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={onSubmit} variant="contained">Update Place</Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
+// View Place Modal
+const ViewPlaceModal = ({ open, onClose, place }) => {
+  const formatOpeningHours = (hours) => {
+    if (!hours || typeof hours !== 'object') return 'Not specified';
+    
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    
+    return days.map((day, index) => (
+      <Box key={day} sx={{ display: 'flex', justifyContent: 'space-between', py: 0.5 }}>
+        <Typography variant="body2" sx={{ fontWeight: 500 }}>
+          {dayNames[index]}:
+        </Typography>
+        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+          {hours[day] || 'Closed'}
+        </Typography>
+      </Box>
+    ));
+  };
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
+      <DialogTitle sx={{ borderBottom: 1, borderColor: 'divider' }}>Place Details</DialogTitle>
+      <DialogContent>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 2 }}>
+          {/* Main Image */}
+          {(place?.main_image || place?.images?.[0]?.image) && (
+            <Box sx={{ textAlign: 'center', mb: 2 }}>
+              <img 
+                src={place.main_image || place.images[0].image} 
+                alt={place.name}
+                style={{ maxWidth: '100%', maxHeight: '400px', objectFit: 'cover', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+              />
+            </Box>
+          )}
+          
+          <Grid container spacing={3}>
+            {/* Basic Information */}
+            <Grid item xs={12} md={6}>
+              <Card sx={{ p: 2, height: 'fit-content' }}>
+                <Typography variant="h6" sx={{ mb: 2, color: 'primary.main', fontWeight: 600 }}>Basic Information</Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>Name:</Typography>
+                    <Typography variant="body1" sx={{ color: 'text.secondary' }}>{place?.name || 'Not specified'}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>Description:</Typography>
+                    <Typography variant="body1" sx={{ color: 'text.secondary', lineHeight: 1.6 }}>{place?.description || 'No description available'}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>Category:</Typography>
+                    <Typography variant="body1" sx={{ color: 'text.secondary' }}>{typeof place?.category === 'object' ? place?.category?.name : place?.category || 'Unknown'}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>Place Type:</Typography>
+                    <Typography variant="body1" sx={{ color: 'text.secondary' }}>{place?.place_type?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Not specified'}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>Status:</Typography>
+                    <Chip 
+                      label={place?.is_active ? 'Active' : 'Inactive'} 
+                      color={place?.is_active ? 'success' : 'error'} 
+                      size="small"
+                    />
+                  </Box>
+                  {place?.is_featured && (
+                    <Box>
+                      <Chip label="Featured Place" color="primary" size="small" />
+                    </Box>
+                  )}
+                </Box>
+              </Card>
+            </Grid>
+            
+            {/* Location Information */}
+            <Grid item xs={12} md={6}>
+              <Card sx={{ p: 2, height: 'fit-content' }}>
+                <Typography variant="h6" sx={{ mb: 2, color: 'primary.main', fontWeight: 600 }}>Location Details</Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>Province:</Typography>
+                    <Typography variant="body1" sx={{ color: 'text.secondary' }}>{typeof place?.province === 'object' ? place?.province?.name : place?.province || 'Unknown'}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>District:</Typography>
+                    <Typography variant="body1" sx={{ color: 'text.secondary' }}>{typeof place?.district === 'object' ? place?.district?.name : place?.district || 'Unknown'}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>Municipality:</Typography>
+                    <Typography variant="body1" sx={{ color: 'text.secondary' }}>{typeof place?.municipality === 'object' ? place?.municipality?.name : place?.municipality || 'Unknown'}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>Address:</Typography>
+                    <Typography variant="body1" sx={{ color: 'text.secondary' }}>{place?.address || 'Not specified'}</Typography>
+                  </Box>
+                  {place?.latitude && place?.longitude && (
+                    <Box>
+                      <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>Coordinates:</Typography>
+                      <Typography variant="body1" sx={{ color: 'text.secondary' }}>{place.latitude}, {place.longitude}</Typography>
+                    </Box>
+                  )}
+                </Box>
+              </Card>
+            </Grid>
+            
+            {/* Contact & Business Information */}
+            <Grid item xs={12} md={6}>
+              <Card sx={{ p: 2, height: 'fit-content' }}>
+                <Typography variant="h6" sx={{ mb: 2, color: 'primary.main', fontWeight: 600 }}>Contact Information</Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>Phone:</Typography>
+                    <Typography variant="body1" sx={{ color: 'text.secondary' }}>{place?.phone || 'Not provided'}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>Email:</Typography>
+                    <Typography variant="body1" sx={{ color: 'text.secondary' }}>{place?.email || 'Not provided'}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>Website:</Typography>
+                    {place?.website ? (
+                      <Typography 
+                        variant="body1" 
+                        component="a" 
+                        href={place.website} 
+                        target="_blank"
+                        sx={{ color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+                      >
+                        {place.website}
+                      </Typography>
+                    ) : (
+                      <Typography variant="body1" sx={{ color: 'text.secondary' }}>Not provided</Typography>
+                    )}
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>Entry Fee:</Typography>
+                    <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                      {place?.entry_fee ? `$${place.entry_fee}` : 'Free'}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Card>
+            </Grid>
+            
+            {/* Rating & Reviews */}
+            <Grid item xs={12} md={6}>
+              <Card sx={{ p: 2, height: 'fit-content' }}>
+                <Typography variant="h6" sx={{ mb: 2, color: 'primary.main', fontWeight: 600 }}>Ratings & Reviews</Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>Average Rating:</Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="h6" sx={{ color: 'primary.main' }}>{place?.average_rating || '0.00'}</Typography>
+                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>/5.00</Typography>
+                    </Box>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>Total Reviews:</Typography>
+                    <Typography variant="body1" sx={{ color: 'text.secondary' }}>{place?.total_ratings || 0} reviews</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>Created:</Typography>
+                    <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                      {place?.created_at ? new Date(place.created_at).toLocaleDateString() : 'Unknown'}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>Last Updated:</Typography>
+                    <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                      {place?.updated_at ? new Date(place.updated_at).toLocaleDateString() : 'Unknown'}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Card>
+            </Grid>
+            
+            {/* Opening Hours */}
+            {place?.opening_hours && (
+              <Grid item xs={12}>
+                <Card sx={{ p: 2 }}>
+                  <Typography variant="h6" sx={{ mb: 2, color: 'primary.main', fontWeight: 600 }}>Opening Hours</Typography>
+                  <Box sx={{ maxWidth: 400 }}>
+                    {formatOpeningHours(place.opening_hours)}
+                  </Box>
+                </Card>
+              </Grid>
+            )}
+            
+            {/* Additional Images */}
+            {place?.images && place.images.length > 1 && (
+              <Grid item xs={12}>
+                <Card sx={{ p: 2 }}>
+                  <Typography variant="h6" sx={{ mb: 2, color: 'primary.main', fontWeight: 600 }}>Additional Images</Typography>
+                  <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                    {place.images.slice(1).map((image, index) => (
+                      <img 
+                        key={index}
+                        src={image.image} 
+                        alt={`${place.name} ${index + 2}`}
+                        style={{ width: '150px', height: '100px', objectFit: 'cover', borderRadius: '8px' }}
+                      />
+                    ))}
+                  </Box>
+                </Card>
+              </Grid>
+            )}
+          </Grid>
+        </Box>
+      </DialogContent>
+      <DialogActions sx={{ borderTop: 1, borderColor: 'divider', p: 2 }}>
+        <Button onClick={onClose} variant="contained">Close</Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
+// View User Modal
+const ViewUserModal = ({ open, onClose, user }) => (
+  <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <DialogTitle sx={{ borderBottom: 1, borderColor: 'divider', pb: 2 }}>
+      <Typography variant="h5" component="div" sx={{ fontWeight: 600 }}>
+        User Details
+      </Typography>
+    </DialogTitle>
+    <DialogContent sx={{ pt: 3 }}>
+      {user && (
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={6}>
+            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              Full Name
+            </Typography>
+            <Typography variant="body1" sx={{ mb: 2 }}>
+              {user.firstName} {user.lastName}
+            </Typography>
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              Email
+            </Typography>
+            <Typography variant="body1" sx={{ mb: 2 }}>
+              {user.email}
+            </Typography>
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              Role
+            </Typography>
+            <Chip 
+              label={user.role}
+              color={user.role === 'admin' ? 'secondary' : 'default'}
+              variant={user.role === 'admin' ? 'filled' : 'outlined'}
+              size="small"
+            />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              Status
+            </Typography>
+            <Chip 
+              label={user.status}
+              color={user.status === 'active' ? 'success' : 'error'}
+              size="small"
+            />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              Join Date
+            </Typography>
+            <Typography variant="body1" sx={{ mb: 2 }}>
+              {new Date(user.joinDate).toLocaleDateString()}
+            </Typography>
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              Last Login
+            </Typography>
+            <Typography variant="body1" sx={{ mb: 2 }}>
+              {new Date(user.lastLogin).toLocaleDateString()}
+            </Typography>
+          </Grid>
+        </Grid>
+      )}
+    </DialogContent>
+    <DialogActions>
+      <Button onClick={onClose}>Close</Button>
+    </DialogActions>
+  </Dialog>
+);
+
+// Edit User Modal Component
+const EditUserModal = ({ open, onClose, user, onUpdateRole }) => {
+  const [selectedRole, setSelectedRole] = useState('');
+
+  useEffect(() => {
+    if (user) {
+      setSelectedRole(user.role || 'user');
+    }
+  }, [user]);
+
+  const handleSave = () => {
+    if (user && selectedRole !== user.role) {
+      onUpdateRole(user.id, selectedRole);
+    } else {
+      onClose();
+    }
+  };
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>
+        <Typography variant="h6" component="div">
+          Edit User Role
+        </Typography>
+      </DialogTitle>
+      <DialogContent>
+        {user && (
+          <Box sx={{ pt: 2 }}>
+            <Grid container spacing={3}>
+              <Grid item xs={12}>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  User Information
+                </Typography>
+                <Typography variant="body1" sx={{ mb: 2 }}>
+                  <strong>Name:</strong> {user.firstName} {user.lastName}
+                </Typography>
+                <Typography variant="body1" sx={{ mb: 3 }}>
+                  <strong>Email:</strong> {user.email}
+                </Typography>
+              </Grid>
+              <Grid item xs={12}>
+                <FormControl fullWidth>
+                  <InputLabel>Role</InputLabel>
+                  <Select
+                    value={selectedRole}
+                    label="Role"
+                    onChange={(e) => setSelectedRole(e.target.value)}
+                  >
+                    <MenuItem value="user">Normal User</MenuItem>
+                    <MenuItem value="admin">Admin</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+            </Grid>
+          </Box>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={handleSave} variant="contained">
+          Save Changes
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 };
 

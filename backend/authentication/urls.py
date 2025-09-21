@@ -8,6 +8,8 @@ urlpatterns = [
     # Authentication endpoints
     path('login/', views.CustomTokenObtainPairView.as_view(), name='login'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('token/validate/', views.validate_token, name='validate_token'),
+    path('token/status/', views.check_token_status, name='check_token_status'),
     path('register/', views.UserRegistrationView.as_view(), name='register'),
     path('logout/', views.LogoutView.as_view(), name='logout'),
     

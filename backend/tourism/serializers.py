@@ -68,16 +68,27 @@ class PlaceListSerializer(serializers.ModelSerializer):
     district_name = serializers.CharField(source='municipality.district.name', read_only=True)
     municipality_name = serializers.CharField(source='municipality.name', read_only=True)
     category_name = serializers.CharField(source='category.name', read_only=True)
+    
+    # Frontend compatibility fields
+    province = serializers.CharField(source='municipality.district.province.name', read_only=True)
+    district = serializers.CharField(source='municipality.district.name', read_only=True)
+    municipality = serializers.CharField(source='municipality.name', read_only=True)
+    category = serializers.CharField(source='category.name', read_only=True)
+    
     main_image = serializers.SerializerMethodField()
-    average_rating = serializers.ReadOnlyField()
-    total_feedbacks = serializers.ReadOnlyField()
+    rating = serializers.DecimalField(source='average_rating', max_digits=3, decimal_places=2, read_only=True)
+    reviews = serializers.IntegerField(source='total_ratings', read_only=True)
+    averageCost = serializers.SerializerMethodField()
+    costType = serializers.SerializerMethodField()
     
     class Meta:
         model = Place
         fields = [
             'id', 'name', 'description', 'province_name', 'district_name', 
-            'municipality_name', 'category_name', 'main_image', 'average_rating', 
-            'total_feedbacks', 'is_featured', 'created_at'
+            'municipality_name', 'category_name', 'province', 'district', 
+            'municipality', 'category', 'main_image', 'average_rating', 
+            'total_ratings', 'rating', 'reviews', 'averageCost', 'costType',
+            'is_featured', 'created_at', 'place_type'
         ]
     
     def get_main_image(self, obj):
@@ -88,6 +99,16 @@ class PlaceListSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(main_image.image.url)
             return main_image.image.url
         return None
+    
+    def get_averageCost(self, obj):
+        # Return entry fee if available, otherwise return 0
+        return float(obj.entry_fee) if obj.entry_fee else 0
+    
+    def get_costType(self, obj):
+        # Return cost type based on entry fee
+        if obj.entry_fee and obj.entry_fee > 0:
+            return "entry"
+        return "free"
 
 class PlaceDetailSerializer(serializers.ModelSerializer):
     """Place detail serializer (for detail views)"""
@@ -105,7 +126,7 @@ class PlaceDetailSerializer(serializers.ModelSerializer):
         fields = '__all__'
     
     def get_recent_feedbacks(self, obj):
-        recent_feedbacks = obj.feedbacks.filter(is_approved=True).order_by('-created_at')[:5]
+        recent_feedbacks = obj.feedbacks.filter(status='approved').order_by('-created_at')[:5]
         return FeedbackSerializer(recent_feedbacks, many=True, context=self.context).data
 
 class PlaceCreateUpdateSerializer(serializers.ModelSerializer):

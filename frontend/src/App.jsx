@@ -23,6 +23,7 @@ import NotificationSystem from './components/NotificationSystem';
 import ErrorBoundary from './components/ErrorBoundary';
 import { Provider } from 'react-redux';
 import { store } from './store';
+import { useTokenExpiration } from './hooks/useTokenExpiration';
 
 import { useAppDispatch } from './store/hooks';
 import { initializeAuth } from './store/slices/authSlice';
@@ -41,6 +42,9 @@ function AppInitializer({ children }) {
 // Component to handle routes with location-based key for proper re-rendering
 function AppRoutes() {
   const location = useLocation();
+  
+  // Enable token expiration monitoring for protected routes
+  // useTokenExpiration(true, 60000, 300000); // Temporarily disabled to prevent 401 errors during testing
   
   return (
     <Routes>

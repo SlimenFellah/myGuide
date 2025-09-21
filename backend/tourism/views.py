@@ -190,9 +190,21 @@ class FeedbackListView(generics.ListAPIView):
     def get_queryset(self):
         place_id = self.kwargs.get('place_id')
         return Feedback.objects.filter(
-            place_id=place_id, 
-            is_approved=True
+            place_id=place_id
         ).select_related('user').prefetch_related('helpful_votes')
+
+class FeedbackListAllView(generics.ListAPIView):
+    """List all feedbacks (for admin dashboard)"""
+    serializer_class = FeedbackSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = StandardResultsSetPagination
+    filter_backends = [filters.OrderingFilter, DjangoFilterBackend]
+    ordering_fields = ['created_at', 'rating']
+    ordering = ['-created_at']
+    filterset_fields = ['status', 'place']
+    
+    def get_queryset(self):
+        return Feedback.objects.all().select_related('user', 'place').prefetch_related('helpful_votes')
 
 class FeedbackCreateView(generics.CreateAPIView):
     """Create a new feedback"""
@@ -293,7 +305,7 @@ def place_statistics(request):
         'featured_places': Place.objects.filter(is_active=True, is_featured=True).count(),
         'places_by_category': dict(
             PlaceCategory.objects.annotate(
-                count=Count('place', filter=Q(place__is_active=True))
+                count=Count('places', filter=Q(places__is_active=True))
             ).values_list('name', 'count')
         ),
         'places_by_province': dict(
@@ -339,7 +351,7 @@ def bulk_approve_feedbacks(request):
     if not feedback_ids:
         return Response({'error': 'No feedback IDs provided'}, status=status.HTTP_400_BAD_REQUEST)
     
-    updated_count = Feedback.objects.filter(id__in=feedback_ids).update(is_approved=True)
+    updated_count = Feedback.objects.filter(id__in=feedback_ids).update(status='approved')
     return Response({
         'message': f'{updated_count} feedbacks approved successfully'
     }, status=status.HTTP_200_OK)

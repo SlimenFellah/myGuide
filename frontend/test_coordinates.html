@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Coordinates API</title>
+</head>
+<body>
+    <h1>Testing Places API with Coordinates</h1>
+    <div id="results"></div>
+
+    <script>
+        async function testAPI() {
+            try {
+                // Get token from localStorage
+                const token = localStorage.getItem('access_token');
+                console.log('Using token:', token ? 'Token found' : 'No token');
+
+                const response = await fetch('http://127.0.0.1:8000/api/tourism/places/', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': token ? `Bearer ${token}` : '',
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                console.log('Response status:', response.status);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('API Response:', data);
+                    
+                    const resultsDiv = document.getElementById('results');
+                    
+                    if (data.results && data.results.length > 0) {
+                        const firstPlace = data.results[0];
+                        console.log('First place data:', firstPlace);
+                        console.log('Has latitude?', 'latitude' in firstPlace);
+                        console.log('Has longitude?', 'longitude' in firstPlace);
+                        console.log('Latitude value:', firstPlace.latitude);
+                        console.log('Longitude value:', firstPlace.longitude);
+                        
+                        resultsDiv.innerHTML = `
+                            <h2>API Test Results</h2>
+                            <p><strong>Total places:</strong> ${data.results.length}</p>
+                            <p><strong>First place:</strong> ${firstPlace.name}</p>
+                            <p><strong>Has latitude:</strong> ${'latitude' in firstPlace}</p>
+                            <p><strong>Has longitude:</strong> ${'longitude' in firstPlace}</p>
+                            <p><strong>Latitude:</strong> ${firstPlace.latitude}</p>
+                            <p><strong>Longitude:</strong> ${firstPlace.longitude}</p>
+                            <h3>Full place data:</h3>
+                            <pre>${JSON.stringify(firstPlace, null, 2)}</pre>
+                        `;
+                    } else {
+                        resultsDiv.innerHTML = '<p>No places found in response</p>';
+                    }
+                } else {
+                    const errorText = await response.text();
+                    console.error('API Error:', response.status, errorText);
+                    document.getElementById('results').innerHTML = `
+                        <p style="color: red;">API Error: ${response.status}</p>
+                        <pre>${errorText}</pre>
+                    `;
+                }
+            } catch (error) {
+                console.error('Request failed:', error);
+                document.getElementById('results').innerHTML = `
+                    <p style="color: red;">Request failed: ${error.message}</p>
+                `;
+            }
+        }
+
+        // Run test when page loads
+        window.addEventListener('load', testAPI);
+    </script>
+</body>
+</html>

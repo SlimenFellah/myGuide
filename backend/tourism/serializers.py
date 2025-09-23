@@ -88,7 +88,7 @@ class PlaceListSerializer(serializers.ModelSerializer):
             'municipality_name', 'category_name', 'province', 'district', 
             'municipality', 'category', 'main_image', 'average_rating', 
             'total_ratings', 'rating', 'reviews', 'averageCost', 'costType',
-            'is_featured', 'created_at', 'place_type'
+            'is_featured', 'created_at', 'place_type', 'latitude', 'longitude'
         ]
     
     def get_main_image(self, obj):
@@ -140,15 +140,18 @@ class PlaceCreateUpdateSerializer(serializers.ModelSerializer):
 class FeedbackSerializer(serializers.ModelSerializer):
     """Feedback serializer"""
     user_name = serializers.CharField(source='user.full_name', read_only=True)
+    user_email = serializers.CharField(source='user.email', read_only=True)
     user_avatar = serializers.SerializerMethodField()
     helpful_count = serializers.SerializerMethodField()
     is_helpful_by_user = serializers.SerializerMethodField()
     place_name = serializers.CharField(source='place.name', read_only=True)
+    reviewed_by_name = serializers.CharField(source='reviewed_by.full_name', read_only=True)
+    spam_reasons = serializers.SerializerMethodField()
     
     class Meta:
         model = Feedback
         fields = '__all__'
-        read_only_fields = ('user', 'created_at', 'updated_at')
+        read_only_fields = ('user', 'created_at', 'updated_at', 'is_spam', 'spam_confidence', 'spam_detected_at')
     
     def get_user_avatar(self, obj):
         if obj.user and obj.user.profile_picture:
@@ -166,6 +169,13 @@ class FeedbackSerializer(serializers.ModelSerializer):
         if request and request.user.is_authenticated:
             return obj.helpful_votes.filter(user=request.user).exists()
         return False
+    
+    def get_spam_reasons(self, obj):
+        """Get spam detection reasons if feedback is flagged as spam"""
+        if obj.is_spam and obj.comment:
+            from .spam_detection import SpamDetectionService
+            return SpamDetectionService.get_spam_reasons(obj.comment)
+        return []
 
 class FeedbackCreateSerializer(serializers.ModelSerializer):
     """Feedback create serializer"""
@@ -175,7 +185,23 @@ class FeedbackCreateSerializer(serializers.ModelSerializer):
         fields = ['place', 'rating', 'comment']
     
     def create(self, validated_data):
+        from .spam_detection import SpamDetectionService
+        from django.utils import timezone
+        
         validated_data['user'] = self.context['request'].user
+        
+        # Perform spam detection on the comment
+        comment = validated_data.get('comment', '')
+        if comment:
+            is_spam, spam_confidence = SpamDetectionService.detect_spam(comment)
+            validated_data['is_spam'] = is_spam
+            validated_data['spam_confidence'] = spam_confidence
+            
+            if is_spam:
+                validated_data['spam_detected_at'] = timezone.now()
+                # Auto-reject spam feedback
+                validated_data['status'] = 'rejected'
+        
         return super().create(validated_data)
 
 class FeedbackHelpfulSerializer(serializers.ModelSerializer):

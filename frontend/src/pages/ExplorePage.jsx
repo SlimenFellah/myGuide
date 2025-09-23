@@ -4,8 +4,8 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useAppDispatch } from '../store/hooks';
-import { useProvinces, usePlaces, useTourismLoading, useSearchResults, useAuth } from '../store/hooks';
-import { fetchProvinces, fetchPlaces, searchPlaces } from '../store/slices/tourismSlice';
+import { useProvinces, usePlaces, useTourismLoading, useAuth } from '../store/hooks';
+import { fetchProvinces, fetchPlaces } from '../store/slices/tourismSlice';
 import { addNotification } from '../store/slices/appSlice';
 import { addToFavorites, removeFromFavorites } from '../store/slices/tripPlannerSlice';
 import { apiService } from '../services';
@@ -19,23 +19,25 @@ import {
   DollarSign,
   Users,
   ChevronRight,
-  Grid,
+  Grid as GridIcon,
   List,
   Heart,
   Navigation,
   TreePine,
   Building,
   Camera,
-  Loader2
+  Loader2,
+  Map
 } from 'lucide-react';
-import { Button, Card, CardContent, Typography, Box, TextField, Container, MenuItem } from '@mui/material';
+import { Button, Card, CardContent, Typography, Box, TextField, Container, MenuItem, Grid } from '@mui/material';
+import MapView from '../components/MapView';
 
 const ExplorePage = () => {
   const dispatch = useAppDispatch();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const provinces = useProvinces();
+  const provinces = useProvinces() || [];
   const places = usePlaces();
-  const searchResults = useSearchResults();
+
   const loading = useTourismLoading();
   
   const [searchTerm, setSearchTerm] = useState('');
@@ -46,8 +48,8 @@ const ExplorePage = () => {
   const [selectedPlaceId, setSelectedPlaceId] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   
-  // Use search results if available, otherwise use places
-  const displayPlaces = Array.isArray(searchResults) && searchResults.length > 0 ? searchResults : Array.isArray(places) ? places : [];
+  // Use places data for client-side filtering
+  const displayPlaces = Array.isArray(places) ? places : [];
 
   // Show loading while authentication is being checked
   if (authLoading) {
@@ -83,52 +85,95 @@ const ExplorePage = () => {
     { id: 'entertainment', name: 'Entertainment', icon: Camera }
   ];
 
+  // Enhanced category mapping for more sophisticated filtering
+  const categoryMapping = {
+    'historic': [
+      'Historical Sites', 'Historical Site', 'Historic Sites', 'Historic Site',
+      'historical', 'historic', 'Historical', 'Historic', 'Heritage',
+      'Monument', 'Archaeological', 'Ancient', 'Cultural Heritage'
+    ],
+    'nature': [
+      'Nature & Parks', 'Nature', 'Parks', 'Park', 'Natural', 'Outdoor',
+      'nature', 'park', 'Garden', 'Forest', 'Mountain', 'Beach', 'Lake',
+      'National Park', 'Wildlife', 'Scenic', 'Landscape'
+    ],
+    'restaurants': [
+      'Restaurants', 'Restaurant', 'Food & Dining', 'Food', 'Dining',
+      'restaurants', 'restaurant', 'Cafe', 'Coffee', 'Cuisine',
+      'Local Food', 'Traditional Food', 'Gastronomy'
+    ],
+    'entertainment': [
+      'Entertainment', 'entertainment', 'Cultural', 'Recreation',
+      'Museum', 'Gallery', 'Theater', 'Cinema', 'Music', 'Arts',
+      'Festival', 'Event', 'Show', 'Performance'
+    ]
+  };
+
+  // Helper function to match category with sophisticated logic
+  const matchesCategory = (place, selectedCategory) => {
+    if (selectedCategory === 'all') return true;
+    
+    const placeCategory = place.category || place.category_name || '';
+    const placeCategoryLower = placeCategory.toLowerCase().trim();
+    
+    if (!placeCategoryLower) return false;
+    
+    // Direct match
+    if (placeCategoryLower === selectedCategory.toLowerCase()) return true;
+    
+    // Check mapping with fuzzy matching
+    const mappedCategories = categoryMapping[selectedCategory] || [];
+    return mappedCategories.some(cat => {
+      const catLower = cat.toLowerCase();
+      return placeCategoryLower.includes(catLower) || 
+             catLower.includes(placeCategoryLower) ||
+             // Handle partial word matches
+             placeCategoryLower.split(' ').some(word => catLower.includes(word)) ||
+             catLower.split(' ').some(word => placeCategoryLower.includes(word));
+    });
+  };
+
+  // Helper function to match province with better logic
+  const matchesProvince = (place, selectedProvince) => {
+    if (selectedProvince === 'all') return true;
+    
+    const placeProvince = place.province || place.province_name || '';
+    const placeProvinceLower = placeProvince.toLowerCase().trim();
+    const selectedProvinceLower = selectedProvince.toLowerCase().trim();
+    
+    if (!placeProvinceLower || !selectedProvinceLower) return false;
+    
+    return placeProvinceLower === selectedProvinceLower ||
+           placeProvinceLower.includes(selectedProvinceLower) ||
+           selectedProvinceLower.includes(placeProvinceLower) ||
+           // Handle nested province data
+           place.municipality?.district?.province?.name?.toLowerCase() === selectedProvinceLower;
+  };
+
   useEffect(() => {
     // Only fetch data when user is authenticated and auth is not loading
     if (isAuthenticated && !authLoading) {
-      const loadData = async () => {
-        dispatch(fetchProvinces());
-        dispatch(fetchPlaces());
-      };
-      
-      loadData();
+      dispatch(fetchProvinces());
+      dispatch(fetchPlaces());
     }
   }, [dispatch, isAuthenticated, authLoading]);
 
   // Handle search
   const handleSearch = async (term) => {
     setSearchTerm(term);
-    if (term.trim()) {
-      dispatch(searchPlaces({
-        query: term,
-        filters: {
-          category: selectedCategory !== 'all' ? selectedCategory : undefined,
-          province: selectedProvince !== 'all' ? selectedProvince : undefined
-        }
-      }));
-    } else {
+    // Only fetch places if we don't have them yet
+    if (!places || places.length === 0) {
       dispatch(fetchPlaces());
     }
   };
 
-  // Handle filter changes
-  const handleFilterChange = useCallback(async () => {
-    const filters = {
-      category: selectedCategory !== 'all' ? selectedCategory : undefined,
-      province: selectedProvince !== 'all' ? selectedProvince : undefined
-    };
-    
-    if (searchTerm.trim()) {
-      dispatch(searchPlaces({
-        query: searchTerm,
-        filters
-      }));
-    } else if (Object.keys(filters).some(key => filters[key])) {
-      dispatch(searchPlaces({ query: '', filters }));
-    } else {
+  // Handle filter changes (client-side only)
+  const handleFilterChange = useCallback(() => {
+    // Only fetch places if we don't have them yet
+    if (!places || places.length === 0) {
       dispatch(fetchPlaces());
     }
-  }, [dispatch, selectedCategory, selectedProvince, searchTerm]);
+  }, [dispatch, places]);
 
   // Handle favorite toggle
   const handleFavoriteToggle = async (placeId) => {
@@ -149,19 +194,73 @@ const ExplorePage = () => {
     }
   };
 
-  // Filter places based on current selections
-  const filteredPlaces = Array.isArray(displayPlaces) ? displayPlaces.filter(place => {
-    const matchesCategory = selectedCategory === 'all' || place.category === selectedCategory;
-    const matchesProvince = selectedProvince === 'all' || place.province === selectedProvince;
-    return matchesCategory && matchesProvince;
-  }) : [];
-
-  // Effect to handle filter changes
-  useEffect(() => {
-    if (selectedCategory !== 'all' || selectedProvince !== 'all') {
-      handleFilterChange();
+  // Debug: Log places data (remove in production)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('ExplorePage - Auth state:', { isAuthenticated, authLoading });
+    console.log('ExplorePage - Places loading:', loading);
+    console.log('ExplorePage - Raw places from Redux:', places);
+    console.log('ExplorePage - Display places:', displayPlaces);
+    console.log('Total places loaded:', displayPlaces?.length || 0);
+    if (displayPlaces?.length > 0) {
+      console.log('Sample place:', displayPlaces[0]);
     }
-  }, [selectedCategory, selectedProvince, handleFilterChange]);
+    console.log('Current filters:', { selectedCategory, selectedProvince, searchTerm });
+  }
+
+  // Filter places based on current selections (client-side)
+  // If no filters are applied, show all places
+  const hasActiveFilters = selectedCategory !== 'all' || selectedProvince !== 'all' || searchTerm.trim();
+  
+  const filteredPlaces = Array.isArray(displayPlaces) ? 
+    (!hasActiveFilters ? displayPlaces : displayPlaces.filter(place => {
+    // Enhanced search term filter
+    const matchesSearch = !searchTerm.trim() || 
+      place.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      place.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      place.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      place.province?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      place.province_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      place.district?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      place.district_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      place.municipality?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      place.municipality_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      place.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      place.category_name?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Apply filters using helper functions
+     const categoryMatch = matchesCategory(place, selectedCategory);
+     const provinceMatch = matchesProvince(place, selectedProvince);
+    
+    const result = matchesSearch && categoryMatch && provinceMatch;
+     
+     // Debug individual filter results (development only)
+     if (process.env.NODE_ENV === 'development' && displayPlaces.indexOf(place) < 2) {
+       console.log(`Place "${place.name}":`, {
+         matchesSearch,
+         categoryMatch,
+         provinceMatch,
+         result,
+         category: place.category,
+         category_name: place.category_name,
+         selectedCategory,
+         selectedProvince
+       });
+     }
+    
+    return result;
+  })) : [];
+  
+  // Debug filtered results (development only)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Filtered places count:', filteredPlaces.length);
+    console.log('Has active filters:', hasActiveFilters);
+  }
+
+  // Effect to handle filter changes (no API calls needed)
+  useEffect(() => {
+    // Filters are applied client-side, no API calls needed
+    handleFilterChange();
+  }, [selectedCategory, selectedProvince, searchTerm, handleFilterChange]);
 
   const handlePlaceClick = (placeId) => {
     setSelectedPlaceId(placeId);
@@ -593,7 +692,7 @@ const ExplorePage = () => {
                   }
                 }}
               >
-                <Grid size={18} style={{ marginRight: 8 }} />
+                <GridIcon size={18} style={{ marginRight: 8 }} />
                 <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
                   Grid
                 </Box>
@@ -618,6 +717,28 @@ const ExplorePage = () => {
                 <List size={18} style={{ marginRight: 8 }} />
                 <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
                   List
+                </Box>
+              </Button>
+              <Button
+                onClick={() => setViewMode('map')}
+                variant="text"
+                size="small"
+                sx={{
+                  px: 2,
+                  height: 40,
+                  borderRadius: 0.5,
+                  transition: 'all 0.2s',
+                  backgroundColor: viewMode === 'map' ? 'white' : 'transparent',
+                  color: viewMode === 'map' ? '#2563eb' : '#6b7280',
+                  boxShadow: viewMode === 'map' ? 1 : 0,
+                  '&:hover': {
+                    backgroundColor: viewMode === 'map' ? 'white' : '#e5e7eb'
+                  }
+                }}
+              >
+                <Map size={18} style={{ marginRight: 8 }} />
+                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                  Map
                 </Box>
               </Button>
             </Box>
@@ -699,7 +820,7 @@ const ExplorePage = () => {
                     }}
                   >
                     <MenuItem value="all">All Provinces</MenuItem>
-                    {provinces.map((province) => (
+                    {Array.isArray(provinces) && provinces.map((province) => (
                       <MenuItem key={province.id} value={province.name}>
                         {province.name} ({province.placesCount} places)
                       </MenuItem>
@@ -721,7 +842,7 @@ const ExplorePage = () => {
         </div>
       </div>
 
-      {/* Places Grid/List */}
+      {/* Places Grid/List/Map */}
       {filteredPlaces.length === 0 ? (
         <Card sx={{
           mt: 4,
@@ -757,6 +878,18 @@ const ExplorePage = () => {
               Try adjusting your search terms or filters to discover amazing places
             </Typography>
           </CardContent>
+        </Card>
+      ) : viewMode === 'map' ? (
+        <Card sx={{
+          mt: 4,
+          border: 0,
+          boxShadow: 3,
+          overflow: 'hidden'
+        }}>
+          <MapView
+            places={filteredPlaces}
+            onPlaceSelect={handlePlaceClick}
+          />
         </Card>
       ) : (
         <Box sx={{

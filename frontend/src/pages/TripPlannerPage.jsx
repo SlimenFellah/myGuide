@@ -5,7 +5,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '../store/hooks';
-import { useProvinces, useActiveTrip, useTripPlannerLoading, useSavedPlans, useTripPlannerFormData, useAuth } from '../store/hooks';
+import { useProvinces, useActiveTrip, useGeneratedPlan, useTripPlannerLoading, useSavedPlans, useTripPlannerFormData, useAuth } from '../store/hooks';
 import { fetchProvinces } from '../store/slices/tourismSlice';
 import { generateTripPlan, saveTripPlan, updateTripPlannerData } from '../store/slices/tripPlannerSlice';
 import { addNotification } from '../store/slices/appSlice';
@@ -61,8 +61,8 @@ const TripPlannerPage = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const provinces = useProvinces();
-  const currentPlan = useActiveTrip();
+  const provinces = useProvinces() || [];
+  const currentPlan = useGeneratedPlan();
   const isGenerating = useTripPlannerLoading();
   const savedTrips = useSavedPlans();
   const formData = useTripPlannerFormData();
@@ -109,11 +109,7 @@ const TripPlannerPage = () => {
   ];
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-    // Also update Redux store
+    // Update Redux store
     dispatch(updateTripPlannerData({ [field]: value }));
   };
 
@@ -121,21 +117,14 @@ const TripPlannerPage = () => {
     console.log('Preference button clicked:', preference);
     console.log('Current preferences before change:', formData.preferences);
     
-    setFormData(prev => {
-      const newPreferences = {
-        ...prev.preferences,
-        [preference]: !prev.preferences[preference]
-      };
-      console.log('New preferences after change:', newPreferences);
-      
-      // Update Redux store
-      dispatch(updateTripPlannerData({ preferences: newPreferences }));
-      
-      return {
-        ...prev,
-        preferences: newPreferences
-      };
-    });
+    const newPreferences = {
+      ...formData.preferences,
+      [preference]: !formData.preferences[preference]
+    };
+    console.log('New preferences after change:', newPreferences);
+    
+    // Update Redux store
+    dispatch(updateTripPlannerData({ preferences: newPreferences }));
   };
 
   const generateTrip = async () => {

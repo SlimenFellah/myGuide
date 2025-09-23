@@ -86,19 +86,20 @@ const AdminDashboard = () => {
   const [showViewUserModal, setShowViewUserModal] = useState(false);
   const [showEditUserModal, setShowEditUserModal] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState(null);
+  const [spamFilter, setSpamFilter] = useState('all'); // all, spam, not_spam
+  const [statusFilter, setStatusFilter] = useState('all'); // all, pending, approved, rejected
   const [newPlace, setNewPlace] = useState({
     name: '',
     description: '',
-    province: '',
-    district: '',
     municipality: '',
     category: '',
+    place_type: '',
     address: '',
     latitude: '',
     longitude: '',
-    average_cost: '',
+    entry_fee: '',
     opening_hours: '',
-    contact_info: '',
+    phone: '',
     website: '',
     image: null
   });
@@ -214,11 +215,21 @@ const AdminDashboard = () => {
               placeId: feedback.place,
               placeName: place.name,
               userId: feedback.user?.id || 0,
-              userName: feedback.user ? `${feedback.user.first_name || ''} ${feedback.user.last_name || ''}`.trim() || feedback.user.username : 'Anonymous',
+              userName: feedback.user_name || 'Anonymous',
+              userEmail: feedback.user_email || '',
               rating: feedback.rating,
               comment: feedback.comment,
               status: feedback.status || 'pending',
               date: feedback.created_at ? feedback.created_at.split('T')[0] : '2024-01-01',
+              createdAt: feedback.created_at,
+              updatedAt: feedback.updated_at,
+              reviewedBy: feedback.reviewed_by_name || null,
+              reviewedAt: feedback.reviewed_at,
+              helpfulCount: feedback.helpful_count || 0,
+              isSpam: feedback.is_spam || false,
+              spamConfidence: feedback.spam_confidence || 0,
+              spamDetectedAt: feedback.spam_detected_at,
+              spamReasons: feedback.spam_reasons || [],
               type: feedback.rating <= 2 ? 'complaint' : 'review'
             };
           });
@@ -271,16 +282,52 @@ const AdminDashboard = () => {
     ));
   };
 
-  const handleApproveFeedback = (feedbackId) => {
-    setFeedbacks(feedbacks.map(feedback => 
-      feedback.id === feedbackId ? { ...feedback, status: 'approved' } : feedback
-    ));
+  const handleApproveFeedback = async (feedbackId) => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const feedback = feedbacks.find(f => f.id === feedbackId);
+      const response = await fetch(`http://127.0.0.1:8000/api/tourism/places/${feedback.placeId}/feedbacks/${feedbackId}/`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: 'approved' })
+      });
+
+      if (response.ok) {
+        const updatedFeedback = await response.json();
+        setFeedbacks(feedbacks.map(f => 
+          f.id === feedbackId ? { ...f, status: 'approved', reviewedBy: 'Admin', reviewedAt: new Date().toISOString() } : f
+        ));
+      }
+    } catch (error) {
+      console.error('Error approving feedback:', error);
+    }
   };
 
-  const handleRejectFeedback = (feedbackId) => {
-    setFeedbacks(feedbacks.map(feedback => 
-      feedback.id === feedbackId ? { ...feedback, status: 'rejected' } : feedback
-    ));
+  const handleRejectFeedback = async (feedbackId) => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const feedback = feedbacks.find(f => f.id === feedbackId);
+      const response = await fetch(`http://127.0.0.1:8000/api/tourism/places/${feedback.placeId}/feedbacks/${feedbackId}/`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: 'rejected' })
+      });
+
+      if (response.ok) {
+        const updatedFeedback = await response.json();
+        setFeedbacks(feedbacks.map(f => 
+          f.id === feedbackId ? { ...f, status: 'rejected', reviewedBy: 'Admin', reviewedAt: new Date().toISOString() } : f
+        ));
+      }
+    } catch (error) {
+      console.error('Error rejecting feedback:', error);
+    }
   };
 
   // Place management functions
@@ -296,7 +343,7 @@ const AdminDashboard = () => {
         }
       });
 
-      const response = await fetch('http://127.0.0.1:8000/api/tourism/places/', {
+      const response = await fetch('http://127.0.0.1:8000/api/tourism/places/create/', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -324,16 +371,15 @@ const AdminDashboard = () => {
         setNewPlace({
           name: '',
           description: '',
-          province: '',
-          district: '',
           municipality: '',
           category: '',
+          place_type: 'restaurant',
           address: '',
           latitude: '',
           longitude: '',
-          average_cost: '',
+          entry_fee: '',
           opening_hours: '',
-          contact_info: '',
+          phone: '',
           website: '',
           image: null
         });
@@ -894,20 +940,95 @@ const AdminDashboard = () => {
         <Table>
           <TableHead sx={{ backgroundColor: 'grey.50' }}>
             <TableRow>
-              <TableCell sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.75rem', color: 'text.secondary' }}>
-                User
+              <TableCell 
+                sx={{ 
+                  fontWeight: 600, 
+                  textTransform: 'uppercase', 
+                  fontSize: '0.75rem', 
+                  color: 'text.secondary',
+                  cursor: 'pointer',
+                  '&:hover': { backgroundColor: 'grey.100' }
+                }}
+                onClick={() => handleUsersSort('firstName')}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  User
+                  {usersSortConfig.key === 'firstName' && (
+                    usersSortConfig.direction === 'asc' ? <TrendingUp size={14} /> : <TrendingDown size={14} />
+                  )}
+                </Box>
               </TableCell>
-              <TableCell sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.75rem', color: 'text.secondary' }}>
-                Role
+              <TableCell 
+                sx={{ 
+                  fontWeight: 600, 
+                  textTransform: 'uppercase', 
+                  fontSize: '0.75rem', 
+                  color: 'text.secondary',
+                  cursor: 'pointer',
+                  '&:hover': { backgroundColor: 'grey.100' }
+                }}
+                onClick={() => handleUsersSort('role')}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  Role
+                  {usersSortConfig.key === 'role' && (
+                    usersSortConfig.direction === 'asc' ? <TrendingUp size={14} /> : <TrendingDown size={14} />
+                  )}
+                </Box>
               </TableCell>
-              <TableCell sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.75rem', color: 'text.secondary' }}>
-                Status
+              <TableCell 
+                sx={{ 
+                  fontWeight: 600, 
+                  textTransform: 'uppercase', 
+                  fontSize: '0.75rem', 
+                  color: 'text.secondary',
+                  cursor: 'pointer',
+                  '&:hover': { backgroundColor: 'grey.100' }
+                }}
+                onClick={() => handleUsersSort('status')}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  Status
+                  {usersSortConfig.key === 'status' && (
+                    usersSortConfig.direction === 'asc' ? <TrendingUp size={14} /> : <TrendingDown size={14} />
+                  )}
+                </Box>
               </TableCell>
-              <TableCell sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.75rem', color: 'text.secondary' }}>
-                Join Date
+              <TableCell 
+                sx={{ 
+                  fontWeight: 600, 
+                  textTransform: 'uppercase', 
+                  fontSize: '0.75rem', 
+                  color: 'text.secondary',
+                  cursor: 'pointer',
+                  '&:hover': { backgroundColor: 'grey.100' }
+                }}
+                onClick={() => handleUsersSort('joinDate')}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  Join Date
+                  {usersSortConfig.key === 'joinDate' && (
+                    usersSortConfig.direction === 'asc' ? <TrendingUp size={14} /> : <TrendingDown size={14} />
+                  )}
+                </Box>
               </TableCell>
-              <TableCell sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.75rem', color: 'text.secondary' }}>
-                Last Login
+              <TableCell 
+                sx={{ 
+                  fontWeight: 600, 
+                  textTransform: 'uppercase', 
+                  fontSize: '0.75rem', 
+                  color: 'text.secondary',
+                  cursor: 'pointer',
+                  '&:hover': { backgroundColor: 'grey.100' }
+                }}
+                onClick={() => handleUsersSort('lastLogin')}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  Last Login
+                  {usersSortConfig.key === 'lastLogin' && (
+                    usersSortConfig.direction === 'asc' ? <TrendingUp size={14} /> : <TrendingDown size={14} />
+                  )}
+                </Box>
               </TableCell>
               <TableCell sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.75rem', color: 'text.secondary' }}>
                 Actions
@@ -915,7 +1036,7 @@ const AdminDashboard = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {Array.isArray(users) && users.map((user) => (
+            {Array.isArray(users) && getSortedUsers(users).map((user) => (
               <TableRow 
                 key={user.id} 
                 sx={{
@@ -1032,20 +1153,95 @@ const AdminDashboard = () => {
         <Table>
           <TableHead sx={{ backgroundColor: 'grey.50' }}>
             <TableRow>
-              <TableCell sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.75rem', color: 'text.secondary' }}>
-                Place
+              <TableCell 
+                sx={{ 
+                  fontWeight: 600, 
+                  textTransform: 'uppercase', 
+                  fontSize: '0.75rem', 
+                  color: 'text.secondary',
+                  cursor: 'pointer',
+                  '&:hover': { backgroundColor: 'grey.100' }
+                }}
+                onClick={() => handlePlacesSort('name')}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  Place
+                  {placesSortConfig.key === 'name' && (
+                    placesSortConfig.direction === 'asc' ? <TrendingUp size={14} /> : <TrendingDown size={14} />
+                  )}
+                </Box>
               </TableCell>
-              <TableCell sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.75rem', color: 'text.secondary' }}>
-                Location
+              <TableCell 
+                sx={{ 
+                  fontWeight: 600, 
+                  textTransform: 'uppercase', 
+                  fontSize: '0.75rem', 
+                  color: 'text.secondary',
+                  cursor: 'pointer',
+                  '&:hover': { backgroundColor: 'grey.100' }
+                }}
+                onClick={() => handlePlacesSort('municipality')}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  Location
+                  {placesSortConfig.key === 'municipality' && (
+                    placesSortConfig.direction === 'asc' ? <TrendingUp size={14} /> : <TrendingDown size={14} />
+                  )}
+                </Box>
               </TableCell>
-              <TableCell sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.75rem', color: 'text.secondary' }}>
-                Category
+              <TableCell 
+                sx={{ 
+                  fontWeight: 600, 
+                  textTransform: 'uppercase', 
+                  fontSize: '0.75rem', 
+                  color: 'text.secondary',
+                  cursor: 'pointer',
+                  '&:hover': { backgroundColor: 'grey.100' }
+                }}
+                onClick={() => handlePlacesSort('category')}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  Category
+                  {placesSortConfig.key === 'category' && (
+                    placesSortConfig.direction === 'asc' ? <TrendingUp size={14} /> : <TrendingDown size={14} />
+                  )}
+                </Box>
               </TableCell>
-              <TableCell sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.75rem', color: 'text.secondary' }}>
-                Status
+              <TableCell 
+                sx={{ 
+                  fontWeight: 600, 
+                  textTransform: 'uppercase', 
+                  fontSize: '0.75rem', 
+                  color: 'text.secondary',
+                  cursor: 'pointer',
+                  '&:hover': { backgroundColor: 'grey.100' }
+                }}
+                onClick={() => handlePlacesSort('status')}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  Status
+                  {placesSortConfig.key === 'status' && (
+                    placesSortConfig.direction === 'asc' ? <TrendingUp size={14} /> : <TrendingDown size={14} />
+                  )}
+                </Box>
               </TableCell>
-              <TableCell sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.75rem', color: 'text.secondary' }}>
-                Rating
+              <TableCell 
+                sx={{ 
+                  fontWeight: 600, 
+                  textTransform: 'uppercase', 
+                  fontSize: '0.75rem', 
+                  color: 'text.secondary',
+                  cursor: 'pointer',
+                  '&:hover': { backgroundColor: 'grey.100' }
+                }}
+                onClick={() => handlePlacesSort('rating')}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  Rating
+                  {placesSortConfig.key === 'rating' && (
+                    placesSortConfig.direction === 'asc' ? <TrendingUp size={14} /> : <TrendingDown size={14} />
+                  )}
+                </Box>
               </TableCell>
               <TableCell sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.75rem', color: 'text.secondary' }}>
                 Actions
@@ -1053,7 +1249,7 @@ const AdminDashboard = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {places.map((place) => (
+            {getSortedPlaces(places).map((place) => (
               <TableRow 
                 key={place.id} 
                 sx={{
@@ -1151,9 +1347,195 @@ const AdminDashboard = () => {
     </Box>
   );
 
+  const [sortConfig, setSortConfig] = useState({ key: 'createdAt', direction: 'desc' });
+  const [placesSortConfig, setPlacesSortConfig] = useState({ key: 'name', direction: 'asc' });
+  const [usersSortConfig, setUsersSortConfig] = useState({ key: 'joinDate', direction: 'desc' });
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, type: '', feedbackId: null, feedbackTitle: '' });
+
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const handlePlacesSort = (key) => {
+    let direction = 'asc';
+    if (placesSortConfig.key === key && placesSortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setPlacesSortConfig({ key, direction });
+  };
+
+  const handleUsersSort = (key) => {
+    let direction = 'asc';
+    if (usersSortConfig.key === key && usersSortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setUsersSortConfig({ key, direction });
+  };
+
+  const getSortedFeedbacks = (feedbacks) => {
+    const filteredFeedbacks = feedbacks.filter(feedback => {
+      const spamMatch = spamFilter === 'all' || 
+                       (spamFilter === 'spam' && feedback.isSpam) ||
+                       (spamFilter === 'not_spam' && !feedback.isSpam);
+      const statusMatch = statusFilter === 'all' || feedback.status === statusFilter;
+      return spamMatch && statusMatch;
+    });
+
+    return [...filteredFeedbacks].sort((a, b) => {
+      let aValue = a[sortConfig.key];
+      let bValue = b[sortConfig.key];
+
+      // Handle different data types
+      if (sortConfig.key === 'createdAt') {
+        aValue = new Date(aValue);
+        bValue = new Date(bValue);
+      } else if (sortConfig.key === 'rating') {
+        aValue = Number(aValue);
+        bValue = Number(bValue);
+      } else if (typeof aValue === 'string') {
+        aValue = aValue.toLowerCase();
+        bValue = bValue.toLowerCase();
+      }
+
+      if (aValue < bValue) {
+        return sortConfig.direction === 'asc' ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return sortConfig.direction === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+  };
+
+  const getSortedPlaces = (places) => {
+    return [...places].sort((a, b) => {
+      let aValue = a[placesSortConfig.key];
+      let bValue = b[placesSortConfig.key];
+      
+      // Handle different data types
+      if (typeof aValue === 'string') {
+        aValue = aValue.toLowerCase();
+        bValue = bValue.toLowerCase();
+      }
+      
+      if (aValue < bValue) {
+        return placesSortConfig.direction === 'asc' ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return placesSortConfig.direction === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+  };
+
+  const getSortedUsers = (users) => {
+    return [...users].sort((a, b) => {
+      let aValue = a[usersSortConfig.key];
+      let bValue = b[usersSortConfig.key];
+      
+      // Handle different data types
+      if (usersSortConfig.key === 'joinDate' || usersSortConfig.key === 'dateJoined') {
+        aValue = new Date(aValue);
+        bValue = new Date(bValue);
+      } else if (typeof aValue === 'string') {
+        aValue = aValue.toLowerCase();
+        bValue = bValue.toLowerCase();
+      }
+      
+      if (aValue < bValue) {
+        return usersSortConfig.direction === 'asc' ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return usersSortConfig.direction === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+  };
+
+  const handleToggleStatus = (feedbackId, currentStatus) => {
+    const feedback = feedbacks.find(f => f.id === feedbackId);
+    const newStatus = currentStatus === 'pending' ? 'approved' : 'pending';
+    const actionType = newStatus === 'approved' ? 'approve' : 'mark as pending';
+    
+    setConfirmDialog({
+      open: true,
+      type: 'toggle',
+      feedbackId,
+      feedbackTitle: feedback?.placeName || 'Unknown Place',
+      currentStatus,
+      newStatus,
+      actionType
+    });
+  };
+
+  const handleDeleteConfirm = (feedbackId) => {
+    const feedback = feedbacks.find(f => f.id === feedbackId);
+    setConfirmDialog({
+      open: true,
+      type: 'delete',
+      feedbackId,
+      feedbackTitle: feedback?.placeName || 'Unknown Place'
+    });
+  };
+
+  const executeAction = async () => {
+    const { type, feedbackId, newStatus } = confirmDialog;
+    
+    if (type === 'toggle') {
+      if (newStatus === 'approved') {
+        await handleApproveFeedback(feedbackId);
+      } else {
+        // Create a function to mark as pending
+        await handleMarkAsPending(feedbackId);
+      }
+    } else if (type === 'delete') {
+      await handleDeleteFeedback(feedbackId);
+    }
+    
+    setConfirmDialog({ open: false, type: '', feedbackId: null, feedbackTitle: '' });
+  };
+
+  const handleMarkAsPending = async (feedbackId) => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const feedback = feedbacks.find(f => f.id === feedbackId);
+      const response = await fetch(`http://127.0.0.1:8000/api/tourism/places/${feedback.placeId}/feedbacks/${feedbackId}/`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: 'pending' })
+      });
+
+      if (response.ok) {
+        setFeedbacks(feedbacks.map(f => 
+          f.id === feedbackId ? { ...f, status: 'pending', reviewedBy: null, reviewedAt: null } : f
+        ));
+      }
+    } catch (error) {
+      console.error('Error marking feedback as pending:', error);
+    }
+  };
+
   const renderFeedbacks = () => {
     console.log('🎨 Rendering feedbacks, current feedbacks state:', feedbacks);
     console.log('📊 Feedbacks array length:', feedbacks.length);
+    
+    const sortedFeedbacks = getSortedFeedbacks(feedbacks);
+    
+    const getSortIcon = (columnKey) => {
+      if (sortConfig.key !== columnKey) {
+        return <TrendingUp size={14} style={{ opacity: 0.3 }} />;
+      }
+      return sortConfig.direction === 'asc' ? 
+        <TrendingUp size={14} /> : 
+        <TrendingDown size={14} />;
+    };
     
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -1161,88 +1543,274 @@ const AdminDashboard = () => {
           <Typography variant="h4" sx={{ fontWeight: 'bold' }}>Feedback Management</Typography>
         </Box>
 
-        {/* Debug info */}
-        {feedbacks.length === 0 && (
-          <Typography color="text.secondary">No feedbacks found. Total feedbacks in state: {feedbacks.length}</Typography>
-        )}
+        {/* Filters */}
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <FormControl size="small" sx={{ minWidth: 120 }}>
+            <InputLabel>Spam Filter</InputLabel>
+            <Select
+              value={spamFilter}
+              label="Spam Filter"
+              onChange={(e) => setSpamFilter(e.target.value)}
+            >
+              <MenuItem value="all">All</MenuItem>
+              <MenuItem value="spam">Spam Only</MenuItem>
+              <MenuItem value="not_spam">Not Spam</MenuItem>
+            </Select>
+          </FormControl>
+          
+          <FormControl size="small" sx={{ minWidth: 120 }}>
+            <InputLabel>Status</InputLabel>
+            <Select
+              value={statusFilter}
+              label="Status"
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <MenuItem value="all">All</MenuItem>
+              <MenuItem value="pending">Pending</MenuItem>
+              <MenuItem value="approved">Approved</MenuItem>
+              <MenuItem value="rejected">Rejected</MenuItem>
+            </Select>
+          </FormControl>
+          
+          <Typography variant="body2" color="text.secondary">
+            Showing {sortedFeedbacks.length} of {feedbacks.length} feedbacks
+          </Typography>
+        </Box>
 
-        {/* Feedbacks List */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {feedbacks.map((feedback) => (
-          <Card 
-            key={feedback.id} 
-            sx={{
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                boxShadow: 4
-              }
-            }}
-          >
-            <CardContent sx={{ p: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 2 }}>
-                <Box sx={{ flex: 1 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 600 }}>{feedback.placeName}</Typography>
+        {/* Feedbacks Table */}
+        <TableContainer component={Paper} sx={{ boxShadow: 2 }}>
+          <Table>
+            <TableHead>
+              <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
+                <TableCell 
+                  sx={{ cursor: 'pointer', fontWeight: 'bold' }}
+                  onClick={() => handleSort('placeName')}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    Place {getSortIcon('placeName')}
+                  </Box>
+                </TableCell>
+                <TableCell 
+                  sx={{ cursor: 'pointer', fontWeight: 'bold' }}
+                  onClick={() => handleSort('rating')}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    Rating {getSortIcon('rating')}
+                  </Box>
+                </TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Comment</TableCell>
+                <TableCell 
+                  sx={{ cursor: 'pointer', fontWeight: 'bold' }}
+                  onClick={() => handleSort('userName')}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    User {getSortIcon('userName')}
+                  </Box>
+                </TableCell>
+                <TableCell 
+                  sx={{ cursor: 'pointer', fontWeight: 'bold' }}
+                  onClick={() => handleSort('createdAt')}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    Posted Date {getSortIcon('createdAt')}
+                  </Box>
+                </TableCell>
+                <TableCell 
+                  sx={{ cursor: 'pointer', fontWeight: 'bold' }}
+                  onClick={() => handleSort('status')}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    Status {getSortIcon('status')}
+                  </Box>
+                </TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Spam</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', textAlign: 'center' }}>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {sortedFeedbacks.map((feedback) => (
+                <TableRow 
+                  key={feedback.id}
+                  sx={{
+                    '&:hover': { backgroundColor: '#f9f9f9' },
+                    backgroundColor: feedback.isSpam ? '#ffebee' : 'inherit'
+                  }}
+                >
+                  <TableCell>
+                    <Box>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {feedback.placeName}
+                      </Typography>
+                      <Chip 
+                        label={feedback.type}
+                        color={feedback.type === 'complaint' ? 'error' : 'secondary'}
+                        size="small"
+                        sx={{ mt: 0.5 }}
+                      />
+                    </Box>
+                  </TableCell>
+                  <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
                       {[...Array(5)].map((_, i) => (
                         <Star 
                           key={i} 
-                          size={16} 
+                          size={14} 
                           style={{
                             color: i < feedback.rating ? '#facc15' : '#d1d5db',
                             fill: i < feedback.rating ? '#facc15' : '#d1d5db'
                           }}
                         />
                       ))}
+                      <Typography variant="body2" sx={{ ml: 1 }}>
+                        ({feedback.rating})
+                      </Typography>
                     </Box>
+                  </TableCell>
+                  <TableCell sx={{ maxWidth: 300 }}>
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        fontStyle: feedback.isSpam ? 'italic' : 'normal',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: 'vertical'
+                      }}
+                    >
+                      {feedback.comment}
+                    </Typography>
+                    {feedback.helpfulCount > 0 && (
+                      <Typography variant="caption" color="text.secondary">
+                        👍 {feedback.helpfulCount} helpful
+                      </Typography>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Box>
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                        {feedback.userName}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {feedback.userEmail}
+                      </Typography>
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2">
+                      {new Date(feedback.createdAt).toLocaleDateString()}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {new Date(feedback.createdAt).toLocaleTimeString()}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
                     <Chip 
-                      label={feedback.type}
-                      color={feedback.type === 'complaint' ? 'error' : 'secondary'}
-                      size="small"
-                    />
-                  </Box>
-                  <Typography color="text.secondary" sx={{ mb: 1.5 }}>{feedback.comment}</Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, fontSize: '0.875rem' }}>
-                    <Typography variant="body2" color="text.secondary">by {feedback.userName}</Typography>
-                    <Typography variant="body2" color="text.secondary">{new Date(feedback.date).toLocaleDateString()}</Typography>
-                    <Chip 
-                      label={feedback.status}
+                      label={feedback.status.toUpperCase()}
                       color={
                         feedback.status === 'approved' ? 'success' :
                         feedback.status === 'pending' ? 'warning' :
-                        feedback.status === 'flagged' ? 'error' :
+                        feedback.status === 'rejected' ? 'error' :
                         'default'
                       }
                       variant={feedback.status === 'approved' ? 'filled' : 'outlined'}
                       size="small"
                     />
-                  </Box>
-                </Box>
-                
-                <Box sx={{ display: 'flex', gap: 1, ml: 2 }}>
-                  <Button 
-                    onClick={() => handleDeleteFeedback(feedback.id)}
-                    variant="outlined"
-                    size="small"
-                    startIcon={<Trash2 size={16} />}
-                    sx={{
-                      color: 'error.main',
-                      borderColor: 'error.light',
-                      '&:hover': {
-                        backgroundColor: 'error.50',
-                        borderColor: 'error.main'
-                      }
-                    }}
-                  >
-                    Delete
-                  </Button>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        ))}
+                    {feedback.reviewedBy && (
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                        by {feedback.reviewedBy}
+                      </Typography>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {feedback.isSpam ? (
+                      <Box>
+                        <Chip 
+                          label={`SPAM (${Math.round(feedback.spamConfidence * 100)}%)`}
+                          color="error"
+                          size="small"
+                          icon={<Flag size={12} />}
+                        />
+                        {feedback.spamReasons && feedback.spamReasons.length > 0 && (
+                          <Typography variant="caption" color="error" sx={{ display: 'block', mt: 0.5 }}>
+                            {feedback.spamReasons.slice(0, 2).join(', ')}
+                            {feedback.spamReasons.length > 2 && '...'}
+                          </Typography>
+                        )}
+                      </Box>
+                    ) : (
+                      <Chip label="Clean" color="success" size="small" variant="outlined" />
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                      <Button
+                        size="small"
+                        variant={feedback.status === 'pending' ? 'contained' : 'outlined'}
+                        color={feedback.status === 'pending' ? 'success' : 'warning'}
+                        onClick={() => handleToggleStatus(feedback.id, feedback.status)}
+                        startIcon={feedback.status === 'pending' ? <CheckCircle size={14} /> : <Clock size={14} />}
+                        sx={{ minWidth: 'auto' }}
+                      >
+                        {feedback.status === 'pending' ? 'Approve' : 'Pending'}
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="error"
+                        onClick={() => handleDeleteConfirm(feedback.id)}
+                        startIcon={<Trash2 size={14} />}
+                        sx={{ minWidth: 'auto' }}
+                      >
+                        Delete
+                      </Button>
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+
+        {/* Confirmation Dialog */}
+        <Dialog
+          open={confirmDialog.open}
+          onClose={() => setConfirmDialog({ open: false, type: '', feedbackId: null, feedbackTitle: '' })}
+        >
+          <DialogTitle>
+            {confirmDialog.type === 'delete' ? 'Confirm Delete' : 'Confirm Status Change'}
+          </DialogTitle>
+          <DialogContent>
+            <Typography>
+              {confirmDialog.type === 'delete' 
+                ? `Are you sure you want to delete the feedback for "${confirmDialog.feedbackTitle}"? This action cannot be undone.`
+                : `Are you sure you want to ${confirmDialog.actionType} the feedback for "${confirmDialog.feedbackTitle}"?`
+              }
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button 
+              onClick={() => setConfirmDialog({ open: false, type: '', feedbackId: null, feedbackTitle: '' })}
+              color="inherit"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={executeAction}
+              color={confirmDialog.type === 'delete' ? 'error' : 'primary'}
+              variant="contained"
+            >
+              {confirmDialog.type === 'delete' ? 'Delete' : 'Confirm'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {feedbacks.length === 0 && (
+          <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
+            No feedbacks found. Total feedbacks in state: {feedbacks.length}
+          </Typography>
+        )}
       </Box>
-    </Box>
     );
   };
 
@@ -1692,6 +2260,28 @@ const AddPlaceModal = ({ open, onClose, newPlace, setNewPlace, onSubmit }) => {
           </Grid>
 
           <FormControl fullWidth required>
+            <InputLabel>Place Type</InputLabel>
+            <Select
+              value={newPlace.place_type || 'restaurant'}
+              label="Place Type"
+              onChange={(e) => setNewPlace({ ...newPlace, place_type: e.target.value })}
+            >
+              <MenuItem value="historical">Historical Site</MenuItem>
+              <MenuItem value="natural">Natural Attraction</MenuItem>
+              <MenuItem value="cultural">Cultural Site</MenuItem>
+              <MenuItem value="religious">Religious Site</MenuItem>
+              <MenuItem value="museum">Museum</MenuItem>
+              <MenuItem value="park">Park/Garden</MenuItem>
+              <MenuItem value="beach">Beach</MenuItem>
+              <MenuItem value="mountain">Mountain</MenuItem>
+              <MenuItem value="restaurant">Restaurant</MenuItem>
+              <MenuItem value="hotel">Hotel</MenuItem>
+              <MenuItem value="shopping">Shopping</MenuItem>
+              <MenuItem value="entertainment">Entertainment</MenuItem>
+            </Select>
+          </FormControl>
+
+          <FormControl fullWidth required>
             <InputLabel>Category</InputLabel>
             <Select
               value={newPlace.category || ''}
@@ -1714,10 +2304,10 @@ const AddPlaceModal = ({ open, onClose, newPlace, setNewPlace, onSubmit }) => {
           <Grid container spacing={2}>
             <Grid item xs={6}>
               <TextField
-                label="Average Cost"
+                label="Entry Fee"
                 type="number"
-                value={newPlace.average_cost || ''}
-                onChange={(e) => setNewPlace({ ...newPlace, average_cost: parseFloat(e.target.value) })}
+                value={newPlace.entry_fee || ''}
+                onChange={(e) => setNewPlace({ ...newPlace, entry_fee: parseFloat(e.target.value) })}
                 fullWidth
                 InputProps={{
                   startAdornment: <InputAdornment position="start">$</InputAdornment>,
@@ -1738,11 +2328,11 @@ const AddPlaceModal = ({ open, onClose, newPlace, setNewPlace, onSubmit }) => {
           <Grid container spacing={2}>
             <Grid item xs={6}>
               <TextField
-                label="Contact Info"
-                value={newPlace.contact_info || ''}
-                onChange={(e) => setNewPlace({ ...newPlace, contact_info: e.target.value })}
+                label="Phone"
+                value={newPlace.phone || ''}
+                onChange={(e) => setNewPlace({ ...newPlace, phone: e.target.value })}
                 fullWidth
-                placeholder="e.g. +1 234 567 8900"
+                placeholder="e.g. +213 798 157 662"
               />
             </Grid>
             <Grid item xs={6}>
@@ -1751,7 +2341,7 @@ const AddPlaceModal = ({ open, onClose, newPlace, setNewPlace, onSubmit }) => {
                 value={newPlace.website || ''}
                 onChange={(e) => setNewPlace({ ...newPlace, website: e.target.value })}
                 fullWidth
-                placeholder="e.g. https://example.com"
+                placeholder="e.g. https://steakhouse.com"
               />
             </Grid>
           </Grid>

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feedback Table Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-step {
+            margin: 10px 0;
+            padding: 10px;
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+        }
+        .success {
+            background: #e8f5e8;
+            border-left-color: #4caf50;
+        }
+        .warning {
+            background: #fff3e0;
+            border-left-color: #ff9800;
+        }
+        .error {
+            background: #ffebee;
+            border-left-color: #f44336;
+        }
+        .feature-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .feature-list li {
+            margin: 8px 0;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        .feature-list li:before {
+            content: "✓ ";
+            color: #4caf50;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Feedback Management Table - Testing Guide</h1>
+        <p>This guide will help you test all the new features implemented in the feedback management system.</p>
+    </div>
+
+    <div class="test-container">
+        <h2>📋 New Features Implemented</h2>
+        <ul class="feature-list">
+            <li><strong>Table Layout:</strong> Replaced card-based layout with sortable data table</li>
+            <li><strong>Column Sorting:</strong> Click any column header to sort (ascending/descending)</li>
+            <li><strong>Default Sorting:</strong> By default, sorted by Posted Date (newest first)</li>
+            <li><strong>Dynamic Toggle Actions:</strong> Single button that toggles between Approve/Pending</li>
+            <li><strong>Confirmation Dialogs:</strong> Both toggle and delete actions require confirmation</li>
+            <li><strong>Streamlined Actions:</strong> Only Toggle Status and Delete buttons</li>
+            <li><strong>Enhanced Display:</strong> All feedback parameters visible in organized columns</li>
+            <li><strong>Spam Detection:</strong> Clear spam indicators with confidence scores</li>
+        </ul>
+    </div>
+
+    <div class="test-container">
+        <h2>🔍 Testing Steps</h2>
+        
+        <div class="test-step">
+            <h3>Step 1: Access Admin Dashboard</h3>
+            <p>1. Navigate to <a href="http://127.0.0.1:8000" target="_blank">http://127.0.0.1:8000</a></p>
+            <p>2. Login with admin credentials</p>
+            <p>3. Go to the Feedback Management tab</p>
+        </div>
+
+        <div class="test-step">
+            <h3>Step 2: Verify Table Layout</h3>
+            <p><strong>Expected:</strong> Feedback displayed in a table format with columns:</p>
+            <ul>
+                <li>Place (with type chip)</li>
+                <li>Rating (stars + number)</li>
+                <li>Comment (truncated with ellipsis)</li>
+                <li>User (name + email)</li>
+                <li>Posted Date (date + time)</li>
+                <li>Status (chip with reviewer info)</li>
+                <li>Spam (detection status + confidence)</li>
+                <li>Actions (Toggle + Delete buttons)</li>
+            </ul>
+        </div>
+
+        <div class="test-step">
+            <h3>Step 3: Test Column Sorting</h3>
+            <p><strong>Test each sortable column:</strong></p>
+            <ul>
+                <li>Click "Place" header → Should sort alphabetically</li>
+                <li>Click "Rating" header → Should sort numerically</li>
+                <li>Click "User" header → Should sort by username</li>
+                <li>Click "Posted Date" header → Should sort chronologically</li>
+                <li>Click "Status" header → Should sort by status</li>
+            </ul>
+            <p><strong>Expected:</strong> Sort icons change (up/down arrows), data reorders correctly</p>
+        </div>
+
+        <div class="test-step">
+            <h3>Step 4: Test Default Sorting</h3>
+            <p><strong>Expected:</strong> By default, feedbacks should be sorted by Posted Date with newest at the top</p>
+            <p>Verify the down arrow is shown on "Posted Date" column initially</p>
+        </div>
+
+        <div class="test-step">
+            <h3>Step 5: Test Toggle Actions</h3>
+            <p><strong>For PENDING feedbacks:</strong></p>
+            <ul>
+                <li>Should show green "Approve" button</li>
+                <li>Click → Confirmation dialog appears</li>
+                <li>Confirm → Status changes to APPROVED, button becomes "Pending"</li>
+            </ul>
+            <p><strong>For APPROVED feedbacks:</strong></p>
+            <ul>
+                <li>Should show orange "Pending" button</li>
+                <li>Click → Confirmation dialog appears</li>
+                <li>Confirm → Status changes to PENDING, button becomes "Approve"</li>
+            </ul>
+        </div>
+
+        <div class="test-step">
+            <h3>Step 6: Test Delete Action</h3>
+            <p><strong>For any feedback:</strong></p>
+            <ul>
+                <li>Click red "Delete" button</li>
+                <li>Confirmation dialog should appear with feedback place name</li>
+                <li>Click "Delete" → Feedback should be removed from table</li>
+                <li>Click "Cancel" → No action taken</li>
+            </ul>
+        </div>
+
+        <div class="test-step">
+            <h3>Step 7: Test Filters</h3>
+            <p><strong>Spam Filter:</strong></p>
+            <ul>
+                <li>"All" → Shows all feedbacks</li>
+                <li>"Spam Only" → Shows only spam feedbacks</li>
+                <li>"Not Spam" → Shows only clean feedbacks</li>
+            </ul>
+            <p><strong>Status Filter:</strong></p>
+            <ul>
+                <li>"All" → Shows all statuses</li>
+                <li>"Pending" → Shows only pending feedbacks</li>
+                <li>"Approved" → Shows only approved feedbacks</li>
+                <li>"Rejected" → Shows only rejected feedbacks</li>
+            </ul>
+        </div>
+
+        <div class="test-step">
+            <h3>Step 8: Verify Spam Detection Display</h3>
+            <p><strong>For spam feedbacks:</strong></p>
+            <ul>
+                <li>Row should have light red background</li>
+                <li>Spam column shows red "SPAM" chip with confidence percentage</li>
+                <li>Spam reasons displayed below (truncated if many)</li>
+            </ul>
+            <p><strong>For clean feedbacks:</strong></p>
+            <ul>
+                <li>Spam column shows green "Clean" chip</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>✅ Success Criteria</h2>
+        <div class="test-step success">
+            <p><strong>All tests pass if:</strong></p>
+            <ul>
+                <li>Table displays all feedback data clearly in organized columns</li>
+                <li>All columns sort correctly when clicked</li>
+                <li>Default sorting is by Posted Date (newest first)</li>
+                <li>Toggle buttons work and show confirmation dialogs</li>
+                <li>Delete buttons work and show confirmation dialogs</li>
+                <li>Status changes are reflected immediately in the UI</li>
+                <li>Filters work correctly</li>
+                <li>Spam detection is clearly visible</li>
+                <li>No console errors or UI glitches</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>🚨 Common Issues to Check</h2>
+        <div class="test-step warning">
+            <ul>
+                <li>Sort icons not updating correctly</li>
+                <li>Confirmation dialogs not appearing</li>
+                <li>Status not updating after toggle</li>
+                <li>Table not responsive on smaller screens</li>
+                <li>Missing data in any column</li>
+                <li>Console errors in browser developer tools</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Add some interactive testing helpers
+        console.log('🧪 Feedback Table Testing Guide Loaded');
+        console.log('📋 Open browser developer tools to monitor for errors');
+        console.log('🔍 Navigate to http://127.0.0.1:8000 to start testing');
+    </script>
+</body>
+</html>

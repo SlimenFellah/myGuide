@@ -67,7 +67,7 @@ const PlaceDetailModal = ({ open, onClose, placeId }) => {
     setPlace(null);
     
     try {
-      const response = await apiService.get(`/api/tourism/places/${placeId}/`);
+      const response = await apiService.tourism.getPlace(placeId);
       if (response.data) {
         setPlace(response.data);
         setIsFavorite(response.data.is_favorite || false);
@@ -293,7 +293,7 @@ const PlaceDetailModal = ({ open, onClose, placeId }) => {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                       <MapPin size={16} style={{ color: '#6b7280' }} />
                       <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-                        {place.address || `${place.municipality}, ${place.district}, ${place.province}`}
+                        {place.address || `${place.municipality?.name || place.municipality}, ${place.district?.name || place.district}, ${place.province?.name || place.province}`}
                       </Typography>
                     </Box>
                     
@@ -451,7 +451,7 @@ const PlaceDetailModal = ({ open, onClose, placeId }) => {
                           Province
                         </Typography>
                         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                          {place.province}
+                          {place.province?.name || place.province}
                         </Typography>
                       </Box>
                       
@@ -460,7 +460,7 @@ const PlaceDetailModal = ({ open, onClose, placeId }) => {
                           District
                         </Typography>
                         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                          {place.district}
+                          {place.district?.name || place.district}
                         </Typography>
                       </Box>
                       
@@ -469,7 +469,7 @@ const PlaceDetailModal = ({ open, onClose, placeId }) => {
                           Municipality
                         </Typography>
                         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                          {place.municipality}
+                          {place.municipality?.name || place.municipality}
                         </Typography>
                       </Box>
                     </CardContent>

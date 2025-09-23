@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Login</title>
+</head>
+<body>
+    <h1>Setting up test authentication...</h1>
+    <p id="status">Please wait...</p>
+    
+    <script>
+        // Set the authentication tokens in localStorage
+        const accessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzU4NjUyNzIyLCJpYXQiOjE3NTg2NDkxMjIsImp0aSI6ImFkMTkxMzIyODEyNjRiYzQ5YTE3YWUzMGU5MzdlMjgwIiwidXNlcl9pZCI6IjUifQ.RKD6HMQxlf9TSjuwO7Pa0QDcGUNSedgOVDuUkL3SiV0';
+        const refreshToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc1OTI1MzkyMiwiaWF0IjoxNzU4NjQ5MTIyLCJqdGkiOiIyMmE1NTJlNTJlMTk0YWU5YjYwYjZkYzM4YmNkNmU5NyIsInVzZXJfaWQiOiI1In0.cb3-ZwvwwhnVZNgaktABECwfo6pA43A37GhgtB2tJ4E';
+        const user = {
+            id: 5,
+            username: 'admin',
+            email: 'admin@example.com',
+            first_name: 'Admin',
+            last_name: 'User',
+            is_admin: true
+        };
+        
+        // Set tokens in localStorage
+        localStorage.setItem('access_token', accessToken);
+        localStorage.setItem('refresh_token', refreshToken);
+        localStorage.setItem('user', JSON.stringify(user));
+        
+        console.log('Tokens set in localStorage:');
+        console.log('Access Token:', localStorage.getItem('access_token'));
+        console.log('Refresh Token:', localStorage.getItem('refresh_token'));
+        console.log('User:', localStorage.getItem('user'));
+        
+        document.getElementById('status').innerHTML = 'Authentication tokens set! <a href="/explore">Go to Explore Page</a>';
+        
+        // Auto-redirect after 2 seconds
+        setTimeout(() => {
+            window.location.href = '/explore';
+        }, 2000);
+    </script>
+</body>
+</html>

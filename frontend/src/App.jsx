@@ -27,13 +27,27 @@ import { useTokenExpiration } from './hooks/useTokenExpiration';
 
 import { useAppDispatch } from './store/hooks';
 import { initializeAuth } from './store/slices/authSlice';
+import { initializeTokenRefresh } from './utils/tokenUtils';
+import { handleAuthRedirect } from './utils/routeRedirect';
 
-// Component to initialize Redux auth state
+// Component to initialize Redux auth state and token refresh
 function AppInitializer({ children }) {
   const dispatch = useAppDispatch();
   
   useEffect(() => {
+    // Initialize auth state from localStorage
     dispatch(initializeAuth());
+    
+    // Initialize automatic token refresh
+    initializeTokenRefresh();
+    
+    // Set up global Redux store reference for interceptors
+    window.__REDUX_STORE__ = store;
+    
+    // Cleanup on unmount
+    return () => {
+      delete window.__REDUX_STORE__;
+    };
   }, [dispatch]);
   
   return children;
@@ -45,6 +59,27 @@ function AppRoutes() {
   
   // Enable token expiration monitoring for protected routes
   // useTokenExpiration(true, 60000, 300000); // Temporarily disabled to prevent 401 errors during testing
+  
+  // Handle route-based authentication redirects
+  useEffect(() => {
+    const currentPath = location.pathname;
+    
+    // Skip redirect handling for public routes
+    const publicPaths = ['/', '/login', '/register', '/about', '/contact'];
+    if (publicPaths.includes(currentPath)) {
+      return;
+    }
+    
+    // Check authentication status and handle redirects if needed
+    const token = localStorage.getItem('access_token');
+    const user = localStorage.getItem('user');
+    
+    if (!token && currentPath !== '/login') {
+      // No token and trying to access protected route
+      const returnUrl = encodeURIComponent(currentPath);
+      window.location.href = `/login?returnUrl=${returnUrl}`;
+    }
+  }, [location.pathname]);
   
   return (
     <Routes>

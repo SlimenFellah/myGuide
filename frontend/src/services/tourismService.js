@@ -181,10 +181,10 @@ export const tourismService = {
     }
   },
 
-  // Popular places
+  // Popular places (using featured places endpoint)
   async getPopularPlaces(limit = 10) {
     try {
-      const response = await api.get(`/tourism/places/popular/?limit=${limit}`);
+      const response = await api.get(`/tourism/places/featured/`);
       return {
         success: true,
         data: response.data,

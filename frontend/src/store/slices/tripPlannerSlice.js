@@ -6,8 +6,12 @@ export const generateTripPlan = createAsyncThunk(
   'tripPlanner/generatePlan',
   async (tripData, { rejectWithValue }) => {
     try {
-      const response = await tripPlannerService.generateTrip(tripData);
-      return response;
+      const response = await tripPlannerService.generateTripPlan(tripData);
+      if (response.success) {
+        return response.data;
+      } else {
+        return rejectWithValue({ message: response.error });
+      }
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to generate trip plan' });
     }

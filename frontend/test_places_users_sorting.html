@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Places & Users Sorting Test Guide</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            background: #f8fafc;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #1e293b;
+            border-bottom: 3px solid #3b82f6;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #475569;
+            margin-top: 30px;
+        }
+        .feature {
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 4px solid #3b82f6;
+        }
+        .test-step {
+            background: #ecfdf5;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 8px 0;
+            border-left: 3px solid #10b981;
+        }
+        .success-criteria {
+            background: #fef3c7;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 8px 0;
+            border-left: 3px solid #f59e0b;
+        }
+        .warning {
+            background: #fef2f2;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 8px 0;
+            border-left: 3px solid #ef4444;
+        }
+        code {
+            background: #e2e8f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Consolas', monospace;
+        }
+        .icon {
+            display: inline-block;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏢 Places & Users Sorting Test Guide</h1>
+        
+        <div class="feature">
+            <h3>📋 New Features Implemented</h3>
+            <ul>
+                <li><strong>Places Management:</strong> Sortable table with alphabetical default sorting (A-Z by name)</li>
+                <li><strong>Users Management:</strong> Sortable table with latest join date default sorting (newest first)</li>
+                <li><strong>Interactive Headers:</strong> Click column headers to sort, with visual indicators</li>
+                <li><strong>Bi-directional Sorting:</strong> Toggle between ascending/descending order</li>
+                <li><strong>Visual Feedback:</strong> Hover effects and sort direction arrows</li>
+            </ul>
+        </div>
+
+        <h2>🏢 Places Management Testing</h2>
+        
+        <div class="test-step">
+            <strong>Step 1:</strong> Navigate to Admin Dashboard → Places Management tab
+        </div>
+        
+        <div class="test-step">
+            <strong>Step 2:</strong> Verify default sorting
+            <ul>
+                <li>Places should be sorted alphabetically by name (A-Z)</li>
+                <li>"Place" column header should show an up arrow (↗️)</li>
+            </ul>
+        </div>
+        
+        <div class="test-step">
+            <strong>Step 3:</strong> Test Place Name Sorting
+            <ul>
+                <li>Click "Place" header → should reverse to Z-A order</li>
+                <li>Click again → should return to A-Z order</li>
+                <li>Arrow should change direction accordingly</li>
+            </ul>
+        </div>
+        
+        <div class="test-step">
+            <strong>Step 4:</strong> Test Location Sorting
+            <ul>
+                <li>Click "Location" header → should sort by municipality alphabetically</li>
+                <li>Click again → should reverse municipality order</li>
+            </ul>
+        </div>
+        
+        <div class="test-step">
+            <strong>Step 5:</strong> Test Category Sorting
+            <ul>
+                <li>Click "Category" header → should group places by category</li>
+                <li>Categories should be sorted alphabetically</li>
+            </ul>
+        </div>
+        
+        <div class="test-step">
+            <strong>Step 6:</strong> Test Status & Rating Sorting
+            <ul>
+                <li>Click "Status" header → should group by status (approved, pending, rejected)</li>
+                <li>Click "Rating" header → should sort by rating value</li>
+            </ul>
+        </div>
+
+        <h2>👥 Users Management Testing</h2>
+        
+        <div class="test-step">
+            <strong>Step 1:</strong> Navigate to Admin Dashboard → Users Management tab
+        </div>
+        
+        <div class="test-step">
+            <strong>Step 2:</strong> Verify default sorting
+            <ul>
+                <li>Users should be sorted by join date (newest first)</li>
+                <li>"Join Date" column header should show a down arrow (↘️)</li>
+            </ul>
+        </div>
+        
+        <div class="test-step">
+            <strong>Step 3:</strong> Test User Name Sorting
+            <ul>
+                <li>Click "User" header → should sort by first name alphabetically</li>
+                <li>Click again → should reverse name order</li>
+            </ul>
+        </div>
+        
+        <div class="test-step">
+            <strong>Step 4:</strong> Test Join Date Sorting
+            <ul>
+                <li>Click "Join Date" header → should reverse to oldest first</li>
+                <li>Click again → should return to newest first</li>
+            </ul>
+        </div>
+        
+        <div class="test-step">
+            <strong>Step 5:</strong> Test Role & Status Sorting
+            <ul>
+                <li>Click "Role" header → should group by role (admin, user, etc.)</li>
+                <li>Click "Status" header → should group by status (active, inactive)</li>
+            </ul>
+        </div>
+        
+        <div class="test-step">
+            <strong>Step 6:</strong> Test Last Login Sorting
+            <ul>
+                <li>Click "Last Login" header → should sort by last login date</li>
+                <li>Most recent logins should appear first when descending</li>
+            </ul>
+        </div>
+
+        <h2>✅ Success Criteria</h2>
+        
+        <div class="success-criteria">
+            <strong>Places Management:</strong>
+            <ul>
+                <li>✓ Default sorting: Alphabetical by place name (A-Z)</li>
+                <li>✓ All columns are clickable and sortable</li>
+                <li>✓ Visual indicators show current sort direction</li>
+                <li>✓ Hover effects work on column headers</li>
+                <li>✓ Sorting works correctly for text, status, and numeric values</li>
+            </ul>
+        </div>
+        
+        <div class="success-criteria">
+            <strong>Users Management:</strong>
+            <ul>
+                <li>✓ Default sorting: Latest join date first (newest to oldest)</li>
+                <li>✓ All columns are clickable and sortable</li>
+                <li>✓ Date sorting works correctly (chronological order)</li>
+                <li>✓ Name sorting works alphabetically</li>
+                <li>✓ Role and status sorting groups correctly</li>
+            </ul>
+        </div>
+
+        <h2>🔍 Common Issues to Check</h2>
+        
+        <div class="warning">
+            <strong>Potential Issues:</strong>
+            <ul>
+                <li>🚨 Sort arrows not appearing or showing incorrectly</li>
+                <li>🚨 Clicking headers doesn't change sort order</li>
+                <li>🚨 Date sorting not working chronologically</li>
+                <li>🚨 Default sorting not applied on page load</li>
+                <li>🚨 Console errors when clicking sort headers</li>
+                <li>🚨 Hover effects not working on column headers</li>
+            </ul>
+        </div>
+
+        <h2>🎯 Testing Checklist</h2>
+        
+        <div class="feature">
+            <h4>Places Management:</h4>
+            <ul>
+                <li>□ Default alphabetical sorting (A-Z)</li>
+                <li>□ Place name sorting (both directions)</li>
+                <li>□ Location sorting (municipality)</li>
+                <li>□ Category sorting</li>
+                <li>□ Status sorting</li>
+                <li>□ Rating sorting</li>
+                <li>□ Visual indicators working</li>
+            </ul>
+            
+            <h4>Users Management:</h4>
+            <ul>
+                <li>□ Default join date sorting (newest first)</li>
+                <li>□ User name sorting (both directions)</li>
+                <li>□ Role sorting</li>
+                <li>□ Status sorting</li>
+                <li>□ Join date sorting (both directions)</li>
+                <li>□ Last login sorting</li>
+                <li>□ Visual indicators working</li>
+            </ul>
+        </div>
+
+        <div style="margin-top: 30px; padding: 20px; background: #f0f9ff; border-radius: 8px; border: 1px solid #0ea5e9;">
+            <h3>🚀 Ready to Test!</h3>
+            <p>Open your admin dashboard and systematically test each sorting feature. The interface should be intuitive and responsive, with clear visual feedback for all user interactions.</p>
+        </div>
+    </div>
+</body>
+</html>

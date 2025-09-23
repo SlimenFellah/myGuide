@@ -28,61 +28,111 @@ api.interceptors.request.use(
   }
 );
 
-// Handle response errors and token refresh
+// Handle response errors and token refresh with enhanced error handling
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  
+  failedQueue = [];
+};
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
     
+    // Handle 401 errors with token refresh logic
     if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
+      if (isRefreshing) {
+        // If already refreshing, queue the request
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then(token => {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return api(originalRequest);
+        }).catch(err => {
+          return Promise.reject(err);
+        });
+      }
       
-      const refreshToken = localStorage.getItem('refresh_token');
-      if (refreshToken) {
-        try {
-          // Make direct axios call to avoid circular dependency
-           const response = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, {
-             refresh: refreshToken
-           });
-           
-           const { access } = response.data;
-           localStorage.setItem('access_token', access);
-           
-           // Update Redux store if available
-           if (window.__REDUX_STORE__) {
-             window.__REDUX_STORE__.dispatch({
-               type: 'auth/setTokens',
-               payload: { access, refresh: refreshToken }
-             });
-           }
-           
-           // Retry original request with new token
-           originalRequest.headers.Authorization = `Bearer ${access}`;
-           return api(originalRequest);
-        } catch (refreshError) {
-          console.error('Token refresh failed:', refreshError);
-          // Refresh failed, logout user
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
-          localStorage.removeItem('user');
+      originalRequest._retry = true;
+      isRefreshing = true;
+      
+      try {
+        const refreshToken = localStorage.getItem('refresh_token');
+        
+        if (!refreshToken) {
+          throw new Error('No refresh token available');
+        }
+        
+        // Check if we're trying to refresh the refresh token itself
+        if (originalRequest.url?.includes('/auth/token/refresh/')) {
+          throw new Error('Refresh token is invalid');
+        }
+        
+        // Make direct axios call to avoid circular dependency
+        const response = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, {
+          refresh: refreshToken
+        });
+        
+        const { access } = response.data;
+        localStorage.setItem('access_token', access);
+        
+        // Update Redux store if available
+        if (window.__REDUX_STORE__) {
+          window.__REDUX_STORE__.dispatch({
+            type: 'auth/setTokens',
+            payload: { access, refresh: refreshToken }
+          });
+        }
+        
+        // Process queued requests
+        processQueue(null, access);
+        
+        // Retry original request with new token
+        originalRequest.headers.Authorization = `Bearer ${access}`;
+        return api(originalRequest);
+        
+      } catch (refreshError) {
+        console.error('Token refresh failed:', refreshError);
+        
+        // Process queued requests with error
+        processQueue(refreshError, null);
+        
+        // Refresh failed, logout user
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('user');
+        
+        // Only redirect if not on landing page or login page
+        const currentPath = window.location.pathname;
+        const publicPaths = ['/', '/login', '/register', '/about', '/contact'];
+        
+        if (!publicPaths.includes(currentPath)) {
           // Dispatch logout action to Redux store if available
           if (window.__REDUX_STORE__) {
             window.__REDUX_STORE__.dispatch({ type: 'auth/clearAuth' });
           }
-          window.location.href = '/login';
+          
+          // Redirect to login with return URL
+          const returnUrl = encodeURIComponent(currentPath);
+          window.location.href = `/login?returnUrl=${returnUrl}`;
         }
-      } else {
-        // No refresh token, logout user
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        localStorage.removeItem('user');
-        // Dispatch logout action to Redux store if available
-        if (window.__REDUX_STORE__) {
-          window.__REDUX_STORE__.dispatch({ type: 'auth/clearAuth' });
-        }
-        window.location.href = '/login';
+        
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
       }
     }
+    
     return Promise.reject(error);
   }
 );

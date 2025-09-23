@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { authService } from '../../services/authService';
+import { clearAuthData, isTokenExpired, initializeTokenRefresh, ensureValidToken } from '../../utils/tokenUtils';
 
 // Async thunks for authentication
 export const loginUser = createAsyncThunk(
@@ -98,31 +99,60 @@ const authSlice = createSlice({
        localStorage.removeItem('refresh_token');
      },
     setTokens: (state, action) => {
-      state.tokens = action.payload;
-      if (action.payload.access) {
-        localStorage.setItem('access_token', action.payload.access);
+      const { access, refresh } = action.payload;
+      
+      // Validate tokens before setting
+      if (access && !isTokenExpired(access)) {
+        state.tokens.access = access;
+        localStorage.setItem('access_token', access);
+        
+        // Initialize automatic refresh for new token
+        initializeTokenRefresh();
       }
-      if (action.payload.refresh) {
-        localStorage.setItem('refresh_token', action.payload.refresh);
+      
+      if (refresh && !isTokenExpired(refresh)) {
+        state.tokens.refresh = refresh;
+        localStorage.setItem('refresh_token', refresh);
+      }
+      
+      // If both tokens are invalid, clear auth state
+      if ((!access || isTokenExpired(access)) && (!refresh || isTokenExpired(refresh))) {
+        state.user = null;
+        state.tokens = { access: null, refresh: null };
+        state.isAuthenticated = false;
+        clearAuthData();
       }
     },
     initializeAuth: (state) => {
       const token = localStorage.getItem('access_token');
+      const refreshToken = localStorage.getItem('refresh_token');
       const userData = localStorage.getItem('user');
       
       if (token && userData) {
         try {
-          const parsedUser = JSON.parse(userData);
-          state.user = parsedUser;
-          state.isAuthenticated = true;
-          state.tokens.access = token;
+          // Check if token is expired
+          if (isTokenExpired(token)) {
+            // Clear expired tokens
+            clearAuthData();
+            state.isAuthenticated = false;
+            state.user = null;
+            state.tokens = { access: null, refresh: null };
+          } else {
+            const parsedUser = JSON.parse(userData);
+            state.user = parsedUser;
+            state.isAuthenticated = true;
+            state.tokens.access = token;
+            state.tokens.refresh = refreshToken;
+            
+            // Initialize automatic token refresh
+            initializeTokenRefresh();
+          }
         } catch (error) {
           console.error('Error parsing user data:', error);
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
-          localStorage.removeItem('user');
+          clearAuthData();
           state.isAuthenticated = false;
           state.user = null;
+          state.tokens = { access: null, refresh: null };
         }
       } else {
         state.isAuthenticated = false;

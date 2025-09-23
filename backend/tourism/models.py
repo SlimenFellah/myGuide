@@ -231,6 +231,11 @@ class Feedback(models.Model):
     # Helpful votes
     helpful_count = models.IntegerField(default=0)
     
+    # Spam detection fields
+    is_spam = models.BooleanField(default=False)
+    spam_confidence = models.FloatField(default=0.0, help_text="AI confidence score for spam detection (0.0-1.0)")
+    spam_detected_at = models.DateTimeField(blank=True, null=True)
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewed_feedbacks')

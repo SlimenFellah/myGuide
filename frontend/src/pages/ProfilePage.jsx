@@ -8,7 +8,7 @@ import { useAppDispatch } from '../store/hooks';
 import { useSavedPlans, useFavorites } from '../store/hooks';
 import { addNotification } from '../store/slices/appSlice';
 import { apiService } from '../services';
-import { Button, Card, CardContent, Typography, Box, TextField, Switch, Select, MenuItem, FormControl, InputLabel, Tabs, Tab, FormControlLabel, Grid, Container, CircularProgress } from '@mui/material';
+import { Button, Card, CardContent, CardHeader, Typography, Box, TextField, Switch, Select, MenuItem, FormControl, InputLabel, Tabs, Tab, FormControlLabel, Grid, Container, CircularProgress } from '@mui/material';
 import { CalendarToday as Calendar } from '@mui/icons-material';
 import { 
   User, 

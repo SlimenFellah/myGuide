@@ -53,12 +53,15 @@ class TripPlanListCreateView(generics.ListCreateAPIView):
         return TripPlan.objects.filter(user=self.request.user).annotate(
             average_rating=Avg('ratings__rating'),
             rating_count=Count('ratings')
+        ).prefetch_related(
+            'daily_plans__activities__place',
+            'daily_plans__activities'
         )
     
     def get_serializer_class(self):
         if self.request.method == 'POST':
             return TripPlanCreateSerializer
-        return TripPlanListSerializer
+        return TripPlanSerializer
     
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)

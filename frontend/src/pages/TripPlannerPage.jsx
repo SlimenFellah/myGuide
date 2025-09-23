@@ -875,11 +875,10 @@ const TripPlannerPage = () => {
                     const savedTrip = await saveTripPlan(planData);
                     
                     // Show success notification
-                    setNotification({
+                    dispatch(addNotification({
                       type: 'success',
-                      title: 'Trip Saved Successfully!',
                       message: `Your ${currentPlan.destination || currentPlan.province} trip has been saved to your collection.`
-                    });
+                    }));
                     
                     // Redirect to the saved trip details (for now, redirect to dashboard)
                     // In the future, you can create a trip details page and redirect there

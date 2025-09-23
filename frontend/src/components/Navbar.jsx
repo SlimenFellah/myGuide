@@ -15,7 +15,8 @@ import {
   Settings, 
   LogOut,
   User,
-  ChevronDown
+  ChevronDown,
+  Briefcase
 } from 'lucide-react';
 import { Button, AppBar, Toolbar, Typography, Box, IconButton, Menu as MuiMenu, MenuItem, Avatar, Chip, Container } from '@mui/material';
 import { CalendarToday as Calendar } from '@mui/icons-material';
@@ -39,6 +40,7 @@ const Navbar = () => {
     { name: 'Dashboard', path: '/dashboard', icon: Home },
     { name: 'Explore', path: '/explore', icon: Map },
     { name: 'Trip Planner', path: '/trip-planner', icon: Calendar },
+    { name: 'My Trips', path: '/my-trips', icon: Briefcase },
     { name: 'Chatbot', path: '/chatbot', icon: MessageCircle },
   ];
 

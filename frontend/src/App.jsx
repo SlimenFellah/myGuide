@@ -17,6 +17,7 @@ import ChatbotPage from './pages/ChatbotPage';
 import AdminDashboard from './pages/AdminDashboard';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
+import MyTripsPage from './pages/MyTripsPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import DashboardRouter from './components/DashboardRouter';
 import NotificationSystem from './components/NotificationSystem';
@@ -150,6 +151,17 @@ function AppRoutes() {
             <Navbar />
             <ErrorBoundary>
               <SettingsPage />
+            </ErrorBoundary>
+          </Box>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/my-trips" element={
+        <ProtectedRoute>
+          <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
+            <Navbar />
+            <ErrorBoundary>
+              <MyTripsPage />
             </ErrorBoundary>
           </Box>
         </ProtectedRoute>

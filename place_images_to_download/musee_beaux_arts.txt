@@ -1,0 +1,21 @@
+PLACE: Musée National des Beaux-Arts
+LOCATION: Rue Larbi Ben M'hidi, El Madania, Algiers
+TYPE: Museum / Art Gallery
+
+DESCRIPTION:
+National fine arts museum featuring Algerian and international artworks.
+
+IMAGE REQUIREMENTS:
+- Download an image showing the museum building exterior
+- Focus on the architectural facade
+- Preferred: clear view of the museum entrance and building
+- Save as: musee_beaux_arts.jpg or musee_beaux_arts.png
+
+SEARCH KEYWORDS:
+- "Musée National des Beaux-Arts Algiers"
+- "National Fine Arts Museum Algeria"
+- "Art museum Algiers"
+- "Beaux Arts Algiers"
+
+NOTES:
+National art museum, look for images showing the institutional building architecture.

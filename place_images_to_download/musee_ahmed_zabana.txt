@@ -1,0 +1,21 @@
+PLACE: Musée Ahmed Zabana
+LOCATION: Boulevard Zabana, Oran
+TYPE: National Museum / History
+
+DESCRIPTION:
+National museum featuring Algerian history, archaeology, and natural sciences.
+
+IMAGE REQUIREMENTS:
+- Download an image showing the museum building
+- Focus on the institutional architecture
+- Preferred: exterior view showing the museum entrance
+- Save as: musee_ahmed_zabana.jpg or musee_ahmed_zabana.png
+
+SEARCH KEYWORDS:
+- "Musée Ahmed Zabana"
+- "Ahmed Zabana Museum Oran"
+- "National museum Oran"
+- "History museum Algeria"
+
+NOTES:
+National museum in Oran, look for images showing the museum building and institutional character.

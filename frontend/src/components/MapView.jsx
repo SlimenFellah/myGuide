@@ -77,12 +77,15 @@ const PlaceCard = ({ place, onClose, onViewDetails }) => {
           overflow: 'hidden'
         }}>
           <img 
-            src={place.main_image || '/api/placeholder/400/300'} 
+            src={place.main_image || '/elementor-placeholder-image.png'} 
             alt={place.name}
             style={{
               width: '100%',
               height: '100%',
               objectFit: 'cover'
+            }}
+            onError={(e) => {
+              e.target.src = '/elementor-placeholder-image.png';
             }}
           />
           <IconButton

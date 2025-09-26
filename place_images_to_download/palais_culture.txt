@@ -1,0 +1,21 @@
+PLACE: Palais de la Culture
+LOCATION: Plateau des Glières, El Hamma, Algiers
+TYPE: Cultural Center / Theater
+
+DESCRIPTION:
+Major cultural center hosting exhibitions, concerts, and theatrical performances.
+
+IMAGE REQUIREMENTS:
+- Download an image showing the cultural center building
+- Focus on the modern architectural design
+- Preferred: exterior view showing the cultural venue
+- Save as: palais_culture.jpg or palais_culture.png
+
+SEARCH KEYWORDS:
+- "Palais de la Culture Algiers"
+- "Cultural Palace Algiers"
+- "El Hamma cultural center"
+- "Algiers theater complex"
+
+NOTES:
+Modern cultural center, look for images showing the contemporary architecture and cultural significance.

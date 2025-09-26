@@ -30,6 +30,22 @@ export const saveTripPlan = createAsyncThunk(
   }
 );
 
+export const saveGeneratedTripPlan = createAsyncThunk(
+  'tripPlanner/saveGeneratedPlan',
+  async (generatedTripData, { rejectWithValue }) => {
+    try {
+      const response = await tripPlannerService.saveGeneratedTrip(generatedTripData);
+      if (response.success) {
+        return response.data;
+      } else {
+        return rejectWithValue({ message: response.error });
+      }
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to save generated trip plan' });
+    }
+  }
+);
+
 export const fetchSavedTrips = createAsyncThunk(
   'tripPlanner/fetchSavedTrips',
   async (_, { rejectWithValue }) => {
@@ -207,6 +223,24 @@ const tripPlannerSlice = createSlice({
       .addCase(saveTripPlan.rejected, (state, action) => {
         state.isSaving = false;
         state.saveError = action.payload?.message || 'Failed to save trip plan';
+      })
+      
+      // Save generated trip plan
+      .addCase(saveGeneratedTripPlan.pending, (state) => {
+        state.isSaving = true;
+        state.saveError = null;
+      })
+      .addCase(saveGeneratedTripPlan.fulfilled, (state, action) => {
+        state.isSaving = false;
+        const savedTrip = action.payload;
+        state.savedPlans.unshift(savedTrip);
+        state.trips.unshift(savedTrip);
+        // Clear the generated plan since it's now saved
+        state.generatedPlan = null;
+      })
+      .addCase(saveGeneratedTripPlan.rejected, (state, action) => {
+        state.isSaving = false;
+        state.saveError = action.payload?.message || 'Failed to save generated trip plan';
       })
       
       // Fetch saved trips

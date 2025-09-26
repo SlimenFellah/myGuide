@@ -65,19 +65,27 @@ class KnowledgeBaseDetailView(generics.RetrieveUpdateDestroyAPIView):
 class ChatSessionListCreateView(generics.ListCreateAPIView):
     """List user's chat sessions or create a new one"""
     serializer_class = ChatSessionSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = []  # Allow anonymous access
     pagination_class = ChatPagination
     filter_backends = [filters.OrderingFilter]
     ordering_fields = ['created_at', 'updated_at']
     ordering = ['-updated_at']
     
     def get_queryset(self):
-        return ChatSession.objects.filter(user=self.request.user)
+        if self.request.user.is_authenticated:
+            return ChatSession.objects.filter(user=self.request.user)
+        else:
+            # For anonymous users, return empty queryset for list view
+            return ChatSession.objects.none()
     
     def perform_create(self, serializer):
         # Generate unique session_id
         session_id = f"session_{uuid.uuid4().hex[:12]}_{int(time.time())}"
-        serializer.save(user=self.request.user, session_id=session_id)
+        if self.request.user.is_authenticated:
+            serializer.save(user=self.request.user, session_id=session_id)
+        else:
+            # For anonymous users, create session without user
+            serializer.save(user=None, session_id=session_id)
 
 class ChatSessionDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Retrieve, update or delete a chat session"""
@@ -86,6 +94,37 @@ class ChatSessionDetailView(generics.RetrieveUpdateDestroyAPIView):
     
     def get_queryset(self):
         return ChatSession.objects.filter(user=self.request.user)
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def get_or_create_active_session(request):
+    """Get the user's active session or create a new one"""
+    if request.method == 'GET':
+        # Get the most recent active session
+        active_session = ChatSession.objects.filter(
+            user=request.user,
+            is_active=True
+        ).order_by('-updated_at').first()
+        
+        if active_session:
+            serializer = ChatSessionSerializer(active_session)
+            return Response(serializer.data)
+        else:
+            return Response({'session': None}, status=status.HTTP_200_OK)
+    
+    elif request.method == 'POST':
+        # Create a new session
+        session_id = f"session_{uuid.uuid4().hex[:12]}_{int(time.time())}"
+        title = request.data.get('title', 'New Chat')
+        
+        session = ChatSession.objects.create(
+            user=request.user,
+            session_id=session_id,
+            title=title
+        )
+        
+        serializer = ChatSessionSerializer(session)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 # Chat Message Views
 class ChatMessageListView(generics.ListAPIView):
@@ -168,6 +207,9 @@ class ChatMessageCreateView(generics.CreateAPIView):
                 'response_time': response_time,
                 'suggestions': ai_response.get('suggestions', [])
             }).data
+            
+            # Add session_id to response for frontend
+            response_data['session_id'] = message.session.id
             
             return Response(response_data, status=status.HTTP_201_CREATED)
             

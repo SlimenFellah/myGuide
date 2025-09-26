@@ -1,75 +1,98 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { chatbotService } from '../../services';
+import chatbotService from '../../services/chatbotService';
 
-// Async thunks for chatbot functionality
+// Async thunks
 export const sendChatMessage = createAsyncThunk(
   'chatbot/sendMessage',
-  async ({ conversationId, message }, { rejectWithValue }) => {
+  async ({ message, sessionId = null }, { rejectWithValue }) => {
     try {
-      const response = await chatbotService.sendMessage(message, conversationId);
-      if (!response.success) {
-        return rejectWithValue({ message: response.error });
-      }
+      const response = await chatbotService.sendMessage(message, sessionId);
       return response;
     } catch (error) {
-      return rejectWithValue(error.response?.data || { message: 'Failed to send message' });
+      return rejectWithValue({
+        message: error.response?.data?.error || error.message || 'Failed to send message'
+      });
     }
   }
 );
 
-export const createConversation = createAsyncThunk(
-  'chatbot/createConversation',
-  async (initialMessage, { rejectWithValue }) => {
+export const createSession = createAsyncThunk(
+  'chatbot/createSession',
+  async (title = 'New Chat', { rejectWithValue }) => {
     try {
-      const response = await chatbotService.createConversation(initialMessage);
-      if (!response.success) {
-        return rejectWithValue({ message: response.error });
-      }
+      const response = await chatbotService.createSession(title);
       return response;
     } catch (error) {
-      return rejectWithValue(error.response?.data || { message: 'Failed to create conversation' });
+      return rejectWithValue({
+        message: error.response?.data?.error || error.message || 'Failed to create session'
+      });
     }
   }
 );
 
-export const fetchConversations = createAsyncThunk(
-  'chatbot/fetchConversations',
+export const fetchSessions = createAsyncThunk(
+  'chatbot/fetchSessions',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await chatbotService.getConversations();
+      const response = await chatbotService.getSessions();
       return response;
     } catch (error) {
-      return rejectWithValue(error.response?.data || { message: 'Failed to fetch conversations' });
+      return rejectWithValue({
+        message: error.response?.data?.error || error.message || 'Failed to fetch sessions'
+      });
     }
   }
 );
 
-export const fetchConversationHistory = createAsyncThunk(
-  'chatbot/fetchConversationHistory',
-  async (conversationId, { rejectWithValue }) => {
+export const fetchSessionMessages = createAsyncThunk(
+  'chatbot/fetchSessionMessages',
+  async (sessionId, { rejectWithValue }) => {
     try {
-      const response = await chatbotService.getConversationHistory(conversationId);
-      return { conversationId, messages: response };
+      const response = await chatbotService.getSessionMessages(sessionId);
+      return { sessionId, messages: response };
     } catch (error) {
-      return rejectWithValue(error.response?.data || { message: 'Failed to fetch conversation history' });
+      return rejectWithValue({
+        message: error.response?.data?.error || error.message || 'Failed to fetch session messages'
+      });
+    }
+  }
+);
+
+export const getOrCreateActiveSession = createAsyncThunk(
+  'chatbot/getOrCreateActiveSession',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await chatbotService.getOrCreateActiveSession();
+      return response;
+    } catch (error) {
+      return rejectWithValue({
+        message: error.response?.data?.error || error.message || 'Failed to get active session'
+      });
+    }
+  }
+);
+
+export const deleteSession = createAsyncThunk(
+  'chatbot/deleteSession',
+  async (sessionId, { rejectWithValue }) => {
+    try {
+      await chatbotService.deleteSession(sessionId);
+      return sessionId;
+    } catch (error) {
+      return rejectWithValue({
+        message: error.response?.data?.error || error.message || 'Failed to delete session'
+      });
     }
   }
 );
 
 // Initial state
 const initialState = {
-  // Conversations
-  conversations: [],
-  activeConversation: null,
-  
-  // Messages
-  messages: {},
-  
-  // UI state
+  sessions: [],
+  activeSession: null,
+  messages: {}, // Messages organized by session ID
   isLoading: false,
   isSending: false,
-  
-  // Errors
   error: null,
   sendError: null
 };
@@ -79,92 +102,108 @@ const chatbotSlice = createSlice({
   name: 'chatbot',
   initialState,
   reducers: {
-    // Conversation management
-    setActiveConversation: (state, action) => {
-      state.activeConversation = action.payload;
+    setActiveSession: (state, action) => {
+      state.activeSession = action.payload;
     },
-    clearActiveConversation: (state) => {
-      state.activeConversation = null;
+    clearActiveSession: (state) => {
+      state.activeSession = null;
     },
-    
-    // Message management
     addMessage: (state, action) => {
-      const { conversationId, message } = action.payload;
-      if (!state.messages[conversationId]) {
-        state.messages[conversationId] = [];
+      const { sessionId, message } = action.payload;
+      if (!state.messages[sessionId]) {
+        state.messages[sessionId] = [];
       }
-      state.messages[conversationId].push({
-        ...message,
-        id: Date.now() + Math.random(),
-        timestamp: new Date().toISOString()
-      });
+      state.messages[sessionId].push(message);
     },
-    
     addUserMessage: (state, action) => {
-      const { conversationId, content } = action.payload;
-      if (!state.messages[conversationId]) {
-        state.messages[conversationId] = [];
+      const { sessionId, content } = action.payload;
+      if (!state.messages[sessionId]) {
+        state.messages[sessionId] = [];
       }
-      state.messages[conversationId].push({
+      state.messages[sessionId].push({
         id: Date.now() + Math.random(),
         content,
-        sender: 'user',
-        timestamp: new Date().toISOString()
+        message_type: 'user',
+        created_at: new Date().toISOString()
       });
     },
-    
     addBotMessage: (state, action) => {
-      const { conversationId, content } = action.payload;
-      if (!state.messages[conversationId]) {
-        state.messages[conversationId] = [];
+      const { sessionId, content, messageId, confidence_score } = action.payload;
+      if (!state.messages[sessionId]) {
+        state.messages[sessionId] = [];
       }
-      state.messages[conversationId].push({
-        id: Date.now() + Math.random(),
+      state.messages[sessionId].push({
+        id: messageId || Date.now() + Math.random(),
         content,
-        sender: 'bot',
-        timestamp: new Date().toISOString()
+        message_type: 'assistant',
+        confidence_score: confidence_score || 0.8,
+        created_at: new Date().toISOString()
       });
     },
-    
     clearMessages: (state, action) => {
-      const conversationId = action.payload;
-      if (conversationId) {
-        delete state.messages[conversationId];
+      const sessionId = action.payload;
+      if (sessionId) {
+        state.messages[sessionId] = [];
       } else {
         state.messages = {};
       }
     },
-    
-    // Error management
     clearError: (state) => {
       state.error = null;
     },
     clearSendError: (state) => {
       state.sendError = null;
+    },
+    updateSessionTitle: (state, action) => {
+      const { sessionId, title } = action.payload;
+      const session = state.sessions.find(s => s.id === sessionId);
+      if (session) {
+        session.title = title;
+      }
     }
   },
   extraReducers: (builder) => {
-    // Send message
     builder
-      .addCase(sendChatMessage.pending, (state) => {
+      // Send chat message
+      .addCase(sendChatMessage.pending, (state, action) => {
         state.isSending = true;
         state.sendError = null;
+        
+        // Add user message immediately for better UX
+        const { message, sessionId } = action.meta.arg;
+        if (sessionId && message) {
+          if (!state.messages[sessionId]) {
+            state.messages[sessionId] = [];
+          }
+          state.messages[sessionId].push({
+            id: Date.now() + Math.random(),
+            content: message,
+            message_type: 'user',
+            created_at: new Date().toISOString()
+          });
+        }
       })
       .addCase(sendChatMessage.fulfilled, (state, action) => {
         state.isSending = false;
-        const { conversationId, botResponse } = action.payload;
+        const response = action.payload;
         
         // Add bot response to messages
-        if (botResponse && conversationId) {
-          if (!state.messages[conversationId]) {
-            state.messages[conversationId] = [];
+        if (response && response.session_id) {
+          if (!state.messages[response.session_id]) {
+            state.messages[response.session_id] = [];
           }
-          state.messages[conversationId].push({
-            id: Date.now() + Math.random(),
-            content: botResponse,
-            sender: 'bot',
-            timestamp: new Date().toISOString()
+          state.messages[response.session_id].push({
+            id: response.message_id || Date.now() + Math.random(),
+            content: response.response,
+            message_type: 'assistant',
+            confidence_score: response.confidence_score || 0.8,
+            created_at: new Date().toISOString()
           });
+          
+          // Update active session if this is the first message
+          if (!state.activeSession) {
+            state.activeSession = response.session_id;
+          }
         }
       })
       .addCase(sendChatMessage.rejected, (state, action) => {
@@ -172,67 +211,120 @@ const chatbotSlice = createSlice({
         state.sendError = action.payload?.message || 'Failed to send message';
       })
       
-      // Create conversation
-      .addCase(createConversation.pending, (state) => {
+      // Create session
+      .addCase(createSession.pending, (state) => {
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(createConversation.fulfilled, (state, action) => {
+      .addCase(createSession.fulfilled, (state, action) => {
         state.isLoading = false;
-        const newConversation = action.payload;
-        state.conversations.unshift(newConversation);
-        state.activeConversation = newConversation.id;
+        const newSession = action.payload;
+        state.sessions.unshift(newSession);
+        state.activeSession = newSession.id;
         
-        // Initialize messages for new conversation
-        if (!state.messages[newConversation.id]) {
-          state.messages[newConversation.id] = [];
+        // Initialize messages for new session
+        if (!state.messages[newSession.id]) {
+          state.messages[newSession.id] = [];
         }
       })
-      .addCase(createConversation.rejected, (state, action) => {
+      .addCase(createSession.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.payload?.message || 'Failed to create conversation';
+        state.error = action.payload?.message || 'Failed to create session';
       })
       
-      // Fetch conversations
-      .addCase(fetchConversations.pending, (state) => {
+      // Fetch sessions
+      .addCase(fetchSessions.pending, (state) => {
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(fetchConversations.fulfilled, (state, action) => {
+      .addCase(fetchSessions.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.conversations = action.payload;
+        state.sessions = action.payload.results || action.payload;
       })
-      .addCase(fetchConversations.rejected, (state, action) => {
+      .addCase(fetchSessions.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.payload?.message || 'Failed to fetch conversations';
+        state.error = action.payload?.message || 'Failed to fetch sessions';
       })
       
-      // Fetch conversation history
-      .addCase(fetchConversationHistory.pending, (state) => {
+      // Fetch session messages
+      .addCase(fetchSessionMessages.pending, (state) => {
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(fetchConversationHistory.fulfilled, (state, action) => {
+      .addCase(fetchSessionMessages.fulfilled, (state, action) => {
         state.isLoading = false;
-        const { conversationId, messages } = action.payload;
-        state.messages[conversationId] = messages;
+        const { sessionId, messages } = action.payload;
+        state.messages[sessionId] = messages.results || messages;
       })
-      .addCase(fetchConversationHistory.rejected, (state, action) => {
+      .addCase(fetchSessionMessages.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.payload?.message || 'Failed to fetch conversation history';
+        state.error = action.payload?.message || 'Failed to fetch session messages';
+      })
+      
+      // Get or create active session
+      .addCase(getOrCreateActiveSession.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(getOrCreateActiveSession.fulfilled, (state, action) => {
+        state.isLoading = false;
+        const session = action.payload;
+        if (session && session.id) {
+          // Add to sessions if not already there
+          const existingSession = state.sessions.find(s => s.id === session.id);
+          if (!existingSession) {
+            state.sessions.unshift(session);
+          }
+          state.activeSession = session.id;
+          
+          // Initialize messages if not already there
+          if (!state.messages[session.id]) {
+            state.messages[session.id] = [];
+          }
+        }
+      })
+      .addCase(getOrCreateActiveSession.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload?.message || 'Failed to get active session';
+      })
+      
+      // Delete session
+      .addCase(deleteSession.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(deleteSession.fulfilled, (state, action) => {
+        state.isLoading = false;
+        const deletedSessionId = action.payload;
+        
+        // Remove session from list
+        state.sessions = state.sessions.filter(s => s.id !== deletedSessionId);
+        
+        // Clear messages for deleted session
+        delete state.messages[deletedSessionId];
+        
+        // Clear active session if it was deleted
+        if (state.activeSession === deletedSessionId) {
+          state.activeSession = state.sessions.length > 0 ? state.sessions[0].id : null;
+        }
+      })
+      .addCase(deleteSession.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload?.message || 'Failed to delete session';
       });
   }
 });
 
 export const {
-  setActiveConversation,
-  clearActiveConversation,
+  setActiveSession,
+  clearActiveSession,
   addMessage,
   addUserMessage,
   addBotMessage,
   clearMessages,
   clearError,
-  clearSendError
+  clearSendError,
+  updateSessionTitle
 } = chatbotSlice.actions;
 
 export default chatbotSlice.reducer;

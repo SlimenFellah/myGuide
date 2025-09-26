@@ -256,7 +256,7 @@ class SavedTripPlanListView(generics.ListAPIView):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def generate_trip_plan(request):
-    """Generate an AI-powered trip plan"""
+    """Generate an AI-powered trip plan (without saving to database)"""
     print(f"\n=== TRIP GENERATION REQUEST ===")
     print(f"Request data: {request.data}")
     
@@ -298,44 +298,45 @@ def generate_trip_plan(request):
             else:
                 budget_range = 'high'
             
-            # Create the trip plan
-            trip_plan = TripPlan.objects.create(
-                user=request.user,
-                title=trip_data['title'],
-                province=province,
-                trip_type=serializer.validated_data['trip_type'],
-                budget_range=budget_range,
-                start_date=serializer.validated_data['start_date'],
-                end_date=serializer.validated_data['end_date'],
-                duration_days=duration,
-                group_size=serializer.validated_data['group_size'],
-                preferences={
+            # Prepare trip plan data without saving to database
+            trip_plan_data = {
+                'title': trip_data['title'],
+                'province': province.id if province else None,
+                'province_name': province.name if province else None,
+                'trip_type': serializer.validated_data['trip_type'],
+                'budget_range': budget_range,
+                'start_date': serializer.validated_data['start_date'],
+                'end_date': serializer.validated_data['end_date'],
+                'duration_days': duration,
+                'group_size': serializer.validated_data['group_size'],
+                'preferences': {
                     'interests': serializer.validated_data.get('interests', []),
                     'accommodation_preference': serializer.validated_data.get('accommodation_preference'),
                     'activity_level': serializer.validated_data.get('activity_level'),
                     'budget': float(serializer.validated_data['budget']),
                     'budget_currency': serializer.validated_data['budget_currency']
                 },
-                special_requirements=serializer.validated_data.get('special_requirements'),
-                ai_description=trip_data['description'],
-                ai_recommendations={
+                'special_requirements': serializer.validated_data.get('special_requirements'),
+                'ai_description': trip_data['description'],
+                'ai_recommendations': {
                     'confidence_score': trip_data.get('confidence_score', 0.8),
                     'recommended_destinations': trip_data.get('recommended_destinations', []),
                     'estimated_total_cost': trip_data.get('estimated_total_cost', 0)
                 },
-                estimated_cost=trip_data.get('estimated_total_cost', 0),
-                status='generated'
-            )
+                'estimated_cost': trip_data.get('estimated_total_cost', 0),
+                'status': 'generated',
+                'daily_plans': []
+            }
             
-            # Create daily plans and activities
+            # Prepare daily plans and activities data
             for day_index, day_data in enumerate(trip_data['daily_plans'], 1):
-                daily_plan = DailyPlan.objects.create(
-                    trip_plan=trip_plan,
-                    day_number=day_index,
-                    date=day_data['date'],
-                    title=day_data['title'],
-                    description=day_data['description']
-                )
+                daily_plan_data = {
+                    'day_number': day_index,
+                    'date': day_data['date'],
+                    'title': day_data['title'],
+                    'description': day_data['description'],
+                    'activities': []
+                }
                 
                 for activity_data in day_data['activities']:
                     # Convert duration from hours to minutes if provided
@@ -343,23 +344,24 @@ def generate_trip_plan(request):
                     if activity_data.get('duration_hours'):
                         duration_minutes = int(float(activity_data['duration_hours']) * 60)
                     
-                    PlannedActivity.objects.create(
-                        daily_plan=daily_plan,
-                        place_id=activity_data.get('place_id'),
-                        activity_type=activity_data.get('activity_type', 'visit'),
-                        title=activity_data.get('title', activity_data.get('name', 'Activity')),
-                        description=activity_data.get('description', ''),
-                        start_time=activity_data.get('start_time'),
-                        end_time=activity_data.get('end_time'),
-                        duration_minutes=duration_minutes,
-                        estimated_cost=activity_data.get('estimated_cost', 0),
-                        notes=activity_data.get('notes', ''),
-                        order=activity_data.get('order', 0)
-                    )
+                    activity_plan_data = {
+                        'place_id': activity_data.get('place_id'),
+                        'activity_type': activity_data.get('activity_type', 'visit'),
+                        'title': activity_data.get('title', activity_data.get('name', 'Activity')),
+                        'description': activity_data.get('description', ''),
+                        'start_time': activity_data.get('start_time'),
+                        'end_time': activity_data.get('end_time'),
+                        'duration_minutes': duration_minutes,
+                        'estimated_cost': activity_data.get('estimated_cost', 0),
+                        'notes': activity_data.get('notes', ''),
+                        'order': activity_data.get('order', 0)
+                    }
+                    daily_plan_data['activities'].append(activity_plan_data)
+                
+                trip_plan_data['daily_plans'].append(daily_plan_data)
             
-            # Return the created trip plan
-            trip_serializer = TripPlanSerializer(trip_plan, context={'request': request})
-            return Response(trip_serializer.data, status=status.HTTP_201_CREATED)
+            # Return the generated trip plan data (not saved to database)
+            return Response(trip_plan_data, status=status.HTTP_200_OK)
             
         except Exception as e:
             print(f"\n=== TRIP GENERATION ERROR ===")
@@ -715,5 +717,100 @@ def export_trip_plans(request):
             'message': 'Export functionality not yet implemented',
             'requested_format': serializer.validated_data.get('format', 'json')
         })
+    
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def save_generated_trip_plan(request):
+    """Save a generated trip plan to the database"""
+    print(f"\n=== SAVE GENERATED TRIP REQUEST ===")
+    print(f"Request data keys: {list(request.data.keys())}")
+    
+    try:
+        trip_data = request.data
+        
+        # Validate required fields
+        required_fields = ['title', 'trip_type', 'start_date', 'end_date', 'daily_plans']
+        for field in required_fields:
+            if field not in trip_data:
+                return Response({
+                    'error': f'Missing required field: {field}'
+                }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Get the province
+        from tourism.models import Province
+        province = None
+        if trip_data.get('province'):
+            try:
+                province = Province.objects.get(id=trip_data['province'])
+            except Province.DoesNotExist:
+                if trip_data.get('province_name'):
+                    province = Province.objects.filter(
+                        name__icontains=trip_data['province_name']
+                    ).first()
+        
+        if not province:
+            province = Province.objects.first()
+        
+        # Create the trip plan
+        trip_plan = TripPlan.objects.create(
+            user=request.user,
+            title=trip_data['title'],
+            province=province,
+            trip_type=trip_data['trip_type'],
+            budget_range=trip_data.get('budget_range', 'medium'),
+            start_date=trip_data['start_date'],
+            end_date=trip_data['end_date'],
+            duration_days=trip_data.get('duration_days', 1),
+            group_size=trip_data.get('group_size', 1),
+            preferences=trip_data.get('preferences', {}),
+            special_requirements=trip_data.get('special_requirements', ''),
+            ai_description=trip_data.get('ai_description', ''),
+            ai_recommendations=trip_data.get('ai_recommendations', {}),
+            estimated_cost=trip_data.get('estimated_cost', 0),
+            status='saved'
+        )
+        
+        # Create daily plans and activities
+        for daily_plan_data in trip_data['daily_plans']:
+            daily_plan = DailyPlan.objects.create(
+                trip_plan=trip_plan,
+                day_number=daily_plan_data['day_number'],
+                date=daily_plan_data['date'],
+                title=daily_plan_data['title'],
+                description=daily_plan_data.get('description', '')
+            )
+            
+            for activity_data in daily_plan_data.get('activities', []):
+                PlannedActivity.objects.create(
+                    daily_plan=daily_plan,
+                    place_id=activity_data.get('place_id'),
+                    activity_type=activity_data.get('activity_type', 'visit'),
+                    title=activity_data.get('title', 'Activity'),
+                    description=activity_data.get('description', ''),
+                    start_time=activity_data.get('start_time'),
+                    end_time=activity_data.get('end_time'),
+                    duration_minutes=activity_data.get('duration_minutes'),
+                    estimated_cost=activity_data.get('estimated_cost', 0),
+                    notes=activity_data.get('notes', ''),
+                    order=activity_data.get('order', 0)
+                )
+        
+        # Return the saved trip plan
+        trip_serializer = TripPlanSerializer(trip_plan, context={'request': request})
+        return Response(trip_serializer.data, status=status.HTTP_201_CREATED)
+        
+    except Exception as e:
+        print(f"\n=== SAVE TRIP ERROR ===")
+        print(f"Error: {str(e)}")
+        print(f"Error type: {type(e).__name__}")
+        import traceback
+        traceback.print_exc()
+        print(f"=== END SAVE ERROR ===")
+        return Response({
+            'error': 'Failed to save trip plan',
+            'details': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -35,6 +35,7 @@ urlpatterns = [
     
     # AI and Recommendation URLs
     path('generate-trip-plan/', views.generate_trip_plan, name='generate-trip-plan'),
+    path('save-generated-trip/', views.save_generated_trip_plan, name='save-generated-trip-plan'),
     path('recommendations/', views.trip_recommendations, name='trip-recommendations'),
     
     # Trip Plan Actions

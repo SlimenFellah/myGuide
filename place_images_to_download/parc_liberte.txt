@@ -1,0 +1,21 @@
+PLACE: Parc de la Liberté
+LOCATION: Avenue Franklin Roosevelt, El Madania, Algiers
+TYPE: Urban Park / Recreation
+
+DESCRIPTION:
+Large urban park perfect for families, with playgrounds and walking paths.
+
+IMAGE REQUIREMENTS:
+- Download an image showing the park landscape
+- Include trees, walking paths, or recreational areas
+- Preferred: green space with families or visitors
+- Save as: parc_liberte.jpg or parc_liberte.png
+
+SEARCH KEYWORDS:
+- "Parc de la Liberté Algiers"
+- "Liberty Park Algiers"
+- "Urban park Algeria"
+- "El Madania park"
+
+NOTES:
+Urban family park, look for images showing green spaces and recreational facilities.

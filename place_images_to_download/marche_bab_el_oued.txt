@@ -1,0 +1,21 @@
+PLACE: Marché de Bab El Oued
+LOCATION: Rue Larbi Ben M'hidi, Bab El Oued, Algiers
+TYPE: Traditional Market
+
+DESCRIPTION:
+Traditional market offering local products, spices, and authentic Algerian crafts.
+
+IMAGE REQUIREMENTS:
+- Download an image showing the traditional market atmosphere
+- Include vendors, products, or market stalls
+- Preferred: colorful market scene with local products
+- Save as: marche_bab_el_oued.jpg or marche_bab_el_oued.png
+
+SEARCH KEYWORDS:
+- "Marché Bab El Oued"
+- "Bab El Oued market Algiers"
+- "Traditional market Algeria"
+- "Algerian market spices"
+
+NOTES:
+Traditional neighborhood market, look for vibrant images showing local commerce and culture.

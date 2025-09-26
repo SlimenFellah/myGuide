@@ -75,6 +75,11 @@ class ChatSession(models.Model):
     
     class Meta:
         ordering = ['-updated_at']
+        indexes = [
+            models.Index(fields=['user', '-updated_at']),
+            models.Index(fields=['session_id']),
+            models.Index(fields=['is_active']),
+        ]
     
     def __str__(self):
         if self.user:
@@ -84,6 +89,31 @@ class ChatSession(models.Model):
     @property
     def message_count(self):
         return self.messages.count()
+    
+    @property
+    def last_message_preview(self):
+        """Get preview of the last message"""
+        last_message = self.messages.order_by('-created_at').first()
+        if last_message:
+            preview = last_message.content[:100]
+            return preview + "..." if len(last_message.content) > 100 else preview
+        return "No messages yet"
+    
+    @property
+    def auto_title(self):
+        """Generate automatic title based on first user message"""
+        if self.title:
+            return self.title
+        
+        first_user_message = self.messages.filter(message_type='user').order_by('created_at').first()
+        if first_user_message:
+            # Create title from first 50 characters of first message
+            title = first_user_message.content[:50].strip()
+            if len(first_user_message.content) > 50:
+                title += "..."
+            return title
+        
+        return f"Chat {self.created_at.strftime('%b %d, %Y')}"
     
     def get_conversation_history(self, limit=10):
         """Get recent conversation history for context"""

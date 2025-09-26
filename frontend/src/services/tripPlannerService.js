@@ -100,6 +100,22 @@ export const tripPlannerService = {
     }
   },
 
+  // Save generated trip plan
+  async saveGeneratedTrip(generatedTripData) {
+    try {
+      const response = await api.post('/trip-planner/save-generated-trip/', generatedTripData);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.detail || 'Failed to save generated trip plan',
+      };
+    }
+  },
+
   // Get saved trip plans
   async getSavedTripPlans() {
     try {

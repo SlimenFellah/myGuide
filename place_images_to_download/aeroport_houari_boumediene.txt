@@ -1,0 +1,21 @@
+PLACE: Aéroport International Houari Boumediene
+LOCATION: Route de l'Aéroport, Dar El Beida, Algiers
+TYPE: Transportation / Airport
+
+DESCRIPTION:
+Main international airport serving Algiers and northern Algeria.
+
+IMAGE REQUIREMENTS:
+- Download an image showing the airport terminal building
+- Focus on the modern airport architecture
+- Preferred: exterior view of the main terminal
+- Save as: aeroport_houari_boumediene.jpg or aeroport_houari_boumediene.png
+
+SEARCH KEYWORDS:
+- "Aéroport Houari Boumediene"
+- "Algiers International Airport"
+- "Dar El Beida Airport"
+- "Algeria main airport"
+
+NOTES:
+Main international airport, look for images showing the modern terminal building and facilities.

@@ -1,0 +1,21 @@
+PLACE: Place du 1er Novembre
+LOCATION: Oran
+TYPE: Memorial Square / Cultural
+
+DESCRIPTION:
+Central square commemorating the start of the Algerian revolution.
+
+IMAGE REQUIREMENTS:
+- Download an image showing the central square
+- Include surrounding buildings and memorial elements
+- Preferred: daytime view with urban activity
+- Save as: place_1er_novembre.jpg or place_1er_novembre.png
+
+SEARCH KEYWORDS:
+- "Place du 1er Novembre Oran"
+- "November 1st Square Oran"
+- "Central square Oran"
+- "Revolution memorial Oran"
+
+NOTES:
+Important memorial square in Oran, look for images showing the urban square and its significance.

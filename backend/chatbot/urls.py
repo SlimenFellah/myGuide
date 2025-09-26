@@ -13,6 +13,7 @@ urlpatterns = [
     
     # Chat Session URLs
     path('sessions/', views.ChatSessionListCreateView.as_view(), name='chat-session-list-create'),
+    path('sessions/active/', views.get_or_create_active_session, name='get-or-create-active-session'),
     path('sessions/<int:pk>/', views.ChatSessionDetailView.as_view(), name='chat-session-detail'),
     path('sessions/<int:session_id>/messages/', views.ChatMessageListView.as_view(), name='chat-message-list'),
     

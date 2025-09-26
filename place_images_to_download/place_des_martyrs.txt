@@ -1,0 +1,21 @@
+PLACE: Place des Martyrs
+LOCATION: Algiers Centre
+TYPE: Cultural Square / Memorial
+
+DESCRIPTION:
+Central square commemorating Algerian independence heroes, surrounded by important buildings.
+
+IMAGE REQUIREMENTS:
+- Download an image showing the central square
+- Include surrounding buildings if possible
+- Preferred: daytime view with people or activity
+- Save as: place_des_martyrs.jpg or place_des_martyrs.png
+
+SEARCH KEYWORDS:
+- "Place des Martyrs Algiers"
+- "Martyrs Square Algiers"
+- "Central square Algiers"
+- "Algiers city center"
+
+NOTES:
+Main central square in Algiers, should show the urban atmosphere and memorial significance.

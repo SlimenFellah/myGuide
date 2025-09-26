@@ -1,0 +1,21 @@
+PLACE: Château Neuf
+LOCATION: Sidi El Houari, Oran
+TYPE: Historical Fortress / Spanish Architecture
+
+DESCRIPTION:
+Spanish fortress from the 16th century with panoramic views of the harbor.
+
+IMAGE REQUIREMENTS:
+- Download an image showing the fortress structure
+- Focus on the Spanish colonial architecture
+- Preferred: exterior view showing the fortress and harbor views
+- Save as: chateau_neuf.jpg or chateau_neuf.png
+
+SEARCH KEYWORDS:
+- "Château Neuf Oran"
+- "Spanish fortress Oran"
+- "Sidi El Houari fortress"
+- "16th century fort Algeria"
+
+NOTES:
+Historic Spanish fortress, look for images showing the colonial military architecture and coastal views.

@@ -1,0 +1,21 @@
+PLACE: Université d'Oran Es-Senia
+LOCATION: BP 1524, Es Senia, Oran
+TYPE: Educational Institution / University
+
+DESCRIPTION:
+Major university campus with modern facilities and botanical gardens.
+
+IMAGE REQUIREMENTS:
+- Download an image showing the university campus
+- Focus on the main buildings or campus entrance
+- Preferred: modern university architecture
+- Save as: universite_oran.jpg or universite_oran.png
+
+SEARCH KEYWORDS:
+- "Université Oran Es-Senia"
+- "University of Oran"
+- "Es Senia campus"
+- "Oran university buildings"
+
+NOTES:
+Major university campus, look for images showing the modern educational facilities and campus environment.

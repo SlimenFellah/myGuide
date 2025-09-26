@@ -225,6 +225,7 @@ class TripGenerationRequestSerializer(serializers.Serializer):
     budget_currency = serializers.CharField(max_length=3, default='USD')
     group_size = serializers.IntegerField(min_value=1, max_value=20)
     trip_type = serializers.ChoiceField(choices=TripPlan.TRIP_TYPES)
+    travel_style = serializers.CharField(max_length=100, required=False, allow_blank=True)
     interests = serializers.ListField(
         child=serializers.CharField(max_length=100),
         required=False,
@@ -239,6 +240,8 @@ class TripGenerationRequestSerializer(serializers.Serializer):
         required=False
     )
     special_requirements = serializers.CharField(max_length=500, required=False, allow_blank=True)
+    dietary_restrictions = serializers.CharField(max_length=500, required=False, allow_blank=True)
+    preferences = serializers.CharField(max_length=1000, required=False, allow_blank=True)
     
     def validate(self, data):
         """Validate trip generation request"""

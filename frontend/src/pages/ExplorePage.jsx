@@ -286,13 +286,16 @@ const ExplorePage = () => {
     }}>
       <Box sx={{ position: 'relative' }}>
         <img 
-          src={place.main_image || '/api/placeholder/400/300'} 
+          src={place.main_image || '/elementor-placeholder-image.png'} 
           alt={place.name}
           style={{
             width: '100%',
             height: '192px',
             objectFit: 'cover',
             transition: 'transform 0.3s'
+          }}
+          onError={(e) => {
+            e.target.src = '/elementor-placeholder-image.png';
           }}
         />
         <Button 
@@ -427,7 +430,7 @@ const ExplorePage = () => {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Box
             component="img"
-            src={place.main_image || '/api/placeholder/400/300'}
+            src={place.main_image || '/elementor-placeholder-image.png'}
             alt={place.name}
             sx={{
               width: 80,
@@ -438,6 +441,9 @@ const ExplorePage = () => {
               '&:hover': {
                 transform: 'scale(1.05)'
               }
+            }}
+            onError={(e) => {
+              e.target.src = '/elementor-placeholder-image.png';
             }}
           />
         <Box sx={{ flex: 1, minWidth: 0 }}>

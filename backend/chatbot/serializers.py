@@ -4,6 +4,8 @@ from .models import (
     FrequentlyAskedQuestion, ChatAnalytics
 )
 from django.contrib.auth import get_user_model
+import uuid
+import time
 
 User = get_user_model()
 
@@ -24,9 +26,14 @@ class KnowledgeBaseCreateSerializer(serializers.ModelSerializer):
 
 class ChatSessionSerializer(serializers.ModelSerializer):
     """Chat session serializer"""
-    user_name = serializers.CharField(source='user.full_name', read_only=True)
+    user_name = serializers.SerializerMethodField()
     messages_count = serializers.SerializerMethodField()
     last_message_at = serializers.SerializerMethodField()
+    auto_title = serializers.ReadOnlyField()
+    last_message_preview = serializers.ReadOnlyField()
+    
+    def get_user_name(self, obj):
+        return obj.user.full_name if obj.user else 'Anonymous'
     
     class Meta:
         model = ChatSession
@@ -42,7 +49,10 @@ class ChatSessionSerializer(serializers.ModelSerializer):
 
 class ChatMessageSerializer(serializers.ModelSerializer):
     """Chat message serializer"""
-    user_name = serializers.CharField(source='session.user.full_name', read_only=True)
+    user_name = serializers.SerializerMethodField()
+    
+    def get_user_name(self, obj):
+        return obj.session.user.full_name if obj.session and obj.session.user else 'Anonymous'
     
     class Meta:
         model = ChatMessage
@@ -51,17 +61,61 @@ class ChatMessageSerializer(serializers.ModelSerializer):
 
 class ChatMessageCreateSerializer(serializers.ModelSerializer):
     """Chat message create serializer"""
+    session = serializers.PrimaryKeyRelatedField(
+        queryset=ChatSession.objects.none(),
+        required=False,
+        allow_null=True
+    )
     
     class Meta:
         model = ChatMessage
         fields = ['session', 'content', 'message_type']
     
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if request:
+            self.fields['session'].queryset = ChatSession.objects.filter(user=request.user)
+    
     def validate_session(self, value):
         """Validate that the session belongs to the current user"""
+        if value is None:
+            return value
         request = self.context.get('request')
         if request and request.user != value.user:
             raise serializers.ValidationError("You can only send messages to your own chat sessions.")
         return value
+    
+    def create(self, validated_data):
+        """Create message and auto-create session if needed"""
+        request = self.context.get('request')
+        session = validated_data.get('session')
+        
+        # If no session provided, get the most recent active session or create a new one
+        if not session:
+            # First try to get the most recent active session
+            session = ChatSession.objects.filter(
+                user=request.user,
+                is_active=True
+            ).order_by('-updated_at').first()
+            
+            # If no active session exists, create a new one
+            if not session:
+                session = ChatSession.objects.create(
+                    user=request.user,
+                    session_id=f"session_{uuid.uuid4().hex[:12]}_{int(time.time())}",
+                    title='New Chat',
+                    is_active=True
+                )
+            
+            validated_data['session'] = session
+        
+        # Auto-generate title from first user message if session is new
+        if session.title == 'New Chat' and validated_data.get('message_type') == 'user':
+            session.title = session.auto_title
+            session.save()
+        
+        return super().create(validated_data)
 
 class ChatMessageListSerializer(serializers.ModelSerializer):
     """Chat message list serializer (for chat history)"""

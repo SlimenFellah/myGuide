@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '../store/hooks';
 import { useProvinces, useActiveTrip, useGeneratedPlan, useTripPlannerLoading, useSavedPlans, useTripPlannerFormData, useAuth } from '../store/hooks';
 import { fetchProvinces } from '../store/slices/tourismSlice';
-import { generateTripPlan, saveTripPlan, updateTripPlannerData } from '../store/slices/tripPlannerSlice';
+import { generateTripPlan, saveGeneratedTripPlan, updateTripPlannerData } from '../store/slices/tripPlannerSlice';
 import { addNotification } from '../store/slices/appSlice';
 import { apiService } from '../services';
 import {
@@ -163,7 +163,7 @@ const TripPlannerPage = () => {
     console.log('Sending trip data:', tripData);
     
     // Show loading state
-    setCurrentStep(3.5); // Intermediate loading step
+    setCurrentStep(4.5); // Intermediate loading step
     
     try {
       const result = await dispatch(generateTripPlan(tripData)).unwrap();
@@ -174,7 +174,7 @@ const TripPlannerPage = () => {
         message: `Trip plan "${result.title}" generated successfully!`
       }));
       
-      setCurrentStep(4);
+      setCurrentStep(5);
     } catch (error) {
       console.error('Error generating trip:', error);
       
@@ -185,8 +185,8 @@ const TripPlannerPage = () => {
         message: errorMessage
       }));
       
-      // Go back to step 3 to allow retry
-      setCurrentStep(3);
+      // Go back to step 4 to allow retry
+      setCurrentStep(4);
     }
   };
 
@@ -200,12 +200,14 @@ const TripPlannerPage = () => {
   const canProceed = (step) => {
     switch (step) {
       case 1:
-        return formData.province && formData.tripType;
+        return formData.province;
       case 2:
-        return formData.startDate && formData.endDate && formData.budget;
+        return formData.tripType;
       case 3:
+        return formData.startDate && formData.endDate && formData.budget;
+      case 4:
         const hasPreferences = Object.values(formData.preferences).some(Boolean);
-        console.log('Step 3 validation - preferences:', formData.preferences, 'hasPreferences:', hasPreferences);
+        console.log('Step 4 validation - preferences:', formData.preferences, 'hasPreferences:', hasPreferences);
         return hasPreferences;
       default:
         return true;
@@ -215,7 +217,7 @@ const TripPlannerPage = () => {
 
 
   const renderStep1 = () => (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center', justifyContent: 'center' }}>
       <Box sx={{ textAlign: 'center' }}>
         <Typography variant="h3" component="h2" sx={{ 
           fontWeight: 'bold', 
@@ -227,93 +229,110 @@ const TripPlannerPage = () => {
           Where would you like to go?
         </Typography>
         <Typography variant="h6" color="text.secondary">
-          Choose your destination and trip type
+          Choose your destination
         </Typography>
       </Box>
       
-      <Grid container spacing={4}>
-        <Grid item xs={12} md={6}>
-          <Card sx={{ boxShadow: 3, background: 'linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)' }}>
-            <CardHeader>
-              <Typography variant="h6" component="h3" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                Select Province
-              </Typography>
-            </CardHeader>
-            <CardContent>
-              <FormControl fullWidth>
-                <InputLabel>Choose a province...</InputLabel>
-                <Select
-                  value={formData.province}
-                  onChange={(e) => handleInputChange('province', e.target.value)}
-                  label="Choose a province..."
-                >
-                  <MenuItem value="">Choose a province...</MenuItem>
-                  {provinceNames.map((province) => (
-                    <MenuItem key={province} value={province}>{province}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </CardContent>
-          </Card>
-        </Grid>
-        
-        <Grid item xs={12} md={6}>
-          <Card sx={{ boxShadow: 3, background: 'linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)' }}>
-            <CardHeader>
-              <Typography variant="h6" component="h3" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                Trip Type
-              </Typography>
-            </CardHeader>
-            <CardContent>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {tripTypes.map((type) => (
-                  <Button
-                    key={type.id}
-                    onClick={() => handleInputChange('tripType', type.id)}
-                    variant={formData.tripType === type.id ? "contained" : "outlined"}
-                    sx={{
-                      p: 2,
-                      height: 'auto',
-                      textAlign: 'left',
-                      justifyContent: 'flex-start',
-                      textTransform: 'none',
-                      ...(formData.tripType === type.id ? {
-                        background: 'linear-gradient(45deg, #1976d2, #1565c0)',
-                        '&:hover': {
-                          background: 'linear-gradient(45deg, #1565c0, #0d47a1)'
-                        }
-                      } : {
-                        borderColor: 'grey.300',
-                        '&:hover': {
-                          borderColor: 'primary.main',
-                          backgroundColor: 'primary.50'
-                        }
-                      })
-                    }}
-                  >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <Typography sx={{ fontSize: '1.5rem' }}>{type.icon}</Typography>
-                      <Box>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                          {type.name}
-                        </Typography>
-                        <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                          {type.description}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </Button>
+      <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+        <Card sx={{ boxShadow: 3, background: 'linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)', maxWidth: 500, width: '100%' }}>
+          <CardHeader>
+            <Typography variant="h6" component="h3" sx={{ fontWeight: 600, color: 'text.primary', textAlign: 'center' }}>
+              Select Province
+            </Typography>
+          </CardHeader>
+          <CardContent sx={{ display: 'flex', justifyContent: 'center' }}>
+            <FormControl sx={{ minWidth: 300, width: '100%', maxWidth: 400 }}>
+              <InputLabel>Choose a province...</InputLabel>
+              <Select
+                value={formData.province}
+                onChange={(e) => handleInputChange('province', e.target.value)}
+                label="Choose a province..."
+              >
+                <MenuItem value="">Choose a province...</MenuItem>
+                {provinceNames.map((province) => (
+                  <MenuItem key={province} value={province}>{province}</MenuItem>
                 ))}
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+              </Select>
+            </FormControl>
+          </CardContent>
+        </Card>
+      </Box>
     </Box>
   );
 
   const renderStep2 = () => (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center', justifyContent: 'center' }}>
+      <Box sx={{ textAlign: 'center' }}>
+        <Typography variant="h3" component="h2" sx={{ 
+          fontWeight: 'bold', 
+          background: 'linear-gradient(45deg, #1976d2, #1565c0)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          mb: 1.5
+        }}>
+          What type of trip?
+        </Typography>
+        <Typography variant="h6" color="text.secondary">
+          Choose your travel style
+        </Typography>
+      </Box>
+      
+      <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+        <Card sx={{ boxShadow: 3, background: 'linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)', maxWidth: 600, width: '100%' }}>
+          <CardHeader>
+            <Typography variant="h6" component="h3" sx={{ fontWeight: 600, color: 'text.primary', textAlign: 'center' }}>
+              Trip Type
+            </Typography>
+          </CardHeader>
+          <CardContent>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {tripTypes.map((type) => (
+                <Button
+                  key={type.id}
+                  onClick={() => handleInputChange('tripType', type.id)}
+                  variant={formData.tripType === type.id ? "contained" : "outlined"}
+                  sx={{
+                    p: 2,
+                    height: 'auto',
+                    textAlign: 'left',
+                    justifyContent: 'flex-start',
+                    textTransform: 'none',
+                    ...(formData.tripType === type.id ? {
+                      background: 'linear-gradient(45deg, #1976d2, #1565c0)',
+                      '&:hover': {
+                        background: 'linear-gradient(45deg, #1565c0, #0d47a1)'
+                      }
+                    } : {
+                      borderColor: 'grey.300',
+                      '&:hover': {
+                        borderColor: 'primary.main',
+                        backgroundColor: 'primary.50'
+                      }
+                    })
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <Typography sx={{ fontSize: '1.5rem' }}>{type.icon}</Typography>
+                    <Box>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                        {type.name}
+                      </Typography>
+                      <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                        {type.description}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Button>
+              ))}
+            </Box>
+          </CardContent>
+        </Card>
+      </Box>
+    </Box>
+  );
+
+  const renderStep3 = () => (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center', justifyContent: 'center' }}>
       <Box sx={{ textAlign: 'center' }}>
         <Typography variant="h3" component="h2" sx={{ 
           fontWeight: 'bold', 
@@ -329,11 +348,11 @@ const TripPlannerPage = () => {
         </Typography>
       </Box>
       
-      <Grid container spacing={4}>
+      <Grid container spacing={4} sx={{ maxWidth: 1200, width: '100%', justifyContent: 'center' }}>
         <Grid item xs={12} md={6}>
           <Card sx={{ boxShadow: 3, background: 'linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)' }}>
             <CardHeader>
-              <Typography variant="h6" component="h3" sx={{ fontWeight: 600, color: 'text.primary' }}>
+              <Typography variant="h6" component="h3" sx={{ fontWeight: 600, color: 'text.primary', textAlign: 'center' }}>
                 Travel Information
               </Typography>
             </CardHeader>
@@ -405,7 +424,7 @@ const TripPlannerPage = () => {
         <Grid item xs={12} md={6}>
           <Card sx={{ boxShadow: 3, background: 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)' }}>
             <CardHeader>
-              <Typography variant="h6" component="h3" sx={{ fontWeight: 600, color: 'primary.dark' }}>
+              <Typography variant="h6" component="h3" sx={{ fontWeight: 600, color: 'primary.dark', textAlign: 'center' }}>
                 Trip Summary
               </Typography>
             </CardHeader>
@@ -439,8 +458,8 @@ const TripPlannerPage = () => {
     </Box>
   );
 
-  const renderStep3 = () => (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+  const renderStep4 = () => (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center', justifyContent: 'center' }}>
       <Box sx={{ textAlign: 'center' }}>
         <Typography variant="h3" component="h2" sx={{ 
           fontWeight: 'bold', 
@@ -456,18 +475,18 @@ const TripPlannerPage = () => {
         </Typography>
       </Box>
       
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4, maxWidth: 1200, width: '100%', alignItems: 'center' }}>
         <Card sx={{ boxShadow: 3, background: 'linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)' }}>
           <CardHeader>
-            <Typography variant="h6" component="h3" sx={{ fontWeight: 600, color: 'text.primary' }}>
+            <Typography variant="h6" component="h3" sx={{ fontWeight: 600, color: 'text.primary', textAlign: 'center' }}>
               Select your interests
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1, textAlign: 'center' }}>
               Choose all that apply
             </Typography>
           </CardHeader>
           <CardContent>
-            <Grid container spacing={2}>
+            <Grid container spacing={2} sx={{ justifyContent: 'center' }}>
               {preferenceOptions.map((option) => {
                 const isSelected = formData.preferences[option.key];
                 return (
@@ -477,18 +496,20 @@ const TripPlannerPage = () => {
                       variant={isSelected ? "contained" : "outlined"}
                       sx={{
                         p: 2,
-                        height: 'auto',
+                        height: 120,
                         width: '100%',
                         flexDirection: 'column',
                         gap: 1,
                         textTransform: 'none',
                         ...(isSelected ? {
                           background: 'linear-gradient(45deg, #1976d2, #1565c0)',
+                          color: 'white',
                           '&:hover': {
                             background: 'linear-gradient(45deg, #1565c0, #0d47a1)'
                           }
                         } : {
                           borderColor: 'grey.300',
+                          color: 'text.primary',
                           '&:hover': {
                             borderColor: 'primary.main',
                             backgroundColor: 'primary.50'
@@ -497,7 +518,10 @@ const TripPlannerPage = () => {
                       }}
                     >
                       <Typography sx={{ fontSize: '1.5rem' }}>{option.icon}</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      <Typography variant="body2" sx={{ 
+                        fontWeight: 500,
+                        color: isSelected ? 'white' : 'text.primary'
+                      }}>
                         {option.label}
                       </Typography>
                     </Button>
@@ -508,15 +532,15 @@ const TripPlannerPage = () => {
           </CardContent>
         </Card>
         
-        <Grid container spacing={3}>
+        <Grid container spacing={3} sx={{ justifyContent: 'center' }}>
           <Grid item xs={12} md={6}>
-            <Card sx={{ boxShadow: 3, background: 'linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)' }}>
+            <Card sx={{ boxShadow: 3, background: 'linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)', height: '100%' }}>
               <CardHeader>
-                <Typography variant="h6" component="h3" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                <Typography variant="h6" component="h3" sx={{ fontWeight: 600, color: 'text.primary', textAlign: 'center' }}>
                   Dietary Information
                 </Typography>
               </CardHeader>
-              <CardContent>
+              <CardContent sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 'calc(100% - 80px)' }}>
                 <TextField
                   fullWidth
                   label="Dietary Restrictions/Allergies"
@@ -524,19 +548,20 @@ const TripPlannerPage = () => {
                   onChange={(e) => handleInputChange('allergies', e.target.value)}
                   placeholder="e.g., Nuts, Gluten, Vegetarian..."
                   variant="outlined"
+                  sx={{ maxWidth: 400 }}
                 />
               </CardContent>
             </Card>
           </Grid>
           
           <Grid item xs={12} md={6}>
-            <Card sx={{ boxShadow: 3, background: 'linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)' }}>
+            <Card sx={{ boxShadow: 3, background: 'linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)', height: '100%' }}>
               <CardHeader>
-                <Typography variant="h6" component="h3" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                <Typography variant="h6" component="h3" sx={{ fontWeight: 600, color: 'text.primary', textAlign: 'center' }}>
                   Special Requests
                 </Typography>
               </CardHeader>
-              <CardContent>
+              <CardContent sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 'calc(100% - 80px)' }}>
                 <TextField
                   fullWidth
                   label="Special Requests or Notes"
@@ -546,6 +571,7 @@ const TripPlannerPage = () => {
                   multiline
                   rows={4}
                   variant="outlined"
+                  sx={{ maxWidth: 400 }}
                 />
               </CardContent>
             </Card>
@@ -628,40 +654,77 @@ const TripPlannerPage = () => {
     const currentDay = currentPlan.daily_plans[selectedDay];
     
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
         {/* Plan Header */}
-        <Card sx={{ boxShadow: 4, background: 'linear-gradient(45deg, #1976d2, #1565c0)', color: 'white' }}>
-          <CardContent sx={{ p: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+        <Card sx={{ 
+          width: '100%',
+          maxWidth: 1200,
+          background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)', 
+          color: 'white',
+          boxShadow: 4
+        }}>
+          <CardContent sx={{ p: 4 }}>
+            <Box sx={{ textAlign: 'center', mb: 3 }}>
+              <Typography variant="h3" component="h2" sx={{ 
+                fontWeight: 'bold', 
+                mb: 1,
+                color: 'white'
+              }}>
+                Your {currentPlan.province} Adventure
+              </Typography>
+              <Typography variant="h6" sx={{ 
+                opacity: 0.9,
+                mb: 2
+              }}>
+                {currentPlan.duration} days • {tripTypes.find(t => t.id === currentPlan.trip_type)?.name}
+              </Typography>
+            </Box>
+            
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 2,
+              mb: 3
+            }}>
               <Box>
-                <Typography variant="h4" component="h2" sx={{ fontWeight: 'bold', mb: 1 }}>
-                  Your {currentPlan.province} Adventure
+                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+                  Duration
                 </Typography>
-                <Typography sx={{ color: 'rgba(255,255,255,0.8)' }}>
-                  {currentPlan.duration} days • {tripTypes.find(t => t.id === currentPlan.trip_type)?.name}
+                <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+                  {currentPlan.duration} Days
+                </Typography>
+              </Box>
+              <Box sx={{ textAlign: 'center' }}>
+                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+                  Destination
+                </Typography>
+                <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+                  {currentPlan.province}
                 </Typography>
               </Box>
               <Box sx={{ textAlign: 'right' }}>
                 <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)' }}>
                   Total Budget
                 </Typography>
-                <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
                   ${currentPlan.total_cost}
                 </Typography>
               </Box>
             </Box>
             
-            <Box sx={{ display: 'flex', gap: 2 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
               <Button 
                 variant="outlined" 
                 startIcon={<Download />}
                 sx={{ 
                   color: 'white', 
-                  borderColor: 'rgba(255,255,255,0.3)', 
+                  borderColor: 'rgba(255,255,255,0.5)', 
                   bgcolor: 'rgba(255,255,255,0.1)',
                   '&:hover': {
                     bgcolor: 'rgba(255,255,255,0.2)',
-                    borderColor: 'rgba(255,255,255,0.5)'
+                    borderColor: 'white'
                   }
                 }}
               >
@@ -672,11 +735,11 @@ const TripPlannerPage = () => {
                 startIcon={<Share />}
                 sx={{ 
                   color: 'white', 
-                  borderColor: 'rgba(255,255,255,0.3)', 
+                  borderColor: 'rgba(255,255,255,0.5)', 
                   bgcolor: 'rgba(255,255,255,0.1)',
                   '&:hover': {
                     bgcolor: 'rgba(255,255,255,0.2)',
-                    borderColor: 'rgba(255,255,255,0.5)'
+                    borderColor: 'white'
                   }
                 }}
               >
@@ -687,10 +750,20 @@ const TripPlannerPage = () => {
         </Card>
         
         {/* Day Navigation */}
-        <Card sx={{ boxShadow: 3, background: 'linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)' }}>
+        <Card sx={{ 
+          width: '100%',
+          maxWidth: 1200,
+          boxShadow: 2, 
+          bgcolor: 'white',
+          border: '1px solid',
+          borderColor: 'grey.200'
+        }}>
           <CardContent sx={{ p: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Typography variant="h6" component="h3" sx={{ fontWeight: 600, color: 'text.primary' }}>
+              <Typography variant="h6" component="h3" sx={{ 
+                fontWeight: 600, 
+                color: 'text.primary' 
+              }}>
                 Daily Itinerary
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -703,19 +776,24 @@ const TripPlannerPage = () => {
                     p: 1, 
                     minWidth: 'auto',
                     borderColor: 'grey.300',
-                    '&:disabled': { opacity: 0.5 },
-                    '&:hover': { bgcolor: 'grey.50' }
+                    color: 'text.secondary',
+                    '&:disabled': { opacity: 0.3 },
+                    '&:hover': { 
+                      bgcolor: 'grey.50',
+                      borderColor: 'primary.main'
+                    }
                   }}
                 >
                   <ChevronLeft size={16} />
                 </Button>
                 <Box sx={{ 
-                  px: 2, 
+                  px: 3, 
                   py: 1, 
-                  bgcolor: 'primary.50', 
-                  color: 'primary.main', 
+                  bgcolor: 'primary.main', 
+                  color: 'white', 
                   borderRadius: 2, 
-                  fontWeight: 500 
+                  fontWeight: 600,
+                  fontSize: '0.875rem'
                 }}>
                   Day {selectedDay + 1} of {currentPlan.duration}
                 </Box>
@@ -728,8 +806,12 @@ const TripPlannerPage = () => {
                     p: 1, 
                     minWidth: 'auto',
                     borderColor: 'grey.300',
-                    '&:disabled': { opacity: 0.5 },
-                    '&:hover': { bgcolor: 'grey.50' }
+                    color: 'text.secondary',
+                    '&:disabled': { opacity: 0.3 },
+                    '&:hover': { 
+                      bgcolor: 'grey.50',
+                      borderColor: 'primary.main'
+                    }
                   }}
                 >
                   <ChevronRight size={16} />
@@ -740,10 +822,20 @@ const TripPlannerPage = () => {
         </Card>
         
         {/* Current Day Details */}
-        <Card sx={{ boxShadow: 4, background: 'linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)' }}>
-          <CardHeader>
+        <Card sx={{ 
+          width: '100%',
+          maxWidth: 1200,
+          boxShadow: 2, 
+          bgcolor: 'white',
+          border: '1px solid',
+          borderColor: 'grey.200'
+        }}>
+          <CardHeader sx={{ pb: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Typography variant="h6" component="h3" sx={{ fontWeight: 600, color: 'text.primary' }}>
+              <Typography variant="h6" component="h3" sx={{ 
+                fontWeight: 600, 
+                color: 'text.primary' 
+              }}>
                 {new Date(currentDay.date).toLocaleDateString('en-US', { 
                   weekday: 'long', 
                   year: 'numeric', 
@@ -751,9 +843,17 @@ const TripPlannerPage = () => {
                   day: 'numeric' 
                 })}
               </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', color: 'text.secondary' }}>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                color: 'text.secondary',
+                bgcolor: 'grey.50',
+                px: 2,
+                py: 1,
+                borderRadius: 1
+              }}>
                 <DollarSign size={16} style={{ marginRight: 4 }} />
-                <Typography variant="body2">
+                <Typography variant="body2" sx={{ fontWeight: 500 }}>
                   Daily budget: ${currentDay.total_cost}
                 </Typography>
               </Box>
@@ -762,51 +862,73 @@ const TripPlannerPage = () => {
           <CardContent>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {currentDay.activities.map((activity, index) => (
-                <Card key={activity.id} sx={{ borderLeft: 4, borderColor: 'primary.main', boxShadow: 2 }}>
-                  <CardContent sx={{ p: 2 }}>
+                <Card key={activity.id} sx={{ 
+                  borderLeft: 4, 
+                  borderColor: 'primary.main', 
+                  boxShadow: 1,
+                  bgcolor: 'grey.50'
+                }}>
+                  <CardContent sx={{ p: 3 }}>
                     <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
                       <Box sx={{ flexShrink: 0 }}>
                         <Avatar sx={{ 
-                          width: 32, 
-                          height: 32, 
+                          width: 36, 
+                          height: 36, 
                           bgcolor: 'primary.main', 
                           color: 'white', 
-                          fontSize: '0.875rem',
-                          fontWeight: 600
+                          fontSize: '1rem',
+                          fontWeight: 700
                         }}>
                           {index + 1}
                         </Avatar>
                       </Box>
                       <Box sx={{ flex: 1 }}>
                         <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1 }}>
-                          <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                          <Typography variant="h6" sx={{ 
+                            fontWeight: 600, 
+                            color: 'text.primary' 
+                          }}>
                             {activity.place?.name || activity.name}
                           </Typography>
                           <Chip 
                             label={activity.place?.category || activity.category}
                             size="small"
-                            sx={{ bgcolor: 'white', color: 'text.secondary' }}
+                            sx={{ 
+                              bgcolor: 'primary.main', 
+                              color: 'white',
+                              fontWeight: 500
+                            }}
                           />
                         </Box>
-                        <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
+                        <Typography variant="body2" sx={{ 
+                          color: 'text.secondary', 
+                          mb: 2,
+                          lineHeight: 1.5
+                        }}>
                           {activity.place?.description || activity.description}
                         </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, color: 'text.secondary' }}>
+                        <Box sx={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: 3, 
+                          color: 'text.secondary',
+                          flexWrap: 'wrap'
+                        }}>
                           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <AccessTime size={14} style={{ marginRight: 4 }} />
-                            <Typography variant="body2">
+                            <AccessTime size={16} style={{ marginRight: 6 }} />
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
                               {activity.start_time} ({activity.duration} hours)
                             </Typography>
                           </Box>
                           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <DollarSign size={14} style={{ marginRight: 4 }} />
-                            <Typography variant="body2">
+                            <DollarSign size={16} style={{ marginRight: 6 }} />
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
                               ${activity.estimated_cost}
                             </Typography>
                           </Box>
                           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <MapPin size={14} style={{ marginRight: 4 }} />
-                            <Typography variant="body2">
+                            <MapPin size={16} style={{ marginRight: 6 }} />
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
                               View on map
                             </Typography>
                           </Box>
@@ -821,9 +943,16 @@ const TripPlannerPage = () => {
         </Card>
         
         {/* Action Buttons */}
-        <Card sx={{ boxShadow: 3, background: 'linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)' }}>
-          <CardContent sx={{ p: 3 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
+        <Card sx={{ 
+          width: '100%',
+          maxWidth: 1200,
+          boxShadow: 2, 
+          bgcolor: 'white',
+          border: '1px solid',
+          borderColor: 'grey.200'
+        }}>
+          <CardContent sx={{ p: 4 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 3 }}>
               <Button 
                 onClick={() => {
                   setCurrentStep(1);
@@ -834,10 +963,13 @@ const TripPlannerPage = () => {
                 sx={{ 
                   px: 4, 
                   py: 1.5, 
-                  borderColor: 'grey.300', 
+                  borderColor: 'grey.400', 
+                  color: 'text.secondary',
+                  fontWeight: 500,
                   '&:hover': { 
                     borderColor: 'primary.main', 
-                    bgcolor: 'primary.50' 
+                    bgcolor: 'primary.50',
+                    color: 'primary.main'
                   }
                 }}
               >
@@ -846,33 +978,8 @@ const TripPlannerPage = () => {
               <Button 
                 onClick={async () => {
                   try {
-                    // Transform currentPlan to match TripPlanCreateSerializer format
-                    const startDate = new Date(currentPlan.start_date);
-                    const endDate = new Date(currentPlan.end_date);
-                    const durationDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
-                    
-                    // Find province ID based on province name
-                    const provinceName = currentPlan.destination || currentPlan.province;
-                    const provincesArray = Array.isArray(provinces) ? provinces : [];
-                    const province = provincesArray.find(p => p.name === provinceName);
-                    const provinceId = province ? province.id : (provincesArray.length > 0 ? provincesArray[0].id : 1);
-                    
-                    const planData = {
-                      title: currentPlan.title || `${currentPlan.destination || currentPlan.province} Trip`,
-                      ai_description: currentPlan.ai_description || currentPlan.description || '',
-                      start_date: currentPlan.start_date,
-                      end_date: currentPlan.end_date,
-                      duration_days: durationDays,
-                      budget_range: currentPlan.budget_range || 'medium',
-                      estimated_cost: currentPlan.total_cost || currentPlan.estimated_cost || 0,
-                      group_size: currentPlan.group_size || 1,
-                      trip_type: currentPlan.trip_type,
-                      preferences: currentPlan.preferences || {},
-                      is_public: false,
-                      province: provinceId
-                    };
-                    
-                    const savedTrip = await saveTripPlan(planData);
+                    // Use the generated plan data directly
+                    const result = await dispatch(saveGeneratedTripPlan(currentPlan)).unwrap();
                     
                     // Show success notification
                     dispatch(addNotification({
@@ -881,23 +988,26 @@ const TripPlannerPage = () => {
                     }));
                     
                     // Redirect to the saved trip details (for now, redirect to dashboard)
-                    // In the future, you can create a trip details page and redirect there
                     setTimeout(() => {
                       navigate('/dashboard');
                     }, 2000); // Wait 2 seconds to show the success message
                     
                   } catch (error) {
                     console.error('Error saving trip:', error);
-                    // Error notification is already handled by the saveTripPlan function
+                    dispatch(addNotification({
+                      type: 'error',
+                      message: error.message || 'Failed to save trip plan. Please try again.'
+                    }));
                   }
                 }}
                 variant="contained"
                 sx={{ 
                   px: 4, 
                   py: 1.5, 
-                  background: 'linear-gradient(45deg, #1976d2, #1565c0)',
+                  bgcolor: 'primary.main',
+                  fontWeight: 600,
                   '&:hover': {
-                    background: 'linear-gradient(45deg, #1565c0, #0d47a1)'
+                    bgcolor: 'primary.dark'
                   }
                 }}
               >
@@ -943,11 +1053,11 @@ const TripPlannerPage = () => {
         </Box>
 
         {/* Progress Steps */}
-        {currentStep < 4 && (
+        {currentStep < 5 && (
           <Card sx={{ mb: 4, boxShadow: 3, bgcolor: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(10px)' }}>
             <CardContent sx={{ p: 3 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-                {[1, 2, 3].map((step) => (
+                {[1, 2, 3, 4].map((step) => (
                   <Box key={step} sx={{ display: 'flex', alignItems: 'center' }}>
                     <Box sx={{
                       width: 40,
@@ -959,7 +1069,7 @@ const TripPlannerPage = () => {
                       fontSize: '0.875rem',
                       fontWeight: 600,
                       transition: 'all 0.3s',
-                      ...(currentStep >= step || currentStep === 3.5
+                      ...(currentStep >= step || currentStep === 4.5
                         ? {
                             background: 'linear-gradient(45deg, #1976d2, #1565c0)',
                             color: 'white',
@@ -970,22 +1080,22 @@ const TripPlannerPage = () => {
                             color: 'grey.600'
                           })
                     }}>
-                      {currentStep > step || (currentStep === 3.5 && step === 3) ? (
+                      {currentStep > step || (currentStep === 4.5 && step === 4) ? (
                         <CheckCircle sx={{ fontSize: 18 }} />
-                      ) : currentStep === 3.5 && step === 3 ? (
+                      ) : currentStep === 4.5 && step === 4 ? (
                         <Loader2 sx={{ fontSize: 18, animation: 'spin 1s linear infinite' }} />
                       ) : (
                         step
                       )}
                     </Box>
-                    {step < 3 && (
+                    {step < 4 && (
                       <Box sx={{
                         width: 80,
                         height: 8,
                         mx: 1.5,
                         borderRadius: 4,
                         transition: 'all 0.3s',
-                        ...(currentStep > step || currentStep === 3.5
+                        ...(currentStep > step || currentStep === 4.5
                           ? { background: 'linear-gradient(45deg, #1976d2, #1565c0)' }
                           : { bgcolor: 'grey.300' })
                       }} />
@@ -995,7 +1105,7 @@ const TripPlannerPage = () => {
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
                 <Typography variant="body1" sx={{ fontWeight: 500, color: 'text.primary' }}>
-                  {currentStep === 3.5 ? 'Generating Your Trip...' : `Step ${Math.floor(currentStep)} of 3: ${currentStep === 1 ? 'Destination' : currentStep === 2 ? 'Details' : 'Preferences'}`}
+                  {currentStep === 4.5 ? 'Generating Your Trip...' : `Step ${Math.floor(currentStep)} of 4: ${currentStep === 1 ? 'Destination' : currentStep === 2 ? 'Trip Type' : currentStep === 3 ? 'Details' : 'Preferences'}`}
                 </Typography>
               </Box>
             </CardContent>
@@ -1009,11 +1119,12 @@ const TripPlannerPage = () => {
               {currentStep === 1 && renderStep1()}
               {currentStep === 2 && renderStep2()}
               {currentStep === 3 && renderStep3()}
-              {currentStep === 3.5 && renderGenerating()}
-              {currentStep === 4 && renderTripPlan()}
+              {currentStep === 4 && renderStep4()}
+              {currentStep === 4.5 && renderGenerating()}
+              {currentStep === 5 && renderTripPlan()}
           
               {/* Navigation Buttons */}
-              {currentStep < 4 && currentStep !== 3.5 && (
+              {currentStep < 5 && currentStep !== 4.5 && (
                 <Box sx={{ 
                   display: 'flex', 
                   justifyContent: 'space-between', 
@@ -1037,7 +1148,7 @@ const TripPlannerPage = () => {
                     Previous
                   </Button>
                   
-                  {currentStep < 3 ? (
+                  {currentStep < 4 ? (
                     <Button
                       onClick={() => setCurrentStep(currentStep + 1)}
                       disabled={!canProceed(currentStep)}

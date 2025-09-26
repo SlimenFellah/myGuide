@@ -1,0 +1,21 @@
+PLACE: Port d'Oran
+LOCATION: Boulevard du Front de Mer, El Hamri, Oran
+TYPE: Harbor / Maritime
+
+DESCRIPTION:
+Historic harbor with fishing boats and maritime activities.
+
+IMAGE REQUIREMENTS:
+- Download an image showing the harbor and boats
+- Include fishing boats or maritime activities
+- Preferred: harbor view with boats and waterfront
+- Save as: port_oran.jpg or port_oran.png
+
+SEARCH KEYWORDS:
+- "Port d'Oran"
+- "Oran harbor"
+- "Oran fishing port"
+- "Maritime Oran"
+
+NOTES:
+Historic harbor, look for images showing the working port with boats and maritime atmosphere.

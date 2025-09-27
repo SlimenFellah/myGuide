@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useCurrentUser, useIsAdmin } from '../store/hooks';
+import { useSubscription } from '../hooks/useSubscription';
 import { logoutUser } from '../store/slices/authSlice';
 import { 
   Menu, 
@@ -16,7 +17,8 @@ import {
   LogOut,
   User,
   ChevronDown,
-  Briefcase
+  Briefcase,
+  Crown
 } from 'lucide-react';
 import { Button, AppBar, Toolbar, Typography, Box, IconButton, Menu as MuiMenu, MenuItem, Avatar, Chip, Container } from '@mui/material';
 import { CalendarToday as Calendar } from '@mui/icons-material';
@@ -28,6 +30,7 @@ const Navbar = () => {
   const dispatch = useAppDispatch();
   const user = useCurrentUser();
   const isAdmin = useIsAdmin();
+  const { isPremium, planName } = useSubscription();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -42,6 +45,7 @@ const Navbar = () => {
     { name: 'Trip Planner', path: '/trip-planner', icon: Calendar },
     { name: 'My Trips', path: '/my-trips', icon: Briefcase },
     { name: 'Chatbot', path: '/chatbot', icon: MessageCircle },
+    { name: 'Subscription', path: '/subscription', icon: Crown },
   ];
 
   if (isAdmin) {
@@ -111,6 +115,21 @@ const Navbar = () => {
                     backgroundColor: 'rgba(156, 39, 176, 0.1)',
                     color: '#9c27b0',
                     fontWeight: 500
+                  }}
+                />
+              )}
+              {isPremium && (
+                <Chip
+                  icon={<Crown size={12} />}
+                  label={planName}
+                  size="small"
+                  sx={{
+                    fontSize: '0.75rem',
+                    height: 20,
+                    backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                    color: '#ff8f00',
+                    fontWeight: 500,
+                    ml: 0.5
                   }}
                 />
               )}

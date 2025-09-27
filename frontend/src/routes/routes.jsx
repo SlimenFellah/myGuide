@@ -16,6 +16,7 @@ import AdminDashboard from '../pages/AdminDashboard';
 import ProfilePage from '../pages/ProfilePage';
 import SettingsPage from '../pages/SettingsPage';
 import MyTripsPage from '../pages/MyTripsPage';
+import SubscriptionPage from '../pages/SubscriptionPage';
 
 // Components
 import ProtectedRoute from '../components/ProtectedRoute';
@@ -77,6 +78,11 @@ export const protectedRoutes = [
     path: '/my-trips',
     element: <MyTripsPage />,
     name: 'My Trips'
+  },
+  {
+    path: '/subscription',
+    element: <SubscriptionPage />,
+    name: 'Subscription'
   }
 ];
 

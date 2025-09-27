@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'tourism',
     'chatbot',
     'trip_planner',
+    'subscriptions',
 ]
 
 MIDDLEWARE = [

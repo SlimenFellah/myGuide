@@ -45,6 +45,7 @@ urlpatterns = [
     path('api/tourism/', include('tourism.urls')),
     path('api/chatbot/', include('chatbot.urls')),
     path('api/trip-planner/', include('trip_planner.urls')),
+    path('api/subscriptions/', include('subscriptions.urls')),
     
     # API Documentation
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

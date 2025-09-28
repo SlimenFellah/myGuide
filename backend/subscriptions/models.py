@@ -45,22 +45,28 @@ class UserSubscription(models.Model):
     stripe_subscription_id = models.CharField(max_length=100, blank=True, null=True)
     stripe_customer_id = models.CharField(max_length=100, blank=True, null=True)
     start_date = models.DateTimeField(default=timezone.now)
-    end_date = models.DateTimeField()
+    end_date = models.DateTimeField(null=True, blank=True)  # Null for free plans (no expiration)
     auto_renew = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
     def save(self, *args, **kwargs):
         if not self.end_date:
-            if self.plan.duration_days == 0:  # Free plan
-                self.end_date = timezone.now() + timedelta(days=365*10)  # Far future for free
+            if self.plan.duration_days == 0:  # Free plan - no expiration
+                self.end_date = None
             else:
                 self.end_date = self.start_date + timedelta(days=self.plan.duration_days)
         super().save(*args, **kwargs)
     
     @property
     def is_active(self):
-        return self.status == 'active' and self.end_date > timezone.now()
+        if self.status != 'active':
+            return False
+        # Free plans never expire (end_date is None)
+        if self.end_date is None:
+            return True
+        # Premium plans expire based on end_date
+        return self.end_date > timezone.now()
     
     @property
     def is_premium(self):
@@ -68,6 +74,9 @@ class UserSubscription(models.Model):
     
     @property
     def days_remaining(self):
+        # Free plans don't expire
+        if self.end_date is None:
+            return None
         if self.end_date > timezone.now():
             return (self.end_date - timezone.now()).days
         return 0

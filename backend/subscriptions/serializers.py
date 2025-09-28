@@ -25,7 +25,18 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
     user_username = serializers.CharField(source='user.username', read_only=True)
     is_active = serializers.BooleanField(read_only=True)
     is_premium = serializers.BooleanField(read_only=True)
-    days_remaining = serializers.IntegerField(read_only=True)
+    days_remaining = serializers.SerializerMethodField()
+    expires_on = serializers.SerializerMethodField()
+    
+    def get_days_remaining(self, obj):
+        """Return days remaining or None for free plans"""
+        return obj.days_remaining
+    
+    def get_expires_on(self, obj):
+        """Return expiration date or None for free plans"""
+        if obj.end_date:
+            return obj.end_date.strftime('%d/%m/%Y')
+        return None
     
     class Meta:
         model = UserSubscription
@@ -33,11 +44,11 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
             'id', 'user', 'user_email', 'user_username', 'plan', 'plan_id',
             'status', 'stripe_subscription_id', 'stripe_customer_id',
             'start_date', 'end_date', 'auto_renew', 'is_active', 'is_premium',
-            'days_remaining', 'created_at', 'updated_at'
+            'days_remaining', 'expires_on', 'created_at', 'updated_at'
         ]
         read_only_fields = [
             'id', 'user', 'user_email', 'user_username', 'plan',
-            'is_active', 'is_premium', 'days_remaining', 'created_at', 'updated_at'
+            'is_active', 'is_premium', 'days_remaining', 'expires_on', 'created_at', 'updated_at'
         ]
 
 
@@ -101,8 +112,8 @@ class SubscriptionStatusSerializer(serializers.Serializer):
     is_premium = serializers.BooleanField()
     plan_name = serializers.CharField()
     status = serializers.CharField()
-    days_remaining = serializers.IntegerField()
-    end_date = serializers.DateTimeField()
+    days_remaining = serializers.IntegerField(allow_null=True)
+    end_date = serializers.DateTimeField(allow_null=True)
     can_create_trip = serializers.BooleanField()
     can_use_chatbot = serializers.BooleanField()
     trips_created = serializers.IntegerField()

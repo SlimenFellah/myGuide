@@ -67,8 +67,8 @@ class UserSubscriptionStatusView(APIView):
                 'is_premium': False,
                 'plan_name': 'Free',
                 'status': 'active',
-                'days_remaining': 365*10,  # Far future for free
-                'end_date': subscription.end_date,
+                'days_remaining': None,  # Free plans don't expire
+                'end_date': None,  # Free plans have no end date
                 'can_create_trip': True,
                 'can_use_chatbot': True,
                 'trips_created': 0,

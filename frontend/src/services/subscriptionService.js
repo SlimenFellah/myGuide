@@ -1,10 +1,10 @@
-import apiService from './apiService';
+import { api } from './authService';
 
 class SubscriptionService {
   // Get all subscription plans
   async getSubscriptionPlans() {
     try {
-      const response = await apiService.get('/subscriptions/plans/');
+      const response = await api.get('/subscriptions/plans/');
       return response.data;
     } catch (error) {
       console.error('Error fetching subscription plans:', error);
@@ -15,7 +15,7 @@ class SubscriptionService {
   // Get current user's subscription status
   async getUserSubscription() {
     try {
-      const response = await apiService.get('/subscriptions/status/');
+      const response = await api.get('/subscriptions/status/');
       return response.data;
     } catch (error) {
       console.error('Error fetching user subscription:', error);
@@ -26,7 +26,7 @@ class SubscriptionService {
   // Create payment intent for subscription
   async createPaymentIntent(planId) {
     try {
-      const response = await apiService.post('/subscriptions/create-payment-intent/', {
+      const response = await api.post('/subscriptions/create-payment-intent/', {
         plan_id: planId
       });
       return response.data;
@@ -39,7 +39,7 @@ class SubscriptionService {
   // Confirm payment and activate subscription
   async confirmPayment(paymentIntentId) {
     try {
-      const response = await apiService.post('/subscriptions/confirm-payment/', {
+      const response = await api.post('/subscriptions/confirm-payment/', {
         payment_intent_id: paymentIntentId
       });
       return response.data;
@@ -52,7 +52,7 @@ class SubscriptionService {
   // Get payment history
   async getPaymentHistory() {
     try {
-      const response = await apiService.get('/subscriptions/payment-history/');
+      const response = await api.get('/subscriptions/payment-history/');
       return response.data;
     } catch (error) {
       console.error('Error fetching payment history:', error);
@@ -63,7 +63,7 @@ class SubscriptionService {
   // Cancel subscription
   async cancelSubscription() {
     try {
-      const response = await apiService.post('/subscriptions/cancel/');
+      const response = await api.post('/subscriptions/cancel/');
       return response.data;
     } catch (error) {
       console.error('Error canceling subscription:', error);

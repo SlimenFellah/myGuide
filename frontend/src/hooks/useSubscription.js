@@ -25,8 +25,8 @@ export const useSubscription = () => {
   }, []);
 
   const isPremium = () => {
-    return subscription?.status === 'active' && 
-           subscription?.subscription_plan?.name !== 'Free';
+    // Use the is_premium field directly from the API response
+    return subscription?.is_premium === true;
   };
 
   const isActive = () => {
@@ -34,7 +34,8 @@ export const useSubscription = () => {
   };
 
   const getPlanName = () => {
-    return subscription?.subscription_plan?.name || 'Free';
+    // Use plan_name directly from the API response
+    return subscription?.plan_name || 'Free';
   };
 
   const getExpiryDate = () => {

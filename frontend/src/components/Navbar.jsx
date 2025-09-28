@@ -118,21 +118,19 @@ const Navbar = () => {
                   }}
                 />
               )}
-              {isPremium && (
-                <Chip
-                  icon={<Crown size={12} />}
-                  label={planName}
-                  size="small"
-                  sx={{
-                    fontSize: '0.75rem',
-                    height: 20,
-                    backgroundColor: 'rgba(255, 193, 7, 0.1)',
-                    color: '#ff8f00',
-                    fontWeight: 500,
-                    ml: 0.5
-                  }}
-                />
-              )}
+              <Chip
+                icon={isPremium ? <Crown size={12} /> : null}
+                label={planName}
+                size="small"
+                sx={{
+                  fontSize: '0.75rem',
+                  height: 20,
+                  backgroundColor: isPremium ? 'rgba(255, 193, 7, 0.1)' : 'rgba(156, 39, 176, 0.1)',
+                  color: isPremium ? '#ff8f00' : '#9c27b0',
+                  fontWeight: 500,
+                  ml: 0.5
+                }}
+              />
             </Box>
           </Box>
 
@@ -221,7 +219,8 @@ const Navbar = () => {
                 </Typography>
                 <Typography variant="caption" sx={{
                   color: 'text.secondary',
-                  lineHeight: 1.2
+                  lineHeight: 1.2,
+                  fontWeight: 400
                 }}>
                   {user?.email}
                 </Typography>

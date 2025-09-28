@@ -78,11 +78,48 @@ This backend provides a comprehensive REST API for managing tourism data, user a
 ## Setup Instructions
 
 ### Prerequisites
-- Python 3.8+
-- pip
-- Virtual environment (recommended)
+- Python 3.8+ (for local development)
+- Docker & Docker Compose (recommended)
+- Git
 
-### Installation
+### Quick Start with Docker (Recommended)
+
+1. **Clone and setup:**
+   ```bash
+   git clone <repository-url>
+   cd myGuide
+   ```
+
+2. **Environment setup:**
+   ```bash
+   cp .env.template .env
+   # Edit .env with your configuration
+   ```
+
+3. **Start with Docker Compose:**
+   ```bash
+   # Development environment
+   docker-compose up -d
+   
+   # Or use the setup script
+   ./scripts/setup-dev.sh
+   ```
+
+4. **Run initial setup:**
+   ```bash
+   # Database migrations
+   docker-compose exec backend python manage.py migrate
+   
+   # Create superuser (optional)
+   docker-compose exec backend python manage.py createsuperuser
+   
+   # Collect static files
+   docker-compose exec backend python manage.py collectstatic --noinput
+   ```
+
+The API will be available at `http://localhost:8000/`
+
+### Local Development Setup
 
 1. **Create and activate virtual environment:**
    ```bash
@@ -102,7 +139,7 @@ This backend provides a comprehensive REST API for managing tourism data, user a
 
 3. **Environment setup:**
    ```bash
-   cp .env.example .env
+   cp .env.template .env
    # Edit .env with your configuration
    ```
 
@@ -168,12 +205,131 @@ python manage.py test
 
 ## Deployment
 
+### Docker Production Deployment
+
+1. **Production environment setup:**
+   ```bash
+   # Copy and configure production environment
+   cp .env.template .env
+   # Set production values (DEBUG=False, proper database, etc.)
+   ```
+
+2. **Deploy with production compose:**
+   ```bash
+   # Build and start production services
+   docker-compose -f docker-compose.prod.yml up -d
+   
+   # Or use deployment script
+   ./scripts/deploy.sh production
+   ```
+
+3. **SSL/HTTPS Setup:**
+   ```bash
+   # Generate SSL certificates
+   ./scripts/generate-ssl.sh yourdomain.com production
+   
+   # Or use Let's Encrypt
+   certbot certonly --standalone -d yourdomain.com
+   ```
+
+### Manual Production Deployment
+
 For production deployment:
-1. Set `DEBUG=False`
+1. Set `DEBUG=False` in environment variables
 2. Configure proper database (PostgreSQL recommended)
-3. Set up static file serving
-4. Configure CORS settings
+3. Set up static file serving with Nginx
+4. Configure CORS settings for your domain
 5. Use environment variables for sensitive data
+6. Set up SSL/TLS certificates
+7. Configure monitoring and logging
+
+### Environment Variables
+
+Key production environment variables:
+
+```bash
+# Django settings
+DEBUG=False
+SECRET_KEY=your-secret-key
+ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com
+
+# Database
+DATABASE_URL=postgresql://user:password@host:port/database
+
+# Redis
+REDIS_URL=redis://redis:6379/0
+
+# Email
+EMAIL_HOST=smtp.gmail.com
+EMAIL_HOST_USER=your-email@gmail.com
+EMAIL_HOST_PASSWORD=your-app-password
+
+# Security
+SECURE_SSL_REDIRECT=True
+SECURE_PROXY_SSL_HEADER=HTTP_X_FORWARDED_PROTO,https
+```
+
+### Monitoring and Logging
+
+The application includes comprehensive monitoring setup:
+
+1. **Start monitoring stack:**
+   ```bash
+   cd monitoring
+   docker-compose -f docker-compose.monitoring.yml up -d
+   ```
+
+2. **Access monitoring dashboards:**
+   - Grafana: `http://localhost:3001` (admin/admin)
+   - Prometheus: `http://localhost:9090`
+   - Alertmanager: `http://localhost:9093`
+
+3. **View application logs:**
+   ```bash
+   # All services
+   docker-compose logs -f
+   
+   # Specific service
+   docker-compose logs -f backend
+   ```
+
+### CI/CD Pipeline
+
+The project includes GitHub Actions workflows for:
+- Automated testing on pull requests
+- Security scanning (Snyk, CodeQL, secrets)
+- Docker image building and pushing
+- Automated deployment to staging/production
+
+Configure the following secrets in your GitHub repository:
+- `DOCKER_USERNAME` and `DOCKER_PASSWORD`
+- `STAGING_HOST` and `PRODUCTION_HOST`
+- `SSH_PRIVATE_KEY` for deployment
+- `SLACK_WEBHOOK_URL` for notifications
+
+### Health Checks
+
+The backend includes health check endpoints:
+- `GET /health/` - Basic health check
+- `GET /health/db/` - Database connectivity
+- `GET /health/redis/` - Redis connectivity
+
+### Backup and Recovery
+
+1. **Database backup:**
+   ```bash
+   # Create backup
+   docker-compose exec db pg_dump -U postgres myguide > backup.sql
+   
+   # Restore backup
+   docker-compose exec -T db psql -U postgres myguide < backup.sql
+   ```
+
+2. **Automated backups:**
+   ```bash
+   # Set up cron job for daily backups
+   0 2 * * * /path/to/myGuide/scripts/backup.sh
+   ```
 
 ## Contributing
 

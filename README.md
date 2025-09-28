@@ -23,6 +23,9 @@ MyGuide is an AI-powered tourism application designed to help tourists explore A
 - **Database**: SQLite (development) / PostgreSQL (production)
 - **AI/ML**: Integrated chatbot and trip planning services
 - **Authentication**: JWT tokens with refresh mechanism
+- **DevOps**: Docker, Docker Compose, GitHub Actions CI/CD
+- **Monitoring**: Prometheus, Grafana, Alertmanager
+- **Web Server**: Nginx with SSL/TLS support
 
 ## Project Structure
 ```
@@ -35,6 +38,8 @@ myGuide/
 │   │   ├── services/          # API service functions
 │   │   ├── assets/            # Images, logos, and static files
 │   │   └── utils/             # Utility functions
+│   ├── Dockerfile             # Multi-stage Docker build
+│   ├── nginx.conf             # Nginx configuration
 │   └── package.json
 ├── backend/                     # Django REST API server
 │   ├── authentication/        # User authentication app
@@ -42,8 +47,30 @@ myGuide/
 │   ├── trip_planner/          # AI trip planning features
 │   ├── chatbot/               # RAG chatbot implementation
 │   ├── myguide_backend/       # Django project settings
+│   ├── Dockerfile             # Multi-stage Docker build
 │   ├── requirements.txt       # Python dependencies
 │   └── manage.py
+├── .github/workflows/          # CI/CD pipelines
+│   ├── ci.yml                 # Main CI/CD workflow
+│   └── security.yml           # Security scanning
+├── monitoring/                 # Monitoring stack
+│   ├── prometheus.yml         # Prometheus configuration
+│   ├── grafana/               # Grafana dashboards
+│   ├── alertmanager.yml       # Alert configuration
+│   └── docker-compose.monitoring.yml
+├── nginx/                      # Nginx configurations
+│   ├── ssl.conf               # SSL/TLS settings
+│   └── security.conf          # Security headers
+├── scripts/                    # Deployment scripts
+│   ├── deploy.sh              # Production deployment
+│   ├── setup-dev.sh           # Development setup
+│   ├── generate-ssl.sh        # SSL certificate generation
+│   └── init-db.sql            # Database initialization
+├── secrets/                    # Kubernetes secrets template
+│   └── secrets-template.yaml
+├── docker-compose.yml          # Development environment
+├── docker-compose.prod.yml     # Production environment
+├── .env.template              # Environment variables template
 ├── docs/                       # Documentation and diagrams
 │   └── er_diagram.png         # Database ER diagram
 ├── generate_er_diagram.py     # Script to generate ER diagram
@@ -74,62 +101,363 @@ The Django REST API provides the following main endpoints:
 - `/api/chatbot/` - RAG chatbot interactions
 - `/api/admin/` - Administrative functions
 
-## Getting Started
+## Quick Start
 
-### Backend Setup
-1. Navigate to the backend directory:
+### Docker Setup (Recommended)
+
+The fastest way to get MyGuide running is using Docker:
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd myGuide
+
+# Copy environment template
+cp .env.template .env
+
+# Start the application
+docker-compose up -d
+
+# Run database migrations
+docker-compose exec backend python manage.py migrate
+
+# Create superuser (optional)
+docker-compose exec backend python manage.py createsuperuser
+
+# Load sample data (optional)
+docker-compose exec backend python manage.py loaddata sample_data.json
+```
+
+**Access the application:**
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:8000
+- Admin Panel: http://localhost:8000/admin
+
+### Development Setup Script
+
+For automated development environment setup:
+
+```bash
+# Make script executable (Linux/Mac)
+chmod +x scripts/setup-dev.sh
+
+# Run setup script
+./scripts/setup-dev.sh
+
+# Or on Windows
+powershell -ExecutionPolicy Bypass -File scripts/setup-dev.ps1
+```
+
+## Environment Configuration
+
+### Required Environment Variables
+
+Create a `.env` file in the project root:
+
+```env
+# Django Settings
+DEBUG=True
+SECRET_KEY=your-secret-key-here
+ALLOWED_HOSTS=localhost,127.0.0.1
+
+# Database Configuration
+DATABASE_URL=postgresql://myguide:password@db:5432/myguide_db
+
+# Redis Configuration
+REDIS_URL=redis://redis:6379/0
+
+# Email Configuration
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_HOST_USER=your-email@gmail.com
+EMAIL_HOST_PASSWORD=your-app-password
+
+# AI/ML Services
+OPENAI_API_KEY=your-openai-key
+HUGGINGFACE_API_KEY=your-huggingface-key
+
+# Frontend Configuration
+VITE_API_BASE_URL=http://localhost:8000/api
+VITE_WS_BASE_URL=ws://localhost:8000/ws
+```
+
+## Development Workflow
+
+### Local Development
+
+1. **Backend Development**:
    ```bash
    cd backend
-   ```
-
-2. Create and activate virtual environment:
-   ```bash
    python -m venv venv
-   venv\Scripts\activate  # Windows
-   # or
    source venv/bin/activate  # Linux/Mac
-   ```
-
-3. Install dependencies:
-   ```bash
+   # or venv\Scripts\activate  # Windows
    pip install -r requirements.txt
-   ```
-
-4. Run migrations:
-   ```bash
-   python manage.py migrate
-   ```
-
-5. Create superuser (optional):
-   ```bash
-   python manage.py createsuperuser
-   ```
-
-6. Start the development server:
-   ```bash
    python manage.py runserver
    ```
 
-### Frontend Setup
-1. Navigate to the frontend directory:
+2. **Frontend Development**:
    ```bash
    cd frontend
-   ```
-
-2. Install dependencies:
-   ```bash
    npm install
-   ```
-
-3. Start the development server:
-   ```bash
    npm run dev
    ```
 
-### Generate ER Diagram
-To regenerate the database ER diagram:
+3. **Database Operations**:
+   ```bash
+   # Create migrations
+   python manage.py makemigrations
+   
+   # Apply migrations
+   python manage.py migrate
+   
+   # Create superuser
+   python manage.py createsuperuser
+   ```
+
+### Docker Development
+
 ```bash
-python generate_er_diagram.py
+# Start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Execute commands in containers
+docker-compose exec backend python manage.py migrate
+docker-compose exec frontend npm run build
+
+# Stop services
+docker-compose down
+```
+
+## Production Deployment
+
+### Prerequisites
+
+- Docker and Docker Compose
+- SSL certificates (Let's Encrypt recommended)
+- Domain name configured
+- Server with adequate resources
+
+### Deployment Steps
+
+1. **Server Setup**:
+   ```bash
+   # Clone repository
+   git clone <repository-url>
+   cd myGuide
+   
+   # Copy and configure environment
+   cp .env.template .env
+   # Edit .env with production values
+   ```
+
+2. **SSL Certificate Generation**:
+   ```bash
+   # Generate SSL certificates
+   ./scripts/generate-ssl.sh production your-domain.com
+   ```
+
+3. **Deploy Application**:
+   ```bash
+   # Deploy to production
+   ./scripts/deploy.sh production
+   
+   # Check deployment status
+   ./scripts/deploy.sh status
+   ```
+
+4. **Verify Deployment**:
+   ```bash
+   # Check service health
+   curl -f http://your-domain.com/api/health/
+   
+   # View application logs
+   docker-compose -f docker-compose.prod.yml logs -f
+   ```
+
+### Production Configuration
+
+The production setup includes:
+
+- **Nginx**: Reverse proxy with SSL termination
+- **Gunicorn**: WSGI server for Django
+- **PostgreSQL**: Production database
+- **Redis**: Caching and session storage
+- **Celery**: Background task processing
+- **Let's Encrypt**: Automatic SSL certificates
+
+## Monitoring and Observability
+
+### Monitoring Stack
+
+Start the monitoring stack:
+
+```bash
+# Start monitoring services
+docker-compose -f monitoring/docker-compose.monitoring.yml up -d
+
+# Access monitoring dashboards
+# Grafana: http://localhost:3001 (admin/admin)
+# Prometheus: http://localhost:9090
+# Alertmanager: http://localhost:9093
+```
+
+### Key Metrics Monitored
+
+- **Application Performance**: Response times, error rates
+- **System Resources**: CPU, memory, disk usage
+- **Database**: Connection pools, query performance
+- **Infrastructure**: Container health, network metrics
+
+### Alerting
+
+Alerts are configured for:
+- High CPU/memory usage (>80%)
+- Application downtime
+- Database connection issues
+- High error rates (>5%)
+- Disk space low (<10%)
+
+## CI/CD Pipeline
+
+### GitHub Actions Workflows
+
+The project includes automated CI/CD pipelines:
+
+1. **Continuous Integration** (`.github/workflows/ci.yml`):
+   - Code quality checks (ESLint, Black, isort)
+   - Security scanning (Snyk, CodeQL)
+   - Unit and integration tests
+   - Docker image building
+
+2. **Security Scanning** (`.github/workflows/security.yml`):
+   - Dependency vulnerability scanning
+   - Secret detection
+   - Container image scanning
+   - License compliance
+
+### Required Secrets
+
+Configure these secrets in your GitHub repository:
+
+```
+DOCKER_USERNAME=your-docker-username
+DOCKER_PASSWORD=your-docker-password
+PRODUCTION_HOST=your-production-server
+PRODUCTION_USER=deployment-user
+PRODUCTION_SSH_KEY=your-private-ssh-key
+SLACK_WEBHOOK_URL=your-slack-webhook
+```
+
+## Database Management
+
+### Backup and Restore
+
+```bash
+# Create backup
+docker-compose exec db pg_dump -U myguide myguide_db > backup.sql
+
+# Restore from backup
+docker-compose exec -T db psql -U myguide myguide_db < backup.sql
+
+# Automated daily backups
+# Add to crontab: 0 2 * * * /path/to/myGuide/scripts/backup-db.sh
+```
+
+### Migrations
+
+```bash
+# Create new migration
+docker-compose exec backend python manage.py makemigrations
+
+# Apply migrations
+docker-compose exec backend python manage.py migrate
+
+# View migration status
+docker-compose exec backend python manage.py showmigrations
+```
+
+## Security
+
+### Security Features
+
+- **HTTPS/TLS**: SSL certificates with strong ciphers
+- **Security Headers**: HSTS, CSP, X-Frame-Options
+- **Authentication**: JWT with refresh tokens
+- **Rate Limiting**: API endpoint protection
+- **Input Validation**: Comprehensive data sanitization
+- **Secret Management**: Environment-based configuration
+
+### Security Scanning
+
+Regular security scans include:
+- Dependency vulnerability scanning
+- Container image scanning
+- Secret detection in code
+- Static application security testing (SAST)
+
+## Performance Optimization
+
+### Backend Optimizations
+
+- **Database**: Query optimization, connection pooling
+- **Caching**: Redis for session and query caching
+- **Static Files**: CDN integration for media files
+- **Background Tasks**: Celery for async processing
+
+### Frontend Optimizations
+
+- **Code Splitting**: Route-based lazy loading
+- **Asset Optimization**: Image compression, minification
+- **Caching**: Browser and service worker caching
+- **Bundle Analysis**: Webpack bundle analyzer
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Port Conflicts**:
+   ```bash
+   # Check port usage
+   netstat -tulpn | grep :8000
+   
+   # Kill process using port
+   sudo kill -9 $(lsof -t -i:8000)
+   ```
+
+2. **Docker Issues**:
+   ```bash
+   # Clean Docker system
+   docker system prune -a
+   
+   # Rebuild containers
+   docker-compose build --no-cache
+   ```
+
+3. **Database Connection**:
+   ```bash
+   # Check database status
+   docker-compose exec db pg_isready
+   
+   # Reset database
+   docker-compose down -v
+   docker-compose up -d db
+   ```
+
+### Logs and Debugging
+
+```bash
+# View application logs
+docker-compose logs -f backend
+docker-compose logs -f frontend
+
+# Django debug mode
+# Set DEBUG=True in .env file
+
+# Database query logging
+# Add LOGGING configuration in Django settings
 ```
 
 ## Development Status
@@ -142,6 +470,12 @@ python generate_er_diagram.py
 - RAG chatbot integration
 - Admin dashboard
 - Responsive design with TailwindCSS
+- Docker containerization
+- CI/CD pipeline with GitHub Actions
+- Monitoring and alerting system
+- Production deployment scripts
+- Security configurations
+- SSL/TLS setup
 
 ## Contributing
 This project is developed by Slimene Fellah. For collaboration or freelance opportunities, please reach out.

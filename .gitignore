@@ -1,1 +1,76 @@
+# Database files
 db.sqlite3
+*.sqlite3
+*.db
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.staging
+secrets.yaml
+
+# Docker volumes and data
+docker-volumes/
+postgres-data/
+redis-data/
+
+# SSL certificates and keys
+ssl/
+certs/
+*.pem
+*.key
+*.crt
+*.csr
+
+# Monitoring data
+prometheus-data/
+grafana-data/
+alertmanager-data/
+
+# Backup files
+backups/
+*.sql.gz
+*.backup
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Node modules (if any in root)
+node_modules/
+
+# Python cache (if any in root)
+__pycache__/
+*.pyc
+*.pyo
+
+# Coverage reports
+coverage/
+.coverage
+htmlcov/
+
+# Test artifacts
+.pytest_cache/
+.tox/

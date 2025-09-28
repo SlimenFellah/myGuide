@@ -23,4 +23,84 @@ dist-ssr
 *.sln
 *.sw?
 
+# Environment files
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.staging
+
+# Build artifacts
+build/
+out/
+.next/
+.nuxt/
+.cache/
+.parcel-cache/
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env.test
+
+# Storybook build outputs
+.out
+.storybook-out
+storybook-static
+
+# Temporary folders
+tmp/
+temp/
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Frontend DevOps specific files
+nginx.conf.local
+ssl-local/
+.docker/
+
+# Vite specific
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# Testing
+cypress/videos/
+cypress/screenshots/
+test-results/
+playwright-report/
+
+# Bundle analyzer
+bundle-analyzer-report.html
+stats.json
+
+# Source maps (if not needed in production)
+*.map

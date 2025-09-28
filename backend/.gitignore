@@ -177,3 +177,34 @@ cython_debug/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Django/Backend specific DevOps files
+staticfiles/
+static_root/
+media_root/
+
+# Gunicorn
+gunicorn.pid
+gunicorn.sock
+
+# Celery
+celerybeat-schedule.db
+
+# Database backups
+*.sql
+*.sql.gz
+*.dump
+
+# Local development files
+local_settings.py
+.env.local
+.env.development
+
+# Docker build context files
+.dockerignore
+
+# Health check files
+health_check.txt
+
+# Migration backup files
+migrations_backup/

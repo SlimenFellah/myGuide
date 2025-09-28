@@ -172,36 +172,55 @@ const LandingPage = () => {
               Contact
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Button 
-                variant="outlined" 
-                component={Link} 
-                to="/login"
-                sx={{
-                  borderColor: 'divider',
-                  color: 'text.primary',
-                  '&:hover': {
-                    backgroundColor: 'text.primary',
-                    color: 'background.paper'
-                  },
-                  transition: 'all 0.3s'
-                }}
-              >
-                Sign In
-              </Button>
-              <Button 
-                variant="contained" 
-                component={Link} 
-                to="/register"
-                sx={{
-                  '&:hover': {
-                    backgroundColor: 'background.paper',
-                    color: 'primary.main'
-                  },
-                  transition: 'all 0.3s'
-                }}
-              >
-                Get Started
-              </Button>
+              {isAuthenticated ? (
+                <Button 
+                  variant="contained" 
+                  component={Link} 
+                  to="/dashboard"
+                  sx={{
+                    '&:hover': {
+                      backgroundColor: 'background.paper',
+                      color: 'primary.main'
+                    },
+                    transition: 'all 0.3s'
+                  }}
+                >
+                  View Dashboard
+                </Button>
+              ) : (
+                <>
+                  <Button 
+                    variant="outlined" 
+                    component={Link} 
+                    to="/login"
+                    sx={{
+                      borderColor: 'divider',
+                      color: 'text.primary',
+                      '&:hover': {
+                        backgroundColor: 'text.primary',
+                        color: 'background.paper'
+                      },
+                      transition: 'all 0.3s'
+                    }}
+                  >
+                    Sign In
+                  </Button>
+                  <Button 
+                    variant="contained" 
+                    component={Link} 
+                    to="/register"
+                    sx={{
+                      '&:hover': {
+                        backgroundColor: 'background.paper',
+                        color: 'primary.main'
+                      },
+                      transition: 'all 0.3s'
+                    }}
+                  >
+                    Get Started
+                  </Button>
+                </>
+              )}
             </Box>
           </Box>
 
@@ -307,38 +326,58 @@ const LandingPage = () => {
                 borderTop: 1,
                 borderColor: 'divider'
               }}>
-                <Button 
-                  variant="outlined" 
-                  component={Link} 
-                  to="/login"
-                  sx={{
-                    justifyContent: 'flex-start',
-                    borderColor: 'divider',
-                    color: 'text.primary',
-                    '&:hover': {
-                      backgroundColor: 'text.primary',
-                      color: 'background.paper'
-                    },
-                    transition: 'all 0.3s'
-                  }}
-                >
-                  Sign In
-                </Button>
-                <Button 
-                  variant="contained" 
-                  component={Link} 
-                  to="/register"
-                  sx={{
-                    justifyContent: 'flex-start',
-                    '&:hover': {
-                      backgroundColor: 'background.paper',
-                      color: 'primary.main'
-                    },
-                    transition: 'all 0.3s'
-                  }}
-                >
-                  Get Started
-                </Button>
+                {isAuthenticated ? (
+                  <Button 
+                    variant="contained" 
+                    component={Link} 
+                    to="/dashboard"
+                    sx={{
+                      justifyContent: 'flex-start',
+                      '&:hover': {
+                        backgroundColor: 'background.paper',
+                        color: 'primary.main'
+                      },
+                      transition: 'all 0.3s'
+                    }}
+                  >
+                    View Dashboard
+                  </Button>
+                ) : (
+                  <>
+                    <Button 
+                      variant="outlined" 
+                      component={Link} 
+                      to="/login"
+                      sx={{
+                        justifyContent: 'flex-start',
+                        borderColor: 'divider',
+                        color: 'text.primary',
+                        '&:hover': {
+                          backgroundColor: 'text.primary',
+                          color: 'background.paper'
+                        },
+                        transition: 'all 0.3s'
+                      }}
+                    >
+                      Sign In
+                    </Button>
+                    <Button 
+                      variant="contained" 
+                      component={Link} 
+                      to="/register"
+                      sx={{
+                        justifyContent: 'flex-start',
+                        '&:hover': {
+                          backgroundColor: 'background.paper',
+                          color: 'primary.main'
+                        },
+                        transition: 'all 0.3s'
+                      }}
+                    >
+                      Get Started
+                    </Button>
+                  </>
+                )}
               </Box>
             </Box>
           </Box>
@@ -409,42 +448,85 @@ const LandingPage = () => {
                 flexDirection: { xs: 'column', sm: 'row' }, 
                 gap: 2 
               }}>
-                <Button 
-                  size="large" 
-                  variant="contained"
-                  component={Link} 
-                  to="/register"
-                  sx={{
-                    fontSize: '1rem',
-                    '&:hover': {
-                      backgroundColor: 'background.paper',
-                      color: 'primary.main'
-                    },
-                    transition: 'all 0.3s'
-                  }}
-                >
-                  <Navigation style={{ marginRight: 8, width: 20, height: 20 }} />
-                  Start Your Journey
-                </Button>
-                <Button 
-                  size="large" 
-                  variant="outlined" 
-                  component={Link} 
-                  to="/explore"
-                  sx={{
-                    fontSize: '1rem',
-                    borderColor: 'divider',
-                    color: 'text.primary',
-                    '&:hover': {
-                      backgroundColor: 'text.primary',
-                      color: 'background.paper'
-                    },
-                    transition: 'all 0.3s'
-                  }}
-                >
-                  <Globe style={{ marginRight: 8, width: 20, height: 20 }} />
-                  Explore Destinations
-                </Button>
+                {isAuthenticated ? (
+                  <>
+                    <Button 
+                      size="large" 
+                      variant="contained"
+                      component={Link} 
+                      to="/dashboard"
+                      sx={{
+                        fontSize: '1rem',
+                        '&:hover': {
+                          backgroundColor: 'background.paper',
+                          color: 'primary.main'
+                        },
+                        transition: 'all 0.3s'
+                      }}
+                    >
+                      <Navigation style={{ marginRight: 8, width: 20, height: 20 }} />
+                      Go to Dashboard
+                    </Button>
+                    <Button 
+                      size="large" 
+                      variant="outlined" 
+                      component={Link} 
+                      to="/explore"
+                      sx={{
+                        fontSize: '1rem',
+                        borderColor: 'divider',
+                        color: 'text.primary',
+                        '&:hover': {
+                          backgroundColor: 'text.primary',
+                          color: 'background.paper'
+                        },
+                        transition: 'all 0.3s'
+                      }}
+                    >
+                      <Globe style={{ marginRight: 8, width: 20, height: 20 }} />
+                      Continue Exploring
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button 
+                      size="large" 
+                      variant="contained"
+                      component={Link} 
+                      to="/register"
+                      sx={{
+                        fontSize: '1rem',
+                        '&:hover': {
+                          backgroundColor: 'background.paper',
+                          color: 'primary.main'
+                        },
+                        transition: 'all 0.3s'
+                      }}
+                    >
+                      <Navigation style={{ marginRight: 8, width: 20, height: 20 }} />
+                      Start Your Journey
+                    </Button>
+                    <Button 
+                      size="large" 
+                      variant="outlined" 
+                      component={Link} 
+                      to="/explore"
+                      sx={{
+                        fontSize: '1rem',
+                        borderColor: 'divider',
+                        color: 'text.primary',
+                        '&:hover': {
+                          backgroundColor: 'text.primary',
+                          color: 'background.paper'
+                        },
+                        transition: 'all 0.3s'
+                      }}
+                    >
+                      <Globe style={{ marginRight: 8, width: 20, height: 20 }} />
+                      Explore Destinations
+                    </Button>
+                  </>
+                )}
               </Box>
               
               <Box sx={{ 
@@ -597,42 +679,85 @@ const LandingPage = () => {
                   with MyGuide's intelligent travel assistance.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button 
-                    size="large" 
-                    variant="contained" 
-                    component={Link} 
-                    to="/register"
-                    sx={{
-                      fontSize: '1rem',
-                      backgroundColor: 'background.paper',
-                      color: 'primary.main',
-                      '&:hover': {
-                        backgroundColor: 'primary.contrastText',
-                        color: 'primary.main'
-                      },
-                      transition: 'all 0.3s'
-                    }}
-                  >
-                    Get Started Free
-                  </Button>
-                  <Button 
-                    size="large" 
-                    variant="outlined" 
-                    component={Link} 
-                    to="/explore"
-                    sx={{
-                      fontSize: '1rem',
-                      borderColor: 'rgba(255, 255, 255, 0.4)',
-                      color: 'primary.contrastText',
-                      '&:hover': {
-                        backgroundColor: 'primary.contrastText',
-                        color: 'primary.main'
-                      },
-                      transition: 'all 0.3s'
-                    }}
-                  >
-                    Explore Now
-                  </Button>
+                  {isAuthenticated ? (
+                    <>
+                      <Button 
+                        size="large" 
+                        variant="contained" 
+                        component={Link} 
+                        to="/dashboard"
+                        sx={{
+                          fontSize: '1rem',
+                          backgroundColor: 'background.paper',
+                          color: 'primary.main',
+                          '&:hover': {
+                            backgroundColor: 'primary.contrastText',
+                            color: 'primary.main'
+                          },
+                          transition: 'all 0.3s'
+                        }}
+                      >
+                        Access Dashboard
+                      </Button>
+                      <Button 
+                        size="large" 
+                        variant="outlined" 
+                        component={Link} 
+                        to="/explore"
+                        sx={{
+                          fontSize: '1rem',
+                          borderColor: 'rgba(255, 255, 255, 0.4)',
+                          color: 'primary.contrastText',
+                          '&:hover': {
+                            backgroundColor: 'primary.contrastText',
+                            color: 'primary.main'
+                          },
+                          transition: 'all 0.3s'
+                        }}
+                      >
+                        Explore Now
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button 
+                        size="large" 
+                        variant="contained" 
+                        component={Link} 
+                        to="/register"
+                        sx={{
+                          fontSize: '1rem',
+                          backgroundColor: 'background.paper',
+                          color: 'primary.main',
+                          '&:hover': {
+                            backgroundColor: 'primary.contrastText',
+                            color: 'primary.main'
+                          },
+                          transition: 'all 0.3s'
+                        }}
+                      >
+                        Get Started Free
+                      </Button>
+                      <Button 
+                        size="large" 
+                        variant="outlined" 
+                        component={Link} 
+                        to="/explore"
+                        sx={{
+                          fontSize: '1rem',
+                          borderColor: 'rgba(255, 255, 255, 0.4)',
+                          color: 'primary.contrastText',
+                          '&:hover': {
+                            backgroundColor: 'primary.contrastText',
+                            color: 'primary.main'
+                          },
+                          transition: 'all 0.3s'
+                        }}
+                      >
+                        Explore Now
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             </CardContent>

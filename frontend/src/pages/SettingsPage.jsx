@@ -83,8 +83,12 @@ const SettingsPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-      <div className="container mx-auto px-4 py-8">
+    <Box sx={{ 
+      minHeight: '100vh', 
+      background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(255, 255, 255, 1) 50%, rgba(33, 198, 83, 0.05) 100%)',
+      pt: 2
+    }}>
+      <Container maxWidth="lg" sx={{ py: 4 }}>
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center space-x-3 mb-4">
@@ -383,8 +387,8 @@ const SettingsPage = () => {
             )}
           </Button>
         </div>
-      </div>
-    </div>
+      </Container>
+    </Box>
   );
 };
 

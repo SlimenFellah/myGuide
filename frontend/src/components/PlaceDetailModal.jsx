@@ -159,10 +159,12 @@ const PlaceDetailModal = ({ open, onClose, placeId }) => {
       onClose={onClose}
       maxWidth="lg"
       fullWidth
-      sx={{
-        '& .MuiDialog-paper': {
+      PaperProps={{
+        sx: {
           borderRadius: 2,
-          maxHeight: '90vh'
+          maxHeight: '90vh',
+          width: '95vw',
+          maxWidth: '1200px'
         }
       }}
     >
@@ -184,15 +186,20 @@ const PlaceDetailModal = ({ open, onClose, placeId }) => {
         </IconButton>
       </DialogTitle>
 
-      <DialogContent sx={{ p: 0 }}>
+      <DialogContent sx={{ p: 0, overflow: 'auto', maxHeight: '80vh' }}>
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
             <CircularProgress />
           </Box>
         ) : place ? (
           <Box>
-            {/* Image Gallery */}
-            <Box sx={{ position: 'relative', height: 400, overflow: 'hidden' }}>
+            {/* Hero Image Section */}
+            <Box sx={{ 
+              position: 'relative', 
+              height: { xs: 250, md: 400 },
+              overflow: 'hidden',
+              borderRadius: '8px 8px 0 0'
+            }}>
               <img
                 src={place.images?.[selectedImageIndex]?.image || place.main_image || '/api/placeholder/800/400'}
                 alt={place.name}
@@ -202,6 +209,90 @@ const PlaceDetailModal = ({ open, onClose, placeId }) => {
                   objectFit: 'cover'
                 }}
               />
+              
+              {/* Gradient Overlay */}
+              <Box sx={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: '50%',
+                background: 'linear-gradient(to top, rgba(0,0,0,0.7), transparent)'
+              }} />
+              
+              {/* Place Title Overlay */}
+              <Box sx={{
+                position: 'absolute',
+                bottom: 24,
+                left: 24,
+                right: 24,
+                color: 'white'
+              }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Chip
+                    icon={React.createElement(getPlaceTypeIcon(place.place_type), { size: 16 })}
+                    label={place.place_type?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    sx={{ 
+                      backgroundColor: 'rgba(255,255,255,0.9)', 
+                      color: '#3b82f6',
+                      fontWeight: 600
+                    }}
+                  />
+                  {place.is_featured && (
+                    <Chip
+                      label="Featured"
+                      sx={{ 
+                        backgroundColor: '#3b82f6', 
+                        color: 'white',
+                        fontWeight: 600
+                      }}
+                    />
+                  )}
+                </Box>
+                
+                <Typography variant="h3" sx={{ 
+                  fontWeight: 700, 
+                  mb: 1,
+                  fontSize: { xs: '1.75rem', md: '2.5rem' },
+                  textShadow: '0 2px 4px rgba(0,0,0,0.5)'
+                }}>
+                  {place.name}
+                </Typography>
+                
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                  <MapPin size={18} style={{ color: 'white' }} />
+                  <Typography variant="h6" sx={{ 
+                    color: 'white',
+                    textShadow: '0 1px 2px rgba(0,0,0,0.5)'
+                  }}>
+                    {place.address || `${place.municipality?.name || place.municipality}, ${place.district?.name || place.district}, ${place.province?.name || place.province}`}
+                  </Typography>
+                </Box>
+                
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Rating value={parseFloat(place.average_rating)} readOnly precision={0.1} size="small" />
+                    <Typography variant="body1" sx={{ 
+                      color: 'white',
+                      textShadow: '0 1px 2px rgba(0,0,0,0.5)'
+                    }}>
+                      {place.average_rating} ({place.total_ratings} reviews)
+                    </Typography>
+                  </Box>
+                  
+                  {place.entry_fee && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <DollarSign size={18} style={{ color: 'white' }} />
+                      <Typography variant="body1" sx={{ 
+                        color: 'white',
+                        textShadow: '0 1px 2px rgba(0,0,0,0.5)'
+                      }}>
+                        ${place.entry_fee} entry fee
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
+              </Box>
               
               {/* Image Navigation */}
               {place.images && place.images.length > 1 && (
@@ -264,216 +355,289 @@ const PlaceDetailModal = ({ open, onClose, placeId }) => {
               </Box>
             </Box>
 
-            {/* Content */}
-            <Box sx={{ p: 3 }}>
-              <Grid container spacing={3}>
-                {/* Main Info */}
+            {/* Content Section */}
+            <Box sx={{ p: { xs: 3, md: 4 } }}>
+              <Grid container spacing={4}>
+                {/* Main Content */}
                 <Grid item xs={12} md={8}>
-                  <Box sx={{ mb: 3 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                      <Chip
-                        icon={React.createElement(getPlaceTypeIcon(place.place_type), { size: 16 })}
-                        label={place.place_type?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                        variant="outlined"
-                        sx={{ borderColor: '#3b82f6', color: '#3b82f6' }}
-                      />
-                      {place.is_featured && (
-                        <Chip
-                          label="Featured"
-                          color="primary"
-                          size="small"
-                        />
-                      )}
-                    </Box>
-                    
-                    <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-                      {place.name}
-                    </Typography>
-                    
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                      <MapPin size={16} style={{ color: '#6b7280' }} />
-                      <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-                        {place.address || `${place.municipality?.name || place.municipality}, ${place.district?.name || place.district}, ${place.province?.name || place.province}`}
-                      </Typography>
-                    </Box>
-                    
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 3 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Rating value={parseFloat(place.average_rating)} readOnly precision={0.1} size="small" />
-                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                          {place.average_rating} ({place.total_ratings} reviews)
-                        </Typography>
-                      </Box>
-                      
-                      {place.entry_fee && (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <DollarSign size={16} style={{ color: '#6b7280' }} />
-                          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                            ${place.entry_fee} entry fee
-                          </Typography>
-                        </Box>
-                      )}
-                    </Box>
-                  </Box>
-                  
-                  <Divider sx={{ my: 3 }} />
-                  
-                  {/* Description */}
-                  <Box sx={{ mb: 3 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+                  {/* About Section */}
+                  <Box sx={{ mb: 4 }}>
+                    <Typography variant="h5" sx={{ 
+                      fontWeight: 700, 
+                      mb: 2,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1
+                    }}>
                       About this place
                     </Typography>
-                    <Typography variant="body1" sx={{ lineHeight: 1.7, color: 'text.secondary' }}>
-                      {place.description}
+                    <Typography variant="body1" sx={{ 
+                      lineHeight: 1.7,
+                      color: 'text.secondary',
+                      fontSize: '1.1rem'
+                    }}>
+                      {place.description || 'No description available for this place.'}
                     </Typography>
                   </Box>
-                  
-                  {/* Tags */}
-                  {place.tags && place.tags.length > 0 && (
-                    <Box sx={{ mb: 3 }}>
-                      <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                        Tags
-                      </Typography>
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                        {place.tags.map((tag, index) => (
-                          <Chip
-                            key={index}
-                            label={tag}
-                            variant="outlined"
-                            size="small"
-                            sx={{ borderColor: '#e5e7eb', color: '#6b7280' }}
-                          />
-                        ))}
-                      </Box>
-                    </Box>
-                  )}
-                  
-                  {/* Amenities */}
+
+                  <Divider sx={{ my: 4 }} />
+
+                  {/* Features/Amenities Section */}
                   {place.amenities && place.amenities.length > 0 && (
-                    <Box sx={{ mb: 3 }}>
-                      <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                        Amenities
+                    <Box sx={{ mb: 4 }}>
+                      <Typography variant="h5" sx={{ 
+                        fontWeight: 700, 
+                        mb: 3,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1
+                      }}>
+                        Features & Amenities
                       </Typography>
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
                         {place.amenities.map((amenity, index) => {
                           const AmenityIcon = getAmenityIcon(amenity);
                           return (
                             <Chip
                               key={index}
-                              icon={AmenityIcon ? <AmenityIcon size={16} /> : undefined}
+                              icon={AmenityIcon ? React.createElement(AmenityIcon, { size: 16 }) : undefined}
                               label={amenity.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                               variant="filled"
-                              size="small"
-                              sx={{ backgroundColor: '#f3f4f6', color: '#374151' }}
+                              sx={{ 
+                                backgroundColor: '#f3f4f6', 
+                                color: '#374151',
+                                '&:hover': {
+                                  backgroundColor: '#e5e7eb'
+                                }
+                              }}
                             />
                           );
                         })}
                       </Box>
                     </Box>
                   )}
+
+                  <Divider sx={{ my: 4 }} />
+
+                  {/* Reviews Section */}
+                  <Box sx={{ mb: 4 }}>
+                    <Typography variant="h5" sx={{ 
+                      fontWeight: 700, 
+                      mb: 3,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1
+                    }}>
+                      <Star size={20} />
+                      Reviews & Ratings
+                    </Typography>
+                    
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                      <Rating value={parseFloat(place.average_rating)} readOnly precision={0.1} size="large" />
+                      <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                        {place.average_rating} out of 5
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        ({place.total_ratings} reviews)
+                      </Typography>
+                    </Box>
+                    
+                    {place.feedbacks && place.feedbacks.length > 0 ? (
+                      <Box sx={{ mt: 3 }}>
+                        {place.feedbacks.slice(0, 3).map((feedback, index) => (
+                          <Card key={index} sx={{ mb: 2, boxShadow: 1 }}>
+                            <CardContent>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                                <Avatar sx={{ width: 40, height: 40 }}>
+                                  {feedback.user?.first_name?.[0] || feedback.user?.username?.[0] || 'U'}
+                                </Avatar>
+                                <Box>
+                                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                                    {feedback.user?.first_name || feedback.user?.username || 'Anonymous'}
+                                  </Typography>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <Rating value={feedback.rating} readOnly size="small" />
+                                    <Typography variant="caption" color="text.secondary">
+                                      {new Date(feedback.created_at).toLocaleDateString()}
+                                    </Typography>
+                                  </Box>
+                                </Box>
+                              </Box>
+                              <Typography variant="body2" color="text.secondary">
+                                {feedback.comment}
+                              </Typography>
+                            </CardContent>
+                          </Card>
+                        ))}
+                        {place.feedbacks.length > 3 && (
+                          <Typography variant="body2" color="primary" sx={{ textAlign: 'center', mt: 2 }}>
+                            And {place.feedbacks.length - 3} more reviews...
+                          </Typography>
+                        )}
+                      </Box>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary">
+                        No reviews yet. Be the first to review this place!
+                      </Typography>
+                    )}
+                  </Box>
                 </Grid>
                 
                 {/* Sidebar */}
                 <Grid item xs={12} md={4}>
-                  {/* Contact Info */}
-                  <Card sx={{ mb: 3, boxShadow: 1 }}>
-                    <CardContent>
-                      <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                        Contact Information
-                      </Typography>
-                      
-                      {place.phone && (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                          <Phone size={16} style={{ color: '#6b7280' }} />
-                          <Typography variant="body2">{place.phone}</Typography>
-                        </Box>
-                      )}
-                      
-                      {place.email && (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                          <Mail size={16} style={{ color: '#6b7280' }} />
-                          <Typography variant="body2">{place.email}</Typography>
-                        </Box>
-                      )}
-                      
-                      {place.website && (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                          <Globe size={16} style={{ color: '#6b7280' }} />
-                          <Typography 
-                            variant="body2" 
-                            component="a" 
-                            href={place.website} 
-                            target="_blank"
-                            sx={{ color: '#3b82f6', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
-                          >
-                            Visit Website
+                  <Box sx={{ position: 'sticky', top: 24 }}>
+                    {/* Quick Information Card */}
+                    <Card sx={{ mb: 3, boxShadow: 2 }}>
+                      <CardContent>
+                        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
+                          Quick Information
+                        </Typography>
+                        
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary' }}>
+                            Place Type
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                            {place.place_type?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'N/A'}
                           </Typography>
                         </Box>
-                      )}
-                      
-                      <Button
-                        variant="outlined"
-                        startIcon={<Navigation size={16} />}
-                        fullWidth
-                        sx={{ mt: 2 }}
-                        onClick={() => {
-                          const url = `https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}`;
-                          window.open(url, '_blank');
-                        }}
-                      >
-                        Get Directions
-                      </Button>
-                    </CardContent>
-                  </Card>
-                  
-                  {/* Opening Hours */}
-                  {place.opening_hours && Object.keys(place.opening_hours).length > 0 && (
-                    <Card sx={{ mb: 3, boxShadow: 1 }}>
-                      <CardContent>
-                        <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Clock size={16} />
-                          Opening Hours
-                        </Typography>
-                        {formatOpeningHours(place.opening_hours)}
+                        
+                        {place.entry_fee && (
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary' }}>
+                              Entry Fee
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                              ${place.entry_fee}
+                            </Typography>
+                          </Box>
+                        )}
+                        
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary' }}>
+                            Rating
+                          </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Rating value={parseFloat(place.average_rating)} readOnly size="small" />
+                            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                              {place.average_rating} ({place.total_ratings} reviews)
+                            </Typography>
+                          </Box>
+                        </Box>
+                        
+                        {place.category && (
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary' }}>
+                              Category
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                              {place.category?.name || place.category}
+                            </Typography>
+                          </Box>
+                        )}
                       </CardContent>
                     </Card>
-                  )}
-                  
-                  {/* Location Details */}
-                  <Card sx={{ boxShadow: 1 }}>
-                    <CardContent>
-                      <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                        Location Details
-                      </Typography>
-                      
-                      <Box sx={{ mb: 2 }}>
-                        <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary' }}>
-                          Province
+
+                    {/* Contact Info */}
+                    <Card sx={{ mb: 3, boxShadow: 2 }}>
+                      <CardContent>
+                        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
+                          Contact Information
                         </Typography>
-                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                          {place.province?.name || place.province}
+                        
+                        {place.phone && (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                            <Phone size={16} style={{ color: '#6b7280' }} />
+                            <Typography variant="body2">{place.phone}</Typography>
+                          </Box>
+                        )}
+                        
+                        {place.email && (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                            <Mail size={16} style={{ color: '#6b7280' }} />
+                            <Typography variant="body2">{place.email}</Typography>
+                          </Box>
+                        )}
+                        
+                        {place.website && (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                            <Globe size={16} style={{ color: '#6b7280' }} />
+                            <Typography 
+                              variant="body2" 
+                              component="a" 
+                              href={place.website} 
+                              target="_blank"
+                              sx={{ color: '#3b82f6', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+                            >
+                              Visit Website
+                            </Typography>
+                          </Box>
+                        )}
+                        
+                        <Button
+                          variant="outlined"
+                          startIcon={<Navigation size={16} />}
+                          fullWidth
+                          sx={{ mt: 2 }}
+                          onClick={() => {
+                            const url = `https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}`;
+                            window.open(url, '_blank');
+                          }}
+                        >
+                          Get Directions
+                        </Button>
+                      </CardContent>
+                    </Card>
+                    
+                    {/* Opening Hours */}
+                    {place.opening_hours && Object.keys(place.opening_hours).length > 0 && (
+                      <Card sx={{ mb: 3, boxShadow: 2 }}>
+                        <CardContent>
+                          <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Clock size={16} />
+                            Opening Hours
+                          </Typography>
+                          {formatOpeningHours(place.opening_hours)}
+                        </CardContent>
+                      </Card>
+                    )}
+                    
+                    {/* Location Details */}
+                    <Card sx={{ boxShadow: 2 }}>
+                      <CardContent>
+                        <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
+                          Location Details
                         </Typography>
-                      </Box>
-                      
-                      <Box sx={{ mb: 2 }}>
-                        <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary' }}>
-                          District
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                          {place.district?.name || place.district}
-                        </Typography>
-                      </Box>
-                      
-                      <Box>
-                        <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary' }}>
-                          Municipality
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                          {place.municipality?.name || place.municipality}
-                        </Typography>
-                      </Box>
-                    </CardContent>
-                  </Card>
+                        
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary' }}>
+                            Province
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                            {place.province?.name || place.province}
+                          </Typography>
+                        </Box>
+                        
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary' }}>
+                            District
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                            {place.district?.name || place.district}
+                          </Typography>
+                        </Box>
+                        
+                        <Box>
+                          <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary' }}>
+                            Municipality
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                            {place.municipality?.name || place.municipality}
+                          </Typography>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Box>
                 </Grid>
               </Grid>
             </Box>

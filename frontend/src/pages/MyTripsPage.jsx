@@ -189,7 +189,7 @@ const MyTripsPage = () => {
     <Grid item xs={12} sm={6} md={4} key={trip.id}>
       <Card 
         sx={{ 
-          height: '100%', 
+          height: '480px', // Fixed height for all cards
           display: 'flex', 
           flexDirection: 'column',
           transition: 'transform 0.2s, box-shadow 0.2s',
@@ -199,7 +199,7 @@ const MyTripsPage = () => {
           }
         }}
       >
-        <CardContent sx={{ flexGrow: 1 }}>
+        <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
             <Typography variant="h6" component="h2" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
               {trip.title || `${trip.destination || 'Trip'} Adventure`}
@@ -262,24 +262,34 @@ const MyTripsPage = () => {
             )}
           </Box>
           
-          {trip.ai_description && (
-            <Typography 
-              variant="body2" 
-              color="text.secondary" 
-              sx={{ 
-                display: '-webkit-box',
-                WebkitLineClamp: 3,
-                WebkitBoxOrient: 'vertical',
-                overflow: 'hidden',
-                lineHeight: 1.4
-              }}
-            >
-              {trip.ai_description}
-            </Typography>
-          )}
+          {/* Description with fixed height */}
+          <Box sx={{ 
+            flex: 1, 
+            display: 'flex', 
+            alignItems: 'flex-start',
+            minHeight: '72px', // Fixed height for 3 lines
+            mb: 2
+          }}>
+            {trip.ai_description && (
+              <Typography 
+                variant="body2" 
+                color="text.secondary" 
+                sx={{ 
+                  display: '-webkit-box',
+                  WebkitLineClamp: 3,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                  lineHeight: 1.4,
+                  height: '100%'
+                }}
+              >
+                {trip.ai_description}
+              </Typography>
+            )}
+          </Box>
         </CardContent>
         
-        <CardActions sx={{ p: 2, pt: 0 }}>
+        <CardActions sx={{ p: 2, pt: 0, mt: 'auto' }}>
           <Button 
             size="small" 
             variant="contained"

@@ -298,33 +298,6 @@ const ExplorePage = () => {
             e.target.src = '/elementor-placeholder-image.png';
           }}
         />
-        <Button 
-          size="small"
-          variant={place.isFavorite ? "contained" : "outlined"}
-          onClick={(e) => {
-            e.stopPropagation();
-            handleFavoriteToggle(place.id);
-          }}
-          sx={{
-            position: 'absolute',
-            top: 12,
-            right: 12,
-            minWidth: 32,
-            width: 32,
-            height: 32,
-            borderRadius: '50%',
-            boxShadow: 2,
-            backgroundColor: place.isFavorite ? '#ef4444' : 'rgba(255,255,255,0.9)',
-            color: place.isFavorite ? 'white' : '#6b7280',
-            border: 0,
-            '&:hover': {
-              backgroundColor: place.isFavorite ? '#dc2626' : 'white',
-              color: place.isFavorite ? 'white' : '#ef4444'
-            }
-          }}
-        >
-          <Heart size={14} className={place.isFavorite ? 'fill-current' : ''} />
-        </Button>
         <Box sx={{
           position: 'absolute',
           bottom: 12,
@@ -826,11 +799,18 @@ const ExplorePage = () => {
                     }}
                   >
                     <MenuItem value="all">All Provinces</MenuItem>
-                    {Array.isArray(provinces) && provinces.map((province) => (
+                    {Array.isArray(provinces) && provinces.length > 0 ? provinces.map((province) => (
                       <MenuItem key={province.id} value={province.name}>
-                        {province.name} ({province.placesCount} places)
+                        {province.name}
                       </MenuItem>
-                    ))}
+                    )) : (
+                      // Fallback provinces if API fails
+                      ['Algiers', 'Oran', 'Constantine', 'Annaba', 'Batna', 'Tlemcen', 'Sétif', 'Béjaïa', 'Tizi Ouzou', 'Blida'].map((provinceName) => (
+                        <MenuItem key={provinceName} value={provinceName}>
+                          {provinceName}
+                        </MenuItem>
+                      ))
+                    )}
                   </TextField>
                 </Grid>
               </Grid>

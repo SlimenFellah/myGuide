@@ -63,7 +63,7 @@ def generate_er_diagram():
             '--group-models',
             '--verbose-names',
             '--arrow-shape', 'normal',
-            'authentication', 'tourism', 'trip_planner', 'chatbot'
+            'authentication', 'tourism', 'trip_planner', 'chatbot', 'subscriptions'
         ]
         
         print("Generating ER diagram...")
@@ -93,10 +93,10 @@ def main():
         print(f"✗ Failed to setup Django: {e}")
         return
     
-    # Install requirements
-    if not install_requirements():
-        print("✗ Failed to install required packages")
-        return
+    # # Install requirements
+    # if not install_requirements():
+    #     print("✗ Failed to install required packages")
+    #     return
     
     # Generate ER diagram
     if generate_er_diagram():

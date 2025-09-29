@@ -67,8 +67,8 @@ const Dashboard = () => {
     const loadDashboardData = async () => {
       try {
         // Fetch popular places (places with most reviews)
-        const placesResponse = await apiService.get('/tourism/places/');
-        if (placesResponse.data && Array.isArray(placesResponse.data)) {
+        const placesResponse = await apiService.tourism.getPlaces();
+        if (placesResponse && placesResponse.success && Array.isArray(placesResponse.data)) {
           // Sort places by review count and take top 5
           const sortedPlaces = placesResponse.data
             .filter(place => place.reviews_count > 0)
@@ -77,8 +77,12 @@ const Dashboard = () => {
           setPopularPlaces(sortedPlaces);
         } else {
           // If no places with reviews, show top 5 places anyway
-          const allPlaces = placesResponse.data || [];
-          setPopularPlaces(allPlaces.slice(0, 5));
+          const allPlaces = (placesResponse && placesResponse.data) ? placesResponse.data : [];
+          if (Array.isArray(allPlaces)) {
+            setPopularPlaces(allPlaces.slice(0, 5));
+          } else {
+            setPopularPlaces([]);
+          }
         }
       } catch (error) {
         console.error('Failed to load dashboard data:', error);
@@ -313,24 +317,21 @@ const Dashboard = () => {
                       />
                     </ListItemAvatar>
                     <ListItemText
-                      primary={
-                        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                          {place.name}
-                        </Typography>
-                      }
+                      primary={place.name}
                       secondary={
-                        <Box>
-                          <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                        <Box component="div">
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }} component="div">
                             {place.province?.name || place.province || 'Unknown Province'}
                           </Typography>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }} component="div">
                             <Rating value={place.average_rating || 0} readOnly size="small" />
-                            <Typography variant="body2" color="text.secondary">
+                            <Typography variant="body2" color="text.secondary" component="span">
                               ({place.reviews_count || 0} reviews)
                             </Typography>
                           </Box>
                         </Box>
                       }
+                      primaryTypographyProps={{ variant: 'h6', sx: { fontWeight: 'bold' } }}
                     />
                     <ListItemSecondaryAction>
                       <Button size="small" variant="outlined" component={Link} to={`/places/${place.id}`}>

@@ -17,6 +17,8 @@ import ProfilePage from '../pages/ProfilePage';
 import SettingsPage from '../pages/SettingsPage';
 import MyTripsPage from '../pages/MyTripsPage';
 import SubscriptionPage from '../pages/SubscriptionPage';
+import SubscriptionSuccessPage from '../pages/SubscriptionSuccessPage';
+import SubscriptionCancelPage from '../pages/SubscriptionCancelPage';
 
 // Components
 import ProtectedRoute from '../components/ProtectedRoute';
@@ -40,6 +42,16 @@ export const publicRoutes = [
     path: '/register',
     element: <RegisterPage />,
     name: 'Register'
+  },
+  {
+    path: '/subscription/success',
+    element: <SubscriptionSuccessPage />,
+    name: 'Subscription Success'
+  },
+  {
+    path: '/subscription/cancel',
+    element: <SubscriptionCancelPage />,
+    name: 'Subscription Cancel'
   }
 ];
 

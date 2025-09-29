@@ -39,9 +39,8 @@ const steps = ['Select Plan', 'Payment', 'Confirmation'];
 
 const SubscriptionPage = () => {
   const navigate = useNavigate();
-  const { isPremium, planName, subscription: currentSubscription } = useSubscription();
+  const { subscription, isPremium, planName, loading: subscriptionLoading, refresh: refreshSubscription } = useSubscription();
   const [plans, setPlans] = useState([]);
-  const [userSubscription, setUserSubscription] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedPlan, setSelectedPlan] = useState(null);
@@ -57,13 +56,11 @@ const SubscriptionPage = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [plansData, subscriptionData] = await Promise.all([
-        subscriptionService.getSubscriptionPlans(),
-        subscriptionService.getUserSubscription()
-      ]);
+      const plansData = await subscriptionService.getSubscriptionPlans();
       // Handle paginated response - extract results array
       setPlans(plansData.results || plansData);
-      setUserSubscription(subscriptionData);
+      // Refresh subscription data
+      refreshSubscription();
     } catch (err) {
       setError('Failed to load subscription data. Please try again.');
       console.error('Error fetching subscription data:', err);
@@ -78,7 +75,7 @@ const SubscriptionPage = () => {
       try {
         setPaymentProcessing(true);
         // For free plans, we might just need to update the user's subscription
-        await fetchData(); // Refresh data
+        refreshSubscription(); // Refresh data
         setError(null);
       } catch (err) {
         setError('Failed to select free plan. Please try again.');
@@ -90,15 +87,17 @@ const SubscriptionPage = () => {
 
     try {
       setSelectedPlan(plan);
-      setActiveStep(1);
       setPaymentProcessing(true);
       
-      const paymentData = await subscriptionService.createPaymentIntent(plan.id);
-      setClientSecret(paymentData.client_secret);
-      setPaymentDialog(true);
+      // Create checkout session and redirect to Stripe Checkout
+      const checkoutData = await subscriptionService.createCheckoutSession(plan.id);
+      
+      // Redirect to Stripe Checkout
+      window.location.href = checkoutData.checkout_url;
+      
     } catch (err) {
       setError('Failed to initialize payment. Please try again.');
-      console.error('Error creating payment intent:', err);
+      console.error('Error creating checkout session:', err);
     } finally {
       setPaymentProcessing(false);
     }
@@ -137,7 +136,7 @@ const SubscriptionPage = () => {
   };
 
   const getCurrentPlanId = () => {
-    return userSubscription?.subscription_plan?.id;
+    return subscription?.plan_id || null;
   };
 
   const handleCancelSubscription = async () => {
@@ -190,8 +189,8 @@ const SubscriptionPage = () => {
               </Box>
               
               <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                {currentSubscription?.end_date 
-                  ? `Expires on ${currentSubscription.expires_on}`
+                {subscription?.end_date 
+                  ? `Expires on ${new Date(subscription.end_date).toLocaleDateString()}`
                   : 'Forever'
                 }
               </Typography>
@@ -308,12 +307,12 @@ const SubscriptionPage = () => {
         </Alert>
       )}
 
-      {userSubscription && (
+      {subscription && (
         <Alert severity="info" sx={{ mb: 4 }}>
-          Current Plan: {userSubscription.subscription_plan?.name || 'Free'} 
-          {userSubscription.status === 'active' && userSubscription.end_date ? (
-            ` (expires on ${new Date(userSubscription.end_date).toLocaleDateString()})`
-          ) : userSubscription.status === 'active' ? (
+          Current Plan: {subscription.plan_name || 'Free'} 
+          {subscription.is_active && subscription.expires_on ? (
+            ` (expires on ${new Date(subscription.expires_on).toLocaleDateString()})`
+          ) : subscription.is_active ? (
             ' (Forever)'
           ) : ''}
         </Alert>

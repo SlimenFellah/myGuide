@@ -139,6 +139,14 @@ class SubscriptionUsage(models.Model):
             self.last_reset_date = today
             self.save()
     
+    def reset_usage(self):
+        """Reset all usage counters (used when changing plans)"""
+        self.trips_created = 0
+        self.chatbot_messages = 0
+        self.api_calls_today = 0
+        self.last_reset_date = timezone.now().date()
+        self.save()
+    
     def can_create_trip(self):
         """Check if user can create more trips based on their plan"""
         if self.subscription.is_premium:

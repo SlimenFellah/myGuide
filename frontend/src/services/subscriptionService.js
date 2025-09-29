@@ -23,15 +23,28 @@ class SubscriptionService {
     }
   }
 
-  // Create payment intent for subscription
-  async createPaymentIntent(planId) {
+  // Create checkout session for subscription
+  async createCheckoutSession(planId) {
     try {
-      const response = await api.post('/subscriptions/create-payment-intent/', {
+      const response = await api.post('/subscriptions/create-checkout-session/', {
         plan_id: planId
       });
       return response.data;
     } catch (error) {
-      console.error('Error creating payment intent:', error);
+      console.error('Error creating checkout session:', error);
+      throw error;
+    }
+  }
+
+  // Verify checkout session after payment
+  async verifyCheckoutSession(sessionId) {
+    try {
+      const response = await api.post('/subscriptions/verify-checkout-session/', {
+        session_id: sessionId
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error verifying checkout session:', error);
       throw error;
     }
   }

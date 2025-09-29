@@ -12,6 +12,9 @@ djangorestframework-simplejwt==5.3.0
 django-ratelimit==4.1.0
 bleach==6.1.0
 
+# Payment Processing
+stripe==7.8.0
+
 # Task Queue
 celery==5.3.4
 redis==5.0.1

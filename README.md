@@ -10,19 +10,79 @@
 MyGuide is an AI-powered tourism application designed to help tourists explore Algeria by providing personalized trip recommendations, interactive maps, and comprehensive information about provinces, districts, municipalities, and places of interest.
 
 ## Features
-- **AI Chatbot**: RAG-powered chatbot for tourism information
-- **Trip Recommendations**: AI-generated personalized travel plans based on budget and preferences
+- **AI-Powered Trip Planning**: Autonomous trip recommendation system with multi-criteria optimization
+- **RAG Chatbot**: Retrieval-Augmented Generation chatbot with LLM integration (Ollama/OpenAI)
+- **AI Content Moderation**: Machine learning-based spam detection for user-generated content
 - **Interactive Maps**: Real-time visualization of places and trip routes
-- **User Management**: Normal users and admin roles
+- **User Management**: Normal users and admin roles with JWT authentication
 - **Place Management**: Comprehensive database of tourist attractions, restaurants, parks, etc.
-- **Feedback System**: User reviews and ratings for places
+- **Feedback System**: User reviews and ratings with AI-powered content filtering
+- **Subscription Management**: Multi-tier subscription system with Stripe integration
+- **Payment Processing**: Secure payment handling with subscription billing
+
+## AI/ML Technologies Overview
+
+### 🤖 Intelligent Trip Planning System
+- **Autonomous Planning Algorithms**: Multi-criteria decision-making for optimal itinerary generation
+- **Hybrid Recommendation Engine**: Combines collaborative filtering, content-based filtering, and popularity-based recommendations
+- **Dynamic Optimization**: Real-time budget allocation, activity scheduling, and destination selection
+- **Confidence Scoring**: AI-powered trip quality assessment with weighted feature analysis
+
+### 🧠 RAG (Retrieval-Augmented Generation) Chatbot
+- **LLM Integration**: Dual-provider support (Ollama for local inference, OpenAI GPT-3.5-turbo as fallback)
+- **Vector Search**: TF-IDF vectorization with cosine similarity for knowledge retrieval
+- **Context-Aware Conversations**: Multi-turn dialogue with conversation history management
+- **Intelligent Fallback**: Rule-based responses when LLM services are unavailable
+- **Sentiment Analysis**: Real-time emotion detection for response optimization
+
+### 🛡️ AI Content Moderation
+- **Multi-Dimensional Spam Detection**: 15+ spam indicators with weighted scoring
+- **Pattern Recognition**: Regex-based detection of suspicious content (URLs, emails, phone numbers)
+- **Linguistic Analysis**: Text structure analysis, capital letter detection, punctuation patterns
+- **Explainable AI**: Detailed reasoning for content moderation decisions
+- **Real-Time Processing**: Low-latency content analysis for immediate feedback
+
+### 🏗️ AI System Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        MyGuide AI Platform                      │
+├─────────────────────────────────────────────────────────────────┤
+│  Frontend (React + Vite)                                       │
+│  ├── AI Chat Interface                                         │
+│  ├── Trip Planning UI                                          │
+│  └── Content Moderation Feedback                               │
+├─────────────────────────────────────────────────────────────────┤
+│  Django REST API Gateway                                       │
+│  ├── Authentication & Authorization                            │
+│  ├── Rate Limiting & Security                                  │
+│  └── API Orchestration                                         │
+├─────────────────────────────────────────────────────────────────┤
+│  AI/ML Services Layer                                          │
+│  ├── RAG Service (TF-IDF + Cosine Similarity)                 │
+│  ├── Trip Planner AI (Multi-criteria Optimization)            │
+│  ├── Spam Detection ML (Pattern Recognition)                   │
+│  └── LLM Integration (Ollama/OpenAI)                          │
+├─────────────────────────────────────────────────────────────────┤
+│  Data Layer                                                    │
+│  ├── PostgreSQL (Structured Data)                             │
+│  ├── Redis (Caching & Sessions)                               │
+│  └── Knowledge Base (Tourism Information)                      │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ## Tech Stack
-- **Frontend**: React.js with Vite, TailwindCSS
+- **Frontend**: React.js with Vite, TailwindCSS, Material-UI components
 - **Backend**: Django REST Framework with JWT authentication
 - **Database**: SQLite (development) / PostgreSQL (production)
-- **AI/ML**: Integrated chatbot and trip planning services
+- **AI/ML Stack**: 
+  - **LLM**: Ollama (local), OpenAI GPT-3.5-turbo (cloud)
+  - **Vector Search**: scikit-learn TF-IDF with cosine similarity
+  - **ML Libraries**: NumPy, pandas for data processing
+  - **NLP**: Regular expressions, text preprocessing
+- **Caching**: Redis for session management and query optimization
 - **Authentication**: JWT tokens with refresh mechanism
+- **Payment Processing**: Stripe for subscription billing and payment handling
 - **DevOps**: Docker, Docker Compose, GitHub Actions CI/CD
 - **Monitoring**: Prometheus, Grafana, Alertmanager
 - **Web Server**: Nginx with SSL/TLS support
@@ -90,6 +150,8 @@ The project includes a comprehensive database schema with the following main ent
 - **Trip Plans**: AI-generated travel itineraries
 - **Feedbacks**: User reviews and ratings
 - **Chatbot**: Knowledge base and conversation history
+- **Subscriptions**: User subscription plans and payment history
+- **Payments**: Stripe integration for billing and transaction management
 
 View the complete ER diagram: `docs/er_diagram.png`
 
@@ -99,6 +161,7 @@ The Django REST API provides the following main endpoints:
 - `/api/tourism/` - Tourism data (provinces, places, etc.)
 - `/api/trip-planner/` - Trip planning and recommendations
 - `/api/chatbot/` - RAG chatbot interactions
+- `/api/subscriptions/` - Subscription management and Stripe payments
 - `/api/admin/` - Administrative functions
 
 ## Quick Start
@@ -175,6 +238,10 @@ EMAIL_HOST_PASSWORD=your-app-password
 # AI/ML Services
 OPENAI_API_KEY=your-openai-key
 HUGGINGFACE_API_KEY=your-huggingface-key
+
+# Stripe Payment Configuration
+STRIPE_SECRET_KEY=sk_test_your-stripe-secret-key
+STRIPE_WEBHOOK_SECRET=whsec_your-stripe-webhook-secret
 
 # Frontend Configuration
 VITE_API_BASE_URL=http://localhost:8000/api
@@ -287,6 +354,7 @@ The production setup includes:
 - **Redis**: Caching and session storage
 - **Celery**: Background task processing
 - **Let's Encrypt**: Automatic SSL certificates
+- **Stripe**: Payment processing (requires live API keys)
 
 ## Monitoring and Observability
 

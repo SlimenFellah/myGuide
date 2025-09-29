@@ -17,6 +17,7 @@ class SubscriptionPlan(models.Model):
     name = models.CharField(max_length=50, choices=PLAN_TYPES, unique=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     duration_days = models.IntegerField()  # 0 for free, 30 for monthly, 365 for annual
+    hierarchy_level = models.IntegerField(default=0)  # 0=free, 1=monthly, 2=annual
     stripe_price_id = models.CharField(max_length=100, blank=True, null=True)
     features = models.JSONField(default=dict)  # Store plan features as JSON
     is_active = models.BooleanField(default=True)
@@ -26,8 +27,32 @@ class SubscriptionPlan(models.Model):
     def __str__(self):
         return f"{self.get_name_display()} - ${self.price}"
     
+    def get_available_upgrades(self):
+        """Get plans that can be upgraded to from this plan"""
+        return SubscriptionPlan.objects.filter(
+            hierarchy_level__gt=self.hierarchy_level,
+            is_active=True
+        ).order_by('hierarchy_level')
+    
+    def get_available_downgrades(self):
+        """Get plans that can be downgraded to from this plan (only cancellation for paid plans)"""
+        if self.name == 'free':
+            return SubscriptionPlan.objects.none()  # Free users can't downgrade
+        # For paid plans, only allow cancellation (downgrade to free)
+        return SubscriptionPlan.objects.filter(name='free', is_active=True)
+    
+    def can_upgrade_to(self, target_plan):
+        """Check if this plan can upgrade to target plan"""
+        return target_plan.hierarchy_level > self.hierarchy_level
+    
+    def can_downgrade_to(self, target_plan):
+        """Check if this plan can downgrade to target plan (only to free)"""
+        if self.name == 'free':
+            return False  # Free users can't downgrade
+        return target_plan.name == 'free'  # Only allow downgrade to free (cancellation)
+    
     class Meta:
-        ordering = ['price']
+        ordering = ['hierarchy_level', 'price']
 
 
 class UserSubscription(models.Model):

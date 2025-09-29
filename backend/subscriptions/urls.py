@@ -6,6 +6,7 @@ app_name = 'subscriptions'
 urlpatterns = [
     # Subscription plans
     path('plans/', views.SubscriptionPlanListView.as_view(), name='subscription-plans'),
+    path('available-options/', views.AvailableOptionsView.as_view(), name='available-options'),
     
     # User subscription management
     path('status/', views.UserSubscriptionStatusView.as_view(), name='subscription-status'),

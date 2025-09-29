@@ -41,6 +41,7 @@ const SubscriptionPage = () => {
   const navigate = useNavigate();
   const { subscription, isPremium, planName, loading: subscriptionLoading, refresh: refreshSubscription } = useSubscription();
   const [plans, setPlans] = useState([]);
+  const [availableOptions, setAvailableOptions] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedPlan, setSelectedPlan] = useState(null);
@@ -59,6 +60,13 @@ const SubscriptionPage = () => {
       const plansData = await subscriptionService.getSubscriptionPlans();
       // Handle paginated response - extract results array
       setPlans(plansData.results || plansData);
+      
+      // Get available options for current user
+      if (isPremium) {
+        const optionsData = await subscriptionService.getAvailableOptions();
+        setAvailableOptions(optionsData);
+      }
+      
       // Refresh subscription data
       refreshSubscription();
     } catch (err) {
@@ -250,14 +258,21 @@ const SubscriptionPage = () => {
           <Card sx={{ height: '100%' }}>
             <CardContent sx={{ p: 3 }}>
               <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>
-                Upgrade Options
+                {availableOptions?.hierarchy_info?.can_upgrade ? 'Upgrade Options' : 
+                 availableOptions?.hierarchy_info?.can_downgrade ? 'Downgrade Options' : 
+                 'Subscription Options'}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                Want to switch to a different plan? Choose from our available options.
+                {availableOptions?.hierarchy_info?.can_upgrade ? 
+                  'Upgrade to a higher tier for more features.' :
+                 availableOptions?.hierarchy_info?.can_downgrade ?
+                  'Downgrade to a lower tier or cancel your subscription.' :
+                  'Manage your subscription options.'}
               </Typography>
 
               <Grid container spacing={2}>
-                {plans.filter(plan => plan.id !== getCurrentPlanId()).map((plan) => (
+                {/* Show upgrade options */}
+                {availableOptions?.upgrade_options?.map((plan) => (
                   <Grid item xs={12} key={plan.id}>
                     <SubscriptionCard
                       plan={plan}
@@ -268,6 +283,28 @@ const SubscriptionPage = () => {
                     />
                   </Grid>
                 ))}
+                
+                {/* Show downgrade options */}
+                {availableOptions?.downgrade_options?.map((plan) => (
+                  <Grid item xs={12} key={plan.id}>
+                    <SubscriptionCard
+                      plan={plan}
+                      isCurrentPlan={false}
+                      onSelectPlan={handleSelectPlan}
+                      loading={paymentProcessing}
+                      compact={true}
+                    />
+                  </Grid>
+                ))}
+                
+                {/* Show message if no options available */}
+                {(!availableOptions?.upgrade_options?.length && !availableOptions?.downgrade_options?.length) && (
+                  <Grid item xs={12}>
+                    <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+                      You're on the highest tier plan. You can only cancel your subscription.
+                    </Typography>
+                  </Grid>
+                )}
               </Grid>
             </CardContent>
           </Card>

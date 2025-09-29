@@ -594,24 +594,27 @@ const ProfilePage = () => {
     <div className="space-y-6">
       <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
         <CardHeader>
-          <CardTitle className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <Typography variant="h6" className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             Change Password
-          </CardTitle>
+          </Typography>
         </CardHeader>
         <CardContent>
           <form onSubmit={handlePasswordChange} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="currentPassword" className="text-sm font-medium">
+            <InputLabel htmlFor="currentPassword" className="text-sm font-medium">
               Current Password
-            </Label>
+            </InputLabel>
             <div className="relative">
-              <Input
+              <TextField
                 id="currentPassword"
                 type={showCurrentPassword ? 'text' : 'password'}
                 value={passwordData.currentPassword}
                 onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
                 className="pr-12 transition-all duration-300 focus:scale-[1.02]"
                 required
+                fullWidth
+                variant="outlined"
+                size="small"
               />
               <Button
                 type="button"
@@ -630,18 +633,21 @@ const ProfilePage = () => {
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="newPassword" className="text-sm font-medium">
+            <InputLabel htmlFor="newPassword" className="text-sm font-medium">
               New Password
-            </Label>
+            </InputLabel>
             <div className="relative">
-              <Input
+              <TextField
                 id="newPassword"
                 type={showNewPassword ? 'text' : 'password'}
                 value={passwordData.newPassword}
                 onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
                 className="pr-12 transition-all duration-300 focus:scale-[1.02]"
                 required
-                minLength={6}
+                inputProps={{ minLength: 6 }}
+                fullWidth
+                variant="outlined"
+                size="small"
               />
               <Button
                 type="button"
@@ -660,18 +666,21 @@ const ProfilePage = () => {
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword" className="text-sm font-medium">
+            <InputLabel htmlFor="confirmPassword" className="text-sm font-medium">
               Confirm New Password
-            </Label>
+            </InputLabel>
             <div className="relative">
-              <Input
+              <TextField
                 id="confirmPassword"
                 type={showConfirmPassword ? 'text' : 'password'}
                 value={passwordData.confirmPassword}
                 onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
                 className="pr-12 transition-all duration-300 focus:scale-[1.02]"
                 required
-                minLength={6}
+                inputProps={{ minLength: 6 }}
+                fullWidth
+                variant="outlined"
+                size="small"
               />
               <Button
                 type="button"
@@ -714,15 +723,15 @@ const ProfilePage = () => {
       {/* Notifications */}
       <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
         <CardHeader>
-          <CardTitle className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <Typography variant="h6" className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             Notifications
-          </CardTitle>
+          </Typography>
         </CardHeader>
         <CardContent>
         <div className="space-y-4">
           <div className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/30 transition-all duration-300">
             <div className="space-y-1">
-              <Label className="text-sm font-medium">Email Notifications</Label>
+              <Typography variant="body2" className="text-sm font-medium">Email Notifications</Typography>
               <p className="text-sm text-muted-foreground">Receive notifications via email</p>
             </div>
             <Switch
@@ -734,7 +743,7 @@ const ProfilePage = () => {
           
           <div className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/30 transition-all duration-300">
             <div className="space-y-1">
-              <Label className="text-sm font-medium">Push Notifications</Label>
+              <Typography variant="body2" className="text-sm font-medium">Push Notifications</Typography>
               <p className="text-sm text-muted-foreground">Receive push notifications on your device</p>
             </div>
             <Switch
@@ -746,7 +755,7 @@ const ProfilePage = () => {
           
           <div className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/30 transition-all duration-300">
             <div className="space-y-1">
-              <Label className="text-sm font-medium">Marketing Emails</Label>
+              <Typography variant="body2" className="text-sm font-medium">Marketing Emails</Typography>
               <p className="text-sm text-muted-foreground">Receive promotional emails and updates</p>
             </div>
             <Switch
@@ -762,29 +771,28 @@ const ProfilePage = () => {
       {/* Language & Region */}
       <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
         <CardHeader>
-          <CardTitle className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <Typography variant="h6" className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             Language & Region
-          </CardTitle>
+          </Typography>
         </CardHeader>
         <CardContent>
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="language" className="text-sm font-medium">
+            <InputLabel htmlFor="language" className="text-sm font-medium">
               Language
-            </Label>
-            <Select
-              value={preferences.language}
-              onValueChange={(value) => setPreferences({ ...preferences, language: value })}
-            >
-              <SelectTrigger className="transition-all duration-300 hover:scale-[1.02]">
-                <SelectValue placeholder="Select language" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="en">English</SelectItem>
-                <SelectItem value="ar">العربية</SelectItem>
-                <SelectItem value="fr">Français</SelectItem>
-              </SelectContent>
-            </Select>
+            </InputLabel>
+            <FormControl fullWidth size="small">
+              <Select
+                value={preferences.language}
+                onChange={(e) => setPreferences({ ...preferences, language: e.target.value })}
+                className="transition-all duration-300 hover:scale-[1.02]"
+              >
+                <MenuItem value="en">English</MenuItem>
+                <MenuItem value="fr">Français</MenuItem>
+                <MenuItem value="ar">العربية</MenuItem>
+                <MenuItem value="es">Español</MenuItem>
+              </Select>
+            </FormControl>
           </div>
           </div>
         </CardContent>
@@ -793,26 +801,27 @@ const ProfilePage = () => {
       {/* Privacy */}
       <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
         <CardHeader>
-          <CardTitle className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <Typography variant="h6" className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             Privacy
-          </CardTitle>
+          </Typography>
         </CardHeader>
         <CardContent>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <InputLabel className="block text-sm font-medium text-gray-700 mb-1">
               Profile Visibility
-            </label>
-            <Select value={preferences.privacy} onValueChange={(value) => setPreferences({ ...preferences, privacy: value })}>
-              <SelectTrigger className="w-full hover:bg-muted/50 transition-colors duration-200">
-                <SelectValue placeholder="Select privacy level" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="public">Public - Anyone can see your profile</SelectItem>
-                <SelectItem value="friends">Friends only</SelectItem>
-                <SelectItem value="private">Private - Only you can see your profile</SelectItem>
-              </SelectContent>
-            </Select>
+            </InputLabel>
+            <FormControl fullWidth size="small">
+              <Select 
+                value={preferences.privacy} 
+                onChange={(e) => setPreferences({ ...preferences, privacy: e.target.value })}
+                className="w-full hover:bg-muted/50 transition-colors duration-200"
+              >
+                <MenuItem value="public">Public - Anyone can see your profile</MenuItem>
+                <MenuItem value="friends">Friends only</MenuItem>
+                <MenuItem value="private">Private - Only you can see your profile</MenuItem>
+              </Select>
+            </FormControl>
           </div>
           </div>
         </CardContent>

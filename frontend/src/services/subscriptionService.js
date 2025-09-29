@@ -83,6 +83,17 @@ class SubscriptionService {
       throw error;
     }
   }
+
+  // Get available upgrade/downgrade options for current user
+  async getAvailableOptions() {
+    try {
+      const response = await api.get('/subscriptions/available-options/');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching available options:', error);
+      throw error;
+    }
+  }
 }
 
 export default new SubscriptionService();

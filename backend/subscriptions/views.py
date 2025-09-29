@@ -498,11 +498,52 @@ class UpgradeSubscriptionView(APIView):
             except UserSubscription.DoesNotExist:
                 return Response({'error': 'No active subscription found'}, status=status.HTTP_404_NOT_FOUND)
 
+            current_plan = subscription.plan
+
             # Check if user is trying to change to the same plan
-            if subscription.plan == new_plan:
+            if current_plan == new_plan:
                 return Response({'error': 'Already subscribed to this plan'}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Check if user has an active Stripe subscription
+            # Validate hierarchical upgrade/downgrade logic
+            if not current_plan.can_upgrade_to(new_plan) and not current_plan.can_downgrade_to(new_plan):
+                if current_plan.hierarchy_level > new_plan.hierarchy_level and new_plan.name != 'free':
+                    return Response({
+                        'error': f'Cannot downgrade from {current_plan.get_name_display()} to {new_plan.get_name_display()}. You can only cancel your subscription.'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                elif current_plan.hierarchy_level < new_plan.hierarchy_level:
+                    return Response({
+                        'error': f'Invalid upgrade path from {current_plan.get_name_display()} to {new_plan.get_name_display()}'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                else:
+                    return Response({
+                        'error': f'Cannot change from {current_plan.get_name_display()} to {new_plan.get_name_display()}'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Handle downgrade to free (cancellation)
+            if new_plan.name == 'free':
+                if not subscription.stripe_subscription_id:
+                    return Response({'error': 'No active Stripe subscription to cancel'}, status=status.HTTP_400_BAD_REQUEST)
+                
+                # Cancel the Stripe subscription
+                stripe.Subscription.modify(
+                    subscription.stripe_subscription_id,
+                    cancel_at_period_end=True
+                )
+                
+                # Update local subscription status but keep it active until period end
+                subscription.status = 'cancelled'
+                subscription.auto_renew = False
+                subscription.save()
+                
+                logger.info(f"Subscription cancelled for user {request.user.id}: {current_plan.name} -> free (at period end)")
+                
+                return Response({
+                    'message': f'Subscription will be cancelled at the end of the current billing period',
+                    'subscription': UserSubscriptionSerializer(subscription).data,
+                    'cancellation_scheduled': True
+                }, status=status.HTTP_200_OK)
+
+            # Handle upgrade (requires active Stripe subscription)
             if not subscription.stripe_subscription_id:
                 return Response({'error': 'No active Stripe subscription found'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -518,8 +559,8 @@ class UpgradeSubscriptionView(APIView):
             )
 
             # Update local subscription
-            old_plan = subscription.plan
             subscription.plan = new_plan
+            subscription.status = 'active'
             subscription.save()
 
             # Reset usage limits for the new plan
@@ -537,10 +578,10 @@ class UpgradeSubscriptionView(APIView):
                 transaction_id=f"plan_change_{stripe_subscription['id']}"
             )
 
-            logger.info(f"Subscription upgraded for user {request.user.id}: {old_plan.name} -> {new_plan.name}")
+            logger.info(f"Subscription upgraded for user {request.user.id}: {current_plan.name} -> {new_plan.name}")
 
             return Response({
-                'message': f'Subscription successfully changed from {old_plan.name} to {new_plan.name}',
+                'message': f'Subscription successfully changed from {current_plan.get_name_display()} to {new_plan.get_name_display()}',
                 'subscription': UserSubscriptionSerializer(subscription).data,
                 'proration_created': True
             }, status=status.HTTP_200_OK)
@@ -921,3 +962,65 @@ def handle_subscription_cancellation(stripe_subscription):
         
     except UserSubscription.DoesNotExist:
         pass
+
+
+class AvailableOptionsView(APIView):
+    """
+    Get available upgrade/downgrade options for the current user
+    based on their current subscription plan hierarchy
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        try:
+            user = request.user
+            
+            # Get user's current subscription
+            try:
+                current_subscription = UserSubscription.objects.get(
+                    user=user, 
+                    is_active=True
+                )
+                current_plan = current_subscription.plan
+            except UserSubscription.DoesNotExist:
+                # User has no active subscription, assume free plan
+                current_plan = SubscriptionPlan.objects.get(name='free')
+            
+            # Get available upgrade and downgrade options
+            upgrade_options = current_plan.get_available_upgrades()
+            downgrade_options = current_plan.get_available_downgrades()
+            
+            # Serialize the options
+            upgrade_serializer = SubscriptionPlanSerializer(upgrade_options, many=True)
+            downgrade_serializer = SubscriptionPlanSerializer(downgrade_options, many=True)
+            
+            response_data = {
+                'current_plan': SubscriptionPlanSerializer(current_plan).data,
+                'upgrade_options': upgrade_serializer.data,
+                'downgrade_options': downgrade_serializer.data,
+                'can_cancel': current_plan.name != 'free',  # Can cancel if not on free plan
+                'hierarchy_info': {
+                    'current_level': current_plan.hierarchy_level,
+                    'can_upgrade': len(upgrade_options) > 0,
+                    'can_downgrade': len(downgrade_options) > 0
+                }
+            }
+            
+            logger.info(f"Available options for user {user.id}: "
+                       f"Current: {current_plan.name} (level {current_plan.hierarchy_level}), "
+                       f"Upgrades: {len(upgrade_options)}, Downgrades: {len(downgrade_options)}")
+            
+            return Response(response_data, status=status.HTTP_200_OK)
+            
+        except SubscriptionPlan.DoesNotExist:
+            logger.error("Free plan not found in database")
+            return Response(
+                {'error': 'Subscription configuration error'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        except Exception as e:
+            logger.error(f"Error getting available options for user {request.user.id}: {str(e)}")
+            return Response(
+                {'error': 'Failed to get available options'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
